@@ -3,10 +3,25 @@
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
+#[derive(
+    Debug,
+    Serialize,
+    Deserialize,
+    PartialEq,
+    EnumIter,
+    DeriveActiveEnum,
+    Eq,
+    PartialOrd,
+    Clone,
+    Copy,
+    Default,
+)]
+#[sea_orm(rs_type = "i32", db_type = "Integer")]
 pub enum UserRole {
-    Device,
-    User,
-    Admin,
+    #[default]
+    Device = 1,
+    User = 2,
+    Admin = 3,
 }
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq, Serialize, Deserialize)]
 #[sea_orm(table_name = "users")]
@@ -16,6 +31,7 @@ pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
     pub pid: Uuid,
+    pub role: UserRole,
     #[sea_orm(unique)]
     pub email: String,
     pub password: String,
