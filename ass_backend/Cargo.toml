@@ -1,4 +1,5 @@
 [workspace]
+members = ["ass_mqtt"]
 
 [package]
 name = "ass_backend"

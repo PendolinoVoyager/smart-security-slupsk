@@ -1,9 +1,9 @@
-use insta::assert_debug_snapshot;
-use loco_rs::{model::ModelError, testing};
 use ass_backend::{
     app::App,
     models::users::{self, Model, RegisterParams},
 };
+use insta::assert_debug_snapshot;
+use loco_rs::{model::ModelError, testing};
 use sea_orm::{ActiveModelTrait, ActiveValue, IntoActiveModel};
 use serial_test::serial;
 
@@ -204,7 +204,6 @@ async fn can_reset_password() {
     let user = Model::find_by_pid(&boot.app_context.db, "11111111-1111-1111-1111-111111111111")
         .await
         .unwrap();
-
     assert!(user.verify_password("12341234"));
 
     assert!(user

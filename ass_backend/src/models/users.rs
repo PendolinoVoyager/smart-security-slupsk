@@ -4,6 +4,8 @@ use loco_rs::{auth::jwt, hash, prelude::*};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+use self::users::UserRole;
+
 pub use super::_entities::users::{self, ActiveModel, Entity, Model};
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -204,11 +206,11 @@ impl super::_entities::users::Model {
             email: ActiveValue::set(params.email.to_string()),
             password: ActiveValue::set(password_hash),
             name: ActiveValue::set(params.name.to_string()),
+            role: ActiveValue::set(UserRole::User),
             ..Default::default()
         }
         .insert(&txn)
         .await?;
-
         txn.commit().await?;
 
         Ok(user)
