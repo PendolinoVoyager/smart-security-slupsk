@@ -1,26 +1,4 @@
-# Welcome to Loco :train:
-
-[Loco](https://loco.rs) is a web and API framework running on Rust.
-
-This is the **Rest API starter** which includes a `User` model and authentication based on JWT.
-
-## Quick Start
-
-```sh
-cargo loco start
-```
-
-```sh
-$ cargo loco start
-Finished dev [unoptimized + debuginfo] target(s) in 21.63s
-    Running `target/debug/myapp start`
-
-    :
-    :
-    :
-
-controller/app_routes.rs:203: [Middleware] Adding log trace id
-
+# Powered by:
                       ▄     ▀
                                  ▀  ▄
                   ▄       ▀     ▄  ▄ ▄▀
@@ -35,17 +13,14 @@ controller/app_routes.rs:203: [Middleware] Adding log trace id
  ██████  █████   ███  ████   ███ █████   ███ ████▀
    ▀▀▀██▄ ▀▀▀▀▀▀▀▀▀▀  ▀▀▀▀▀▀▀▀▀▀  ▀▀▀▀▀▀▀▀▀▀ ██▀
        ▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀
-                https://loco.rs
+ 
+## Visit: https://loco.rs/
 
-environment: development
-   database: automigrate
-     logger: debug
-compilation: debug
-      modes: server
+# RANDOM THOUGhTS
 
-listening on http://localhost:5150
-```
+Runners: cargo loco start
+         cargo mqtt
 
-## Getting help
+Entities definitions: ./src/models/_entities/
 
-Check out [a quick tour](https://loco.rs/docs/getting-started/tour/) or [the complete guide](https://loco.rs/docs/getting-started/guide/).
+cargo loco routes - list routes
