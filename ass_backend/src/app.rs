@@ -50,6 +50,7 @@ impl Hooks for App {
     }
 
     fn register_tasks(tasks: &mut Tasks) {
+        tasks.register(tasks::register_device::RegisterDevice);
         tasks.register(tasks::seed::SeedData);
     }
 
