@@ -13,6 +13,7 @@ impl Task for RegisterDevice {
     }
     async fn run(&self, _app_context: &AppContext, _vars: &task::Vars) -> Result<()> {
         println!("Task RegisterDevice generated");
+
         Ok(())
     }
 }
