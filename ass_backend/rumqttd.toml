@@ -36,9 +36,12 @@ max_segment_count = 10
 #     client_auth = { certs = "test-1.cert.pem", key = "test-1.key.pem" }
 
 # Configuration of server and connections that it accepts
+
 [v4.1]
+
+
 name = "v4-1"
-listen = "0.0.0.0:1883"
+listen = "10.189.0.120:1883"
 next_connection_delay_ms = 1
     [v4.1.connections]
     connection_timeout_ms = 60000
@@ -49,7 +52,11 @@ next_connection_delay_ms = 1
  #      [v4.1.connections.auth]
  #      user1 = "p@ssw0rd"
  #      user2 = "password"
+    [v4.1.tls]
 
+        certpath = "../certs/mqtt.cert.pem"
+        keypath = "../certs/mqtt.key.pem"
+        capath = "../certs/ca.cert.pem"
 # [v4.2]
 # name = "v4-2"
 # listen = "0.0.0.0:8883"
@@ -69,7 +76,7 @@ next_connection_delay_ms = 1
 
 [v5.1]
 name = "v5-1"
-listen = "0.0.0.0:1884"
+listen = "0.0.0.0:1883"
 next_connection_delay_ms = 1
     [v5.1.connections]
     connection_timeout_ms = 60000

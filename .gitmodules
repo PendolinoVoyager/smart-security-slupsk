@@ -1,0 +1,3 @@
+[submodule "ass_backend/rumqtt"]
+	path = ass_backend/rumqtt
+	url = https://github.com/bytebeamio/rumqtt.git

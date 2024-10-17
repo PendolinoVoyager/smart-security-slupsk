@@ -1,4 +1,5 @@
 [alias]
 loco = "run --"
 loco-tool = "run --bin tool --"
-mqtt = "run --bin mqtt-broker -- " 
+mqttc = "run --bin mqtt-client --" 
+
