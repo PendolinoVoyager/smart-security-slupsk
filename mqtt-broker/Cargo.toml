@@ -1,0 +1,14 @@
+[package]
+name = "mqtt-broker"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+config = "0.14.0"
+futures = "0.3.31"
+once_cell = "1.20.2"
+rumqttd = { version = "0.19.0", features = ["verify-client-cert"] }
+sqlx = { version = "0.8.2", features = ["postgres", "runtime-tokio"] }
+tokio = { version = "1.40.0", features = ["full", "tracing"] }
+tracing = { version = "0.1.40", features = ["async-await"] }
+tracing-subscriber = "0.3.18"
