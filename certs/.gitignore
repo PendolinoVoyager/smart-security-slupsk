@@ -1,0 +1,14 @@
+*.pem
+*.cert
+*.key
+
+*.csr
+
+*.priv
+*.crt
+
+*.p12
+*.pfx
+*.der
+
+*.bak
