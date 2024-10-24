@@ -33,6 +33,7 @@ mod tests {
     const TEST_PASS: &str = "12345678";
     #[test]
     pub fn test_request_body() {
+        dbg!(&BACKEND_URL.to_string());
         let mut body = serde_json::to_string(&AuthBody {
             name: TEST_USERNAME.into(),
             password: TEST_PASS.into(),

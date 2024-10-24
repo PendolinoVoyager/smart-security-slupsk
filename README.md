@@ -2,4 +2,3 @@
 
 Smart Security Słupsk - SSS
 
-
