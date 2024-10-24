@@ -1,14 +1,14 @@
-*.pem
-*.cert
-*.key
+# *.pem
+# *.cert
+# *.key
 
-*.csr
+# *.csr
 
-*.priv
-*.crt
+# *.priv
+# *.crt
 
-*.p12
-*.pfx
-*.der
+# *.p12
+# *.pfx
+# *.der
 
-*.bak
+# *.bak
