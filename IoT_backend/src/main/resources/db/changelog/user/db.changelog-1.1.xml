@@ -5,6 +5,7 @@
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
 
-    <include file="/db/changelog/user/db.changelog-1.0.xml"/>
-    <include file="db/changelog/user/db.changelog-1.1.xml"/>
+    <changeSet id="2" author="Kacper Karabinowski">
+        <addUniqueConstraint columnNames="email" tableName="users" constraintName="unique_email"/>
+    </changeSet>
 </databaseChangeLog>
