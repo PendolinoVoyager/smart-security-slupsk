@@ -7,8 +7,8 @@
 
     <changeSet id="1" author="Kacper Karabinowski">
         <createTable tableName="users">
-            <column name="id" type="int">
-                <constraints primaryKey="true" nullable="false"/>
+            <column name="id" type="int" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false" />
             </column>
             <column name="name" type="varchar(255)">
                 <constraints nullable="false"/>
