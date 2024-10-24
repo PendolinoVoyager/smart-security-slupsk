@@ -1,5 +1,5 @@
 # TODO
 
-Agile Security System - ASS
+Smart Security Słupsk - SSS
 
 
