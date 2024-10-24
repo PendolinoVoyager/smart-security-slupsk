@@ -37,17 +37,17 @@ max_segment_count = 10
 
 # Configuration of server and connections that it accepts
 
-# [v4.1]
 
-
-# name = "v4-1"
-# listen = "10.189.0.120:1883"
-# next_connection_delay_ms = 1
-#     [v4.1.connections]
-#     connection_timeout_ms = 60000
-#     max_payload_size = 20480
-#     max_inflight_count = 100
-#     dynamic_filters = true
+# wersja bez tls - wpisac poprawne ip
+ [v4.1]
+ name = "v4-1"
+ listen = "10.189.0.120:1883"
+ next_connection_delay_ms = 1
+     [v4.1.connections]
+     connection_timeout_ms = 60000
+     max_payload_size = 20480
+     max_inflight_count = 100
+     dynamic_filters = true
  #   auth = { user1 = "p@ssw0rd", user2 = "password" }
  #      [v4.1.connections.auth]
  #      user1 = "p@ssw0rd"
@@ -71,6 +71,10 @@ max_segment_count = 10
 #     max_inflight_count = 100
 #     max_inflight_size = 1024
 
+
+
+
+#Wersja tls - zakomentowac dla develompment
 [v5.1]
 name = "v5-1"
 listen = "0.0.0.0:8883"

@@ -1,5 +1,6 @@
 package com.kacper.iot_backend.user;
 
+import com.kacper.iot_backend.activation_token.ActivationToken;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -62,6 +63,14 @@ public class User implements UserDetails
             nullable = false
     )
     private Date created_at;
+
+    @OneToOne(
+            mappedBy = "user",
+            cascade = CascadeType.ALL,
+            fetch = FetchType.LAZY,
+            optional = false
+    )
+    private ActivationToken activationToken;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

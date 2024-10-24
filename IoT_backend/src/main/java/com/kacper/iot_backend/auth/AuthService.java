@@ -1,5 +1,7 @@
 package com.kacper.iot_backend.auth;
 
+import com.kacper.iot_backend.activation_token.ActivationToken;
+import com.kacper.iot_backend.activation_token.ActivationTokenRepository;
 import com.kacper.iot_backend.exception.ResourceNotFoundException;
 import com.kacper.iot_backend.jwt.JWTService;
 import com.kacper.iot_backend.user.User;
@@ -19,17 +21,22 @@ public class AuthService
     private final PasswordEncoder passwordEncoder;
     private final JWTService jwtService;
     private final AuthenticationManager authenticationManager;
+    private final ActivationTokenRepository activationTokenRepository;
+
     public Logger logger = Logger.getLogger(AuthService.class.getName());
 
     public AuthService(
             UserRepository userRepository,
             PasswordEncoder passwordEncoder,
-            JWTService jwtService, AuthenticationManager authenticationManager
+            JWTService jwtService,
+            AuthenticationManager authenticationManager,
+            ActivationTokenRepository activationTokenRepository
     ) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.authenticationManager = authenticationManager;
+        this.activationTokenRepository = activationTokenRepository;
     }
 
 
@@ -44,10 +51,15 @@ public class AuthService
                 .created_at(new Date())
                 .build();
 
-        logger.info(user.toString());
+        ActivationToken activationToken = ActivationToken.builder()
+                .token("1234") // TODO: generate token from dif func
+                .createdAt(new Date())
+                .user(user)
+                .build();
 
         try {
             User savedUser = userRepository.save(user);
+            activationTokenRepository.save(activationToken);
             return AuthRegistrationResponse.builder()
                     .name(savedUser.getName())
                     .lastName(savedUser.getLast_name())
