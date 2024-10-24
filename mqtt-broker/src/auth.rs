@@ -1,5 +1,5 @@
 lazy_static! {
-    static ref BACKEND_URL: Url = Url::from_str(&std::env::var("BACKEND_URL").unwrap()).unwrap();
+    static ref AUTH_URL: Url = Url::from_str(&std::env::var("AUTH_URL").unwrap()).unwrap();
 }
 
 #[derive(Serialize, Deserialize)]
@@ -16,7 +16,7 @@ use serde::{Deserialize, Serialize};
 pub fn auth(_client_id: String, name: String, password: String) -> bool {
     let client = reqwest::blocking::Client::new();
     if let Ok(body) = serde_json::to_string(&AuthBody { name, password }) {
-        let res = client.post(BACKEND_URL.as_str()).body(body).send();
+        let res = client.post(AUTH_URL.as_str()).body(body).send();
         if res.is_err() {
             return false;
         }
@@ -33,7 +33,7 @@ mod tests {
     const TEST_PASS: &str = "12345678";
     #[test]
     pub fn test_request_body() {
-        dbg!(&BACKEND_URL.to_string());
+        dbg!(&AUTH_URL.to_string());
         let mut body = serde_json::to_string(&AuthBody {
             name: TEST_USERNAME.into(),
             password: TEST_PASS.into(),
