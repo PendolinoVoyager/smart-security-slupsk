@@ -27,7 +27,10 @@ fn main() {
 
     let mut config: Config = config.try_deserialize().unwrap();
 
-    let server = config.v5.as_mut().and_then(|v5| v5.get_mut("1")).unwrap();
+    let server = config.v5
+        .as_mut()
+        .and_then(|v5| v5.get_mut("1"))
+        .expect("expected key 1 but get none");
     info!("Got MQTT v5.1 server");
 
     server.connections.external_auth = Some(Arc::new(auth::auth));

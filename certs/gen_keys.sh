@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Define directories and file names
-CERT_DIR="."
+CERT_DIR="./certs"
 CONFIG_FILE="./openssl.cnf"
 SERVER_KEY="$CERT_DIR/ass.key.pem"
 SERVER_CERT="$CERT_DIR/ass.cert.pem"
@@ -10,6 +10,9 @@ CLIENT_CERT="$CERT_DIR/mqtt.cert.pem"
 CA_CERT="$CERT_DIR/ca.cert.pem"
 CA_KEY="$CERT_DIR/ca.key.pem"
 DAYS_VALID=365  # Number of days the certificates will be valid
+KEYSTORE="$CERT_DIR/keystore.jks"
+TRUSTSTORE="$CERT_DIR/truststore.jks"
+STOREPASS="changeit"
 
 # Create certs directory if it doesn't exist
 mkdir -p "$CERT_DIR"
@@ -45,7 +48,7 @@ generate_certificate() {
 
 # Delete old certificates if they exist
 echo "Cleaning up old certificates..."
-rm -f "$SERVER_KEY" "$SERVER_CERT" "$CLIENT_KEY" "$CLIENT_CERT" "$CERT_DIR/*.csr"
+rm -f "$SERVER_KEY" "$SERVER_CERT" "$CLIENT_KEY" "$CLIENT_CERT" "$CERT_DIR/*.csr" "$KEYSTORE" "$TRUSTSTORE"
 
 # Generate CA certificate and key if not already present
 generate_ca
@@ -56,6 +59,14 @@ generate_certificate "$SERVER_KEY" "$SERVER_CERT" "v3_req_server" "/C=US/ST=Deve
 # Generate client certificate
 generate_certificate "$CLIENT_KEY" "$CLIENT_CERT" "v3_req_client" "/C=US/ST=Development/L=Local/O=DevOrg/CN=client"
 
-echo "Certificates successfully generated!"
+# Create keystore and truststore
+echo "Creating keystore and truststore..."
+keytool -import -alias ca -file "$CA_CERT" -keystore "$TRUSTSTORE" -storepass "$STOREPASS" -noprompt
+keytool -import -alias server -file "$SERVER_CERT" -keystore "$KEYSTORE" -storepass "$STOREPASS" -noprompt
+keytool -import -alias client -file "$CLIENT_CERT" -keystore "$KEYSTORE" -storepass "$STOREPASS" -noprompt
+
+echo "Certificates and keystores successfully generated!"
 echo "Server certificate: $SERVER_CERT"
 echo "Client certificate: $CLIENT_CERT"
+echo "Keystore: $KEYSTORE"
+echo "Truststore: $TRUSTSTORE"
