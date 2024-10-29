@@ -64,6 +64,12 @@ public class User implements UserDetails
     )
     private Date created_at;
 
+    @Column(
+            name = "is_enabled",
+            nullable = false
+    )
+    private boolean isEnabled;
+
     @OneToOne(
             mappedBy = "user",
             cascade = CascadeType.ALL,
@@ -98,6 +104,6 @@ public class User implements UserDetails
     }
     @Override
     public boolean isEnabled() {
-        return true;
+        return isEnabled;
     }
 }
