@@ -10,6 +10,7 @@ import com.kacper.iot_backend.jwt.JWTService;
 import com.kacper.iot_backend.mail.MailService;
 import com.kacper.iot_backend.user.User;
 import com.kacper.iot_backend.user.UserRepository;
+import jakarta.mail.MessagingException;
 import jakarta.persistence.EntityExistsException;
 import org.springframework.dao.DataIntegrityViolationException;
 
@@ -51,7 +52,7 @@ public class AuthService
 
     public AuthRegistrationResponse register(
             AuthRegistrationRequest authRegistrationRequest
-    ) {
+    ) throws MessagingException {
         User user = createUser(authRegistrationRequest);
         ActivationToken activationToken = createActivationToken(user);
         saveUserAndToken(user, activationToken);
