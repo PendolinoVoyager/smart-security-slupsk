@@ -1,5 +1,6 @@
 package com.kacper.iot_backend.exception;
 
+import jakarta.mail.MessagingException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -32,5 +33,10 @@ public class GlobalExceptionHandler
     @ExceptionHandler(WrongLoginCredentialsException.class)
     public ResponseEntity<String> handleWrongLoginCredentialsException(WrongLoginCredentialsException e) {
         return new ResponseEntity<>(e.getMessage(), HttpStatus.UNAUTHORIZED);
+    }
+
+    @ExceptionHandler(MessagingException.class)
+    public ResponseEntity<String> handleMessagingException(MessagingException e) {
+        return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
     }
 }
