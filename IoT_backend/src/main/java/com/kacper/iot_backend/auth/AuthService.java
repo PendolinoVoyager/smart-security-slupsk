@@ -1,64 +1,55 @@
 package com.kacper.iot_backend.auth;
 
 import com.kacper.iot_backend.activation_token.ActivationToken;
-import com.kacper.iot_backend.activation_token.ActivationTokenRepository;
-import com.kacper.iot_backend.exception.ResourceAlreadyExistException;
-import com.kacper.iot_backend.exception.ResourceNotFoundException;
-import com.kacper.iot_backend.exception.UserNotEnabledException;
+import com.kacper.iot_backend.activation_token.ActivationTokenService;
 import com.kacper.iot_backend.exception.WrongLoginCredentialsException;
 import com.kacper.iot_backend.jwt.JWTService;
 import com.kacper.iot_backend.mail.MailService;
 import com.kacper.iot_backend.user.User;
-import com.kacper.iot_backend.user.UserRepository;
+import com.kacper.iot_backend.user.UserService;
 import jakarta.mail.MessagingException;
-import jakarta.persistence.EntityExistsException;
-import org.springframework.dao.DataIntegrityViolationException;
 
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.security.SecureRandom;
-import java.util.Date;
 
 @Service
 public class AuthService
 {
-    private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
     private final JWTService jwtService;
     private final AuthenticationManager authenticationManager;
-    private final ActivationTokenRepository activationTokenRepository;
     private final MailService mailService;
+    private final UserService userService;
+    private final ActivationTokenService activationTokenService;
 
 
     public AuthService(
-            UserRepository userRepository,
-            PasswordEncoder passwordEncoder,
             JWTService jwtService,
             AuthenticationManager authenticationManager,
-            ActivationTokenRepository activationTokenRepository,
-            MailService mailService
+            MailService mailService,
+            UserService userService, ActivationTokenService activationTokenService
     ) {
-        this.userRepository = userRepository;
-        this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.authenticationManager = authenticationManager;
-        this.activationTokenRepository = activationTokenRepository;
         this.mailService = mailService;
+        this.userService = userService;
+        this.activationTokenService = activationTokenService;
     }
 
     public AuthRegistrationResponse register(
             AuthRegistrationRequest authRegistrationRequest
     ) throws MessagingException {
-        User user = createUser(authRegistrationRequest);
-        ActivationToken activationToken = createActivationToken(user);
-        saveUserAndToken(user, activationToken);
+        User user = userService.createUser(authRegistrationRequest);
+        ActivationToken activationToken = activationTokenService.createActivationToken(user);
 
-        mailService.sendVerificationMail(user, activationToken.getToken());
+        userService.saveUserAndToken(user, activationToken);
+        try {
+            mailService.sendVerificationMail(user, activationToken.getToken());
+        } catch (MessagingException e) {
+            throw new MessagingException("Error during sending verification mail");
+        }
 
         return AuthRegistrationResponse.builder()
                 .name(user.getName())
@@ -72,8 +63,8 @@ public class AuthService
     public AuthLoginResponse login(
             AuthLoginRequest authLoginRequest
     ) {
-        User user = getUser(authLoginRequest);
-        isUserEnabled(user);
+        User user = userService.getUser(authLoginRequest.email());
+        userService.isUserEnabled(user);
         authenticateUser(authLoginRequest);
         String token = jwtService.generateToken(user);
 
@@ -82,29 +73,6 @@ public class AuthService
                 .role(user.getRole())
                 .token(token)
                 .build();
-    }
-
-    private String generateActivationToken() {
-        SecureRandom random = new SecureRandom();
-        StringBuilder token = new StringBuilder(4);
-
-        for (int i = 0; i < 4; i++) {
-            int index = random.nextInt(10);
-            token.append(index);
-        }
-
-        return token.toString();
-    }
-
-    private User getUser(AuthLoginRequest authLoginRequest) {
-        return userRepository.findByEmail(authLoginRequest.email())
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-    }
-
-    private void isUserEnabled(User user) {
-        if (!user.isEnabled()) {
-            throw new UserNotEnabledException("User not enabled");
-        }
     }
 
     private void authenticateUser(AuthLoginRequest authLoginRequest) {
@@ -121,39 +89,11 @@ public class AuthService
         }
     }
 
-    private User createUser(AuthRegistrationRequest authRegistrationRequest) {
-        return User.builder()
-                .isEnabled(false)
-                .name(authRegistrationRequest.name())
-                .last_name(authRegistrationRequest.last_name())
-                .email(authRegistrationRequest.email())
-                .password(passwordEncoder.encode(authRegistrationRequest.password()))
-                .role(authRegistrationRequest.role().toUpperCase())
-                .created_at(new Date())
-                .build();
-    }
 
-    private ActivationToken createActivationToken(User user) {
-        return ActivationToken.builder()
-                .token(generateActivationToken())
-                .createdAt(new Date())
-                .user(user)
-                .build();
-    }
 
-    @Transactional
-    protected void saveUserAndToken(User user, ActivationToken activationToken) {
-        try {
-            userRepository.save(user);
-            activationTokenRepository.save(activationToken);
-        } catch (DataIntegrityViolationException e) {
-            throw new ResourceAlreadyExistException("Email already exists or other integrity violation");
-        } catch (EntityExistsException e) {
-            throw new ResourceAlreadyExistException("Entity already exists");
-        } catch (RuntimeException e) {
-            throw new RuntimeException("Critical error during registration");
-        }
-    }
+
+
+
 
 
 }
