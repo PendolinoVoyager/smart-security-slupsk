@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+
+        .email-container {
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border: 1px solid #ddd;
+        }
+
+        .email-header {
+            background-color: #535bf2;
+            color: #ffffff;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .email-body {
+            padding: 20px;
+            text-align: center;
+        }
+
+        .email-body p {
+            font-size: 16px;
+            margin: 10px 0;
+        }
+
+        .activation-code {
+            display: block;
+            font-size: 24px;
+            font-weight: bold;
+            color: #ffffff;
+            background-color: #333;
+            padding: 10px;
+            margin: 20px auto;
+            width: fit-content;
+            letter-spacing: 4px;
+        }
+
+        footer {
+            padding: 10px;
+            text-align: center;
+            font-size: 12px;
+            color: #333;
+            background-color: #f9f9f9;
+        }
+    </style>
+    <title></title>
+</head>
+<body>
+<div class="email-container">
+    <div class="email-header">
+        <h1>Hi <span th:text="${name}">User</span></h1>
+    </div>
+
+    <div class="email-body">
+        <p>This is an email from the IoT Facial Recognition Intercom system.</p>
+        <p>Use this token to activate your account:</p>
+        <span class="activation-code" th:text="${activationToken}">1234</span>
+        <p>If this wasn't you, please ignore this email.</p>
+    </div>
+
+    <footer>
+        &copy; IoT 2024 - SSS Team
+    </footer>
+</div>
+</body>
+</html>

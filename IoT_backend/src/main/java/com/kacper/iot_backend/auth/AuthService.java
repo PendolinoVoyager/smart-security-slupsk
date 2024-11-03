@@ -7,23 +7,22 @@ import com.kacper.iot_backend.exception.ResourceNotFoundException;
 import com.kacper.iot_backend.exception.UserNotEnabledException;
 import com.kacper.iot_backend.exception.WrongLoginCredentialsException;
 import com.kacper.iot_backend.jwt.JWTService;
+import com.kacper.iot_backend.mail.MailService;
 import com.kacper.iot_backend.user.User;
 import com.kacper.iot_backend.user.UserRepository;
+import jakarta.mail.MessagingException;
 import jakarta.persistence.EntityExistsException;
-import jakarta.persistence.TransactionRequiredException;
-import org.apache.coyote.ActionCode;
-import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.orm.jpa.JpaSystemException;
+
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
 import java.util.Date;
-import java.util.logging.Logger;
 
 @Service
 public class AuthService
@@ -33,29 +32,33 @@ public class AuthService
     private final JWTService jwtService;
     private final AuthenticationManager authenticationManager;
     private final ActivationTokenRepository activationTokenRepository;
+    private final MailService mailService;
 
-    public Logger logger = Logger.getLogger(AuthService.class.getName());
 
     public AuthService(
             UserRepository userRepository,
             PasswordEncoder passwordEncoder,
             JWTService jwtService,
             AuthenticationManager authenticationManager,
-            ActivationTokenRepository activationTokenRepository
+            ActivationTokenRepository activationTokenRepository,
+            MailService mailService
     ) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.authenticationManager = authenticationManager;
         this.activationTokenRepository = activationTokenRepository;
+        this.mailService = mailService;
     }
 
     public AuthRegistrationResponse register(
             AuthRegistrationRequest authRegistrationRequest
-    ) {
+    ) throws MessagingException {
         User user = createUser(authRegistrationRequest);
         ActivationToken activationToken = createActivationToken(user);
         saveUserAndToken(user, activationToken);
+
+        mailService.sendVerificationMail(user, activationToken.getToken());
 
         return AuthRegistrationResponse.builder()
                 .name(user.getName())
@@ -138,7 +141,8 @@ public class AuthService
                 .build();
     }
 
-    private void saveUserAndToken(User user, ActivationToken activationToken) {
+    @Transactional
+    protected void saveUserAndToken(User user, ActivationToken activationToken) {
         try {
             userRepository.save(user);
             activationTokenRepository.save(activationToken);

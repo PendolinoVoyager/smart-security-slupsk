@@ -1,5 +1,6 @@
 package com.kacper.iot_backend.auth;
 
+import jakarta.mail.MessagingException;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -19,7 +20,7 @@ public class AuthController
     @PostMapping("/register")
     public AuthRegistrationResponse register(
             @Valid @RequestBody AuthRegistrationRequest authRegistrationRequest
-    ) {
+    ) throws MessagingException {
         return authService.register(authRegistrationRequest);
     }
 
