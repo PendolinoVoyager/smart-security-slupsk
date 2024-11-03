@@ -63,7 +63,7 @@ public class AuthService
     public AuthLoginResponse login(
             AuthLoginRequest authLoginRequest
     ) {
-        User user = userService.getUser(authLoginRequest);
+        User user = userService.getUser(authLoginRequest.email());
         userService.isUserEnabled(user);
         authenticateUser(authLoginRequest);
         String token = jwtService.generateToken(user);

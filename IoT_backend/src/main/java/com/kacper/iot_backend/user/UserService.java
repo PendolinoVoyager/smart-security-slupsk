@@ -31,8 +31,8 @@ public class UserService
         this.activationTokenRepository = activationTokenRepository;
     }
 
-    public User getUser(AuthLoginRequest authLoginRequest) {
-        return userRepository.findByEmail(authLoginRequest.email())
+    public User getUser(String email) {
+        return userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
     }
 
@@ -66,5 +66,9 @@ public class UserService
         } catch (RuntimeException e) {
             throw new RuntimeException("Critical error during registration");
         }
+    }
+
+    public void saveUser(User user) {
+        userRepository.save(user);
     }
 }
