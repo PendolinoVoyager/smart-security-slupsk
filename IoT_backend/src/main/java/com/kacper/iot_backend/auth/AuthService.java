@@ -5,6 +5,7 @@ import com.kacper.iot_backend.activation_token.ActivationTokenRepository;
 import com.kacper.iot_backend.exception.ResourceAlreadyExistException;
 import com.kacper.iot_backend.exception.ResourceNotFoundException;
 import com.kacper.iot_backend.exception.UserNotEnabledException;
+import com.kacper.iot_backend.exception.WrongLoginCredentialsException;
 import com.kacper.iot_backend.jwt.JWTService;
 import com.kacper.iot_backend.user.User;
 import com.kacper.iot_backend.user.UserRepository;
@@ -15,6 +16,7 @@ import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.orm.jpa.JpaSystemException;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -48,8 +50,9 @@ public class AuthService
         this.activationTokenRepository = activationTokenRepository;
     }
 
-
-    public AuthRegistrationResponse register(AuthRegistrationRequest authRegistrationRequest) {
+    public AuthRegistrationResponse register(
+            AuthRegistrationRequest authRegistrationRequest
+    ) {
         User user = createUser(authRegistrationRequest);
         ActivationToken activationToken = createActivationToken(user);
         saveUserAndToken(user, activationToken);
@@ -63,23 +66,14 @@ public class AuthService
     }
 
 
-    // TODO: Create more private methods to refactor this method + handle more exceptions
-    public AuthLoginResponse login(AuthLoginRequest authLoginRequest) {
-        User user = userRepository.findByEmail(authLoginRequest.email())
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-
-        if (!user.isEnabled()) {
-            throw new UserNotEnabledException("User not enabled");
-        }
-
-        try {
-            authenticationManager
-                    .authenticate(new UsernamePasswordAuthenticationToken(authLoginRequest.email(), authLoginRequest.password()));
-        } catch (Exception e) {
-            throw new RuntimeException("Invalid email/password");
-        }
-
+    public AuthLoginResponse login(
+            AuthLoginRequest authLoginRequest
+    ) {
+        User user = getUser(authLoginRequest);
+        isUserEnabled(user);
+        authenticateUser(authLoginRequest);
         String token = jwtService.generateToken(user);
+
         return AuthLoginResponse.builder()
                 .email(user.getEmail())
                 .role(user.getRole())
@@ -97,6 +91,31 @@ public class AuthService
         }
 
         return token.toString();
+    }
+
+    private User getUser(AuthLoginRequest authLoginRequest) {
+        return userRepository.findByEmail(authLoginRequest.email())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+    }
+
+    private void isUserEnabled(User user) {
+        if (!user.isEnabled()) {
+            throw new UserNotEnabledException("User not enabled");
+        }
+    }
+
+    private void authenticateUser(AuthLoginRequest authLoginRequest) {
+        try {
+            authenticationManager
+                    .authenticate(
+                            new UsernamePasswordAuthenticationToken(authLoginRequest.email(),
+                                    authLoginRequest.password())
+                    );
+        } catch (BadCredentialsException e) {
+            throw new WrongLoginCredentialsException("Wrong login credentials");
+        } catch (RuntimeException e) {
+            throw new RuntimeException("Critical error during authentication");
+        }
     }
 
     private User createUser(AuthRegistrationRequest authRegistrationRequest) {
@@ -124,11 +143,11 @@ public class AuthService
             userRepository.save(user);
             activationTokenRepository.save(activationToken);
         } catch (DataIntegrityViolationException e) {
-            throw new ResourceAlreadyExistException("Email already exists or other integrity violation " + e.getMessage());
+            throw new ResourceAlreadyExistException("Email already exists or other integrity violation");
         } catch (EntityExistsException e) {
-            throw new ResourceAlreadyExistException("Entity already exists " + e.getMessage());
+            throw new ResourceAlreadyExistException("Entity already exists");
         } catch (RuntimeException e) {
-            throw new RuntimeException("Critical error during registration " + e.getMessage());
+            throw new RuntimeException("Critical error during registration");
         }
     }
 
