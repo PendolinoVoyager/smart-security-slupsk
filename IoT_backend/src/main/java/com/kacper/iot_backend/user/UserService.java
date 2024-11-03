@@ -24,7 +24,8 @@ public class UserService
 
     public UserService(
             UserRepository userRepository,
-            PasswordEncoder passwordEncoder, ActivationTokenRepository activationTokenRepository
+            PasswordEncoder passwordEncoder,
+            ActivationTokenRepository activationTokenRepository
     ) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
