@@ -1,5 +1,6 @@
 package com.kacper.iot_backend.activation_token;
 
+import com.kacper.iot_backend.exception.ResourceNotFoundException;
 import com.kacper.iot_backend.exception.WrongLoginCredentialsException;
 import com.kacper.iot_backend.user.User;
 import com.kacper.iot_backend.user.UserService;
@@ -7,6 +8,7 @@ import org.springframework.stereotype.Service;
 
 import java.security.SecureRandom;
 import java.util.Date;
+import java.util.Optional;
 
 @Service
 public class ActivationTokenService
@@ -53,12 +55,17 @@ public class ActivationTokenService
 
     private boolean verifyActivationToken(ActivationTokenRequest activationTokenRequest) {
         User user = userService.getUser(activationTokenRequest.email());
-        ActivationToken activationToken = user.getActivationToken();
+        ActivationToken activationToken = getActivationToken(user);
 
         if (!activationToken.getToken().equals(activationTokenRequest.activationToken())) {
             throw new WrongLoginCredentialsException("Invalid activation token");
         }
 
         return true;
+    }
+
+    private ActivationToken getActivationToken(User user) {
+        return Optional.ofNullable(user.getActivationToken())
+                .orElseThrow(() -> new ResourceNotFoundException("Activation token not found"));
     }
 }
