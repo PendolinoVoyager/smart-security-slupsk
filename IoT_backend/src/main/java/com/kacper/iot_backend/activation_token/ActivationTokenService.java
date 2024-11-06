@@ -30,11 +30,11 @@ public class ActivationTokenService
                 .build();
     }
 
-    // TODO: Add attempts limit + delete token after successful activation
     public void enableUser(ActivationTokenRequest activationTokenRequest) {
         if (verifyActivationToken(activationTokenRequest)) {
             User user = userService.getUser(activationTokenRequest.email());
             user.setEnabled(true);
+            activationTokenRepository.deleteByUserId(user.getId());
             userService.saveUser(user);
         }
     }
