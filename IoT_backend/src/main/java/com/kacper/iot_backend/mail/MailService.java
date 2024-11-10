@@ -12,33 +12,25 @@ import org.thymeleaf.context.Context;
 @Service
 public class MailService
 {
-    private final JavaMailSender javaMailSender;
-    private final TemplateEngine templateEngine;
+    private final MailProducer mailProducer;
 
     public MailService(
-            JavaMailSender javaMailSender,
-            TemplateEngine templateEngine
+            MailProducer mailProducer
     ) {
-        this.javaMailSender = javaMailSender;
-        this.templateEngine = templateEngine;
+        this.mailProducer = mailProducer;
     }
 
     public void sendVerificationMail(User user, String activationToken) throws MessagingException {
-        MimeMessage mailMessage = javaMailSender.createMimeMessage();
-        MimeMessageHelper helper = new MimeMessageHelper(mailMessage, "utf-8");
+        MailMessage mailMessage = createMailMessage(user, activationToken);
+        mailProducer.sendMailMessage(mailMessage);
+    }
 
-        helper.setFrom("cinemasymfony@gmail.com");
-        helper.setTo(user.getEmail());
-        helper.setSubject("Verification mail");
-
-        Context context = new Context();
-        context.setVariable("name", user.getName());
-        context.setVariable("activationToken", activationToken);
-
-        String htmlContent = templateEngine.process("ActivationMail.html", context);
-        helper.setText(htmlContent, true);
-
-        javaMailSender.send(mailMessage);
+    private MailMessage createMailMessage(User user, String activationToken) {
+        return MailMessage.builder()
+                .email(user.getEmail())
+                .name(user.getName())
+                .activationToken(activationToken)
+                .build();
     }
 
 }
