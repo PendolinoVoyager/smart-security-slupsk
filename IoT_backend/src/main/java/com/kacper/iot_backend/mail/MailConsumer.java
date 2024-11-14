@@ -30,9 +30,28 @@ public class MailConsumer {
 
         Context context = new Context();
         context.setVariable("name", mailMessage.getName());
-        context.setVariable("activationToken", mailMessage.getActivationToken());
+        context.setVariable("activationToken", mailMessage.getToken());
 
         String htmlContent = templateEngine.process("ActivationMail.html", context);
+        helper.setText(htmlContent, true);
+
+        javaMailSender.send(message);
+    }
+
+    @RabbitListener(queues = "resetPasswordQueue")
+    public void receiveResetPasswordMessage(MailMessage mailMessage) throws MessagingException {
+        MimeMessage message = javaMailSender.createMimeMessage();
+        MimeMessageHelper helper = new MimeMessageHelper(message, "utf-8");
+
+        helper.setFrom("cinemasymfony@gmail.com");
+        helper.setTo(mailMessage.getEmail());
+        helper.setSubject("Reset Password Mail");
+
+        Context context = new Context();
+        context.setVariable("name", mailMessage.getName());
+        context.setVariable("resetPasswordToken", mailMessage.getToken());
+
+        String htmlContent = templateEngine.process("ResetPasswordMail.html", context);
         helper.setText(htmlContent, true);
 
         javaMailSender.send(message);

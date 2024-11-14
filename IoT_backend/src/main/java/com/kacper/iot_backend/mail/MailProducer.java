@@ -15,4 +15,8 @@ public class MailProducer {
     public void sendMailMessage(MailMessage mailMessage) {
         rabbitTemplate.convertAndSend(RabbitMQConfig.getMailExchange(), RabbitMQConfig.getMailRoutingKey(), mailMessage);
     }
+
+    public void sendResetPasswordMailMessage(MailMessage mailMessage) {
+        rabbitTemplate.convertAndSend(RabbitMQConfig.getMailExchange(), RabbitMQConfig.getResetPasswordRoutingKey(), mailMessage);
+    }
 }

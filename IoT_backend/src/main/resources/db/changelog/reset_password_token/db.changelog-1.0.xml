@@ -5,5 +5,33 @@
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
 
+    <changeSet id="1" author="Kacper Karabinowski">
+        <createTable tableName="reset_password_tokens">
+            <column name="id" type="int" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="reset_password_token" type="varchar(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="datetime">
+                <constraints nullable="false"/>
+            </column>
+            <column name="expired_at" type="datetime">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="user_id" type="int">
+                <constraints nullable="false" unique="true"/>
+            </column>
+        </createTable>
+
+        <addForeignKeyConstraint
+                baseColumnNames="user_id"
+                baseTableName="reset_password_tokens"
+                constraintName="fk_reset_password_token_user"
+                referencedColumnNames="id"
+                referencedTableName="users"
+                onDelete="CASCADE"/>
+    </changeSet>
 
 </databaseChangeLog>

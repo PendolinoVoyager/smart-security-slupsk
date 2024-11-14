@@ -2,12 +2,7 @@ package com.kacper.iot_backend.mail;
 
 import com.kacper.iot_backend.user.User;
 import jakarta.mail.MessagingException;
-import jakarta.mail.internet.MimeMessage;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
-import org.thymeleaf.TemplateEngine;
-import org.thymeleaf.context.Context;
 
 @Service
 public class MailService
@@ -25,11 +20,17 @@ public class MailService
         mailProducer.sendMailMessage(mailMessage);
     }
 
+    public void sendResetPasswordMail(User user, String resetPasswordToken) throws MessagingException {
+        MailMessage mailMessage = createMailMessage(user, resetPasswordToken);
+        mailProducer.sendResetPasswordMailMessage(mailMessage);
+
+    }
+
     private MailMessage createMailMessage(User user, String activationToken) {
         return MailMessage.builder()
                 .email(user.getEmail())
                 .name(user.getName())
-                .activationToken(activationToken)
+                .token(activationToken)
                 .build();
     }
 

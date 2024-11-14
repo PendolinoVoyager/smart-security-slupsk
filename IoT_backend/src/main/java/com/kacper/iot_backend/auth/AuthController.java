@@ -2,6 +2,8 @@ package com.kacper.iot_backend.auth;
 
 import jakarta.mail.MessagingException;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -18,10 +20,10 @@ public class AuthController
     }
 
     @PostMapping("/register")
-    public AuthRegistrationResponse register(
+    public ResponseEntity<AuthRegistrationResponse> register(
             @Valid @RequestBody AuthRegistrationRequest authRegistrationRequest
     ) throws MessagingException {
-        return authService.register(authRegistrationRequest);
+        return new ResponseEntity<>(authService.register(authRegistrationRequest), HttpStatus.CREATED);
     }
 
     @PostMapping("/login")
