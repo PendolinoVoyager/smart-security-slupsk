@@ -7,6 +7,9 @@ import com.kacper.iot_backend.jwt.JWTService;
 import com.kacper.iot_backend.mail.MailService;
 import com.kacper.iot_backend.user.User;
 import com.kacper.iot_backend.user.UserService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.mail.MessagingException;
 
 import org.springframework.security.authentication.AuthenticationManager;
