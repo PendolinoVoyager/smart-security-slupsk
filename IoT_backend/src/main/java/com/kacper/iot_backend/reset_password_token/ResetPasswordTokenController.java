@@ -1,6 +1,7 @@
 package com.kacper.iot_backend.reset_password_token;
 
 import com.kacper.iot_backend.utils.DefaultResponse;
+import jakarta.mail.MessagingException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -18,7 +19,7 @@ public class ResetPasswordTokenController
     }
 
     @PostMapping("/send")
-    public DefaultResponse sendResetPasswordToken(@RequestBody ResetPasswordRequest resetPasswordRequest) {
+    public DefaultResponse sendResetPasswordToken(@RequestBody ResetPasswordRequest resetPasswordRequest) throws MessagingException {
         return resetPasswordTokenService.sendResetPasswordToken(resetPasswordRequest);
     }
 }
