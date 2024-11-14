@@ -13,5 +13,5 @@ public class MailMessage
 {
     private String email;
     private String name;
-    private String activationToken;
+    private String token;
 }
