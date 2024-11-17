@@ -2,7 +2,6 @@ package com.kacper.iot_backend.user;
 
 import com.kacper.iot_backend.activation_token.ActivationToken;
 import com.kacper.iot_backend.activation_token.ActivationTokenRepository;
-import com.kacper.iot_backend.auth.AuthLoginRequest;
 import com.kacper.iot_backend.auth.AuthRegistrationRequest;
 import com.kacper.iot_backend.exception.ResourceAlreadyExistException;
 import com.kacper.iot_backend.exception.ResourceNotFoundException;
@@ -44,7 +43,7 @@ public class UserService
 
     public User createUser(AuthRegistrationRequest authRegistrationRequest) {
         return User.builder()
-                .isEnabled(false)
+                .enabled(false)
                 .name(authRegistrationRequest.name())
                 .last_name(authRegistrationRequest.last_name())
                 .email(authRegistrationRequest.email())

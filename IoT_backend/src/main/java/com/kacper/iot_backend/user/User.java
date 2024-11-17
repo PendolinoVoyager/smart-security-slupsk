@@ -69,7 +69,7 @@ public class User implements UserDetails
             name = "is_enabled",
             nullable = false
     )
-    private boolean isEnabled;
+    private boolean enabled;
 
     @OneToOne(
             mappedBy = "user",
@@ -113,6 +113,6 @@ public class User implements UserDetails
     }
     @Override
     public boolean isEnabled() {
-        return isEnabled;
+        return enabled;
     }
 }
