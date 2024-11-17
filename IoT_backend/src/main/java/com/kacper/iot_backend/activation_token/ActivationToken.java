@@ -9,12 +9,12 @@ import lombok.NoArgsConstructor;
 
 import java.util.Date;
 
+@Builder
 @Entity
 @Table(name = "activation_tokens")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 public class ActivationToken {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

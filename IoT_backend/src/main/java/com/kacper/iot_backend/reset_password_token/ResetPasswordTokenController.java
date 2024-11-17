@@ -21,4 +21,9 @@ public class ResetPasswordTokenController
     public DefaultResponse sendResetPasswordToken(@RequestBody ResetPasswordRequest resetPasswordRequest) {
         return resetPasswordTokenService.sendResetPasswordToken(resetPasswordRequest);
     }
+
+    @PostMapping("/reset")
+    public DefaultResponse verifyResetPasswordToken(@RequestBody ResetPasswordVerifyRequest resetPasswordVerifyRequest) {
+        return resetPasswordTokenService.resetPasswordToken(resetPasswordVerifyRequest);
+    }
 }

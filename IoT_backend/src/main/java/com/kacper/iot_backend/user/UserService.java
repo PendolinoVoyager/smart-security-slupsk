@@ -30,7 +30,7 @@ public class UserService
         this.activationTokenRepository = activationTokenRepository;
     }
 
-    public User getUser(String email) {
+    public User getUserOrThrow(String email) {
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
     }
@@ -68,6 +68,11 @@ public class UserService
     }
 
     public void saveUser(User user) {
+        userRepository.save(user);
+    }
+
+    public void setNewPassword(User user, String newPassword) {
+        user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
     }
 }

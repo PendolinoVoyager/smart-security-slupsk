@@ -34,7 +34,7 @@ public class ActivationTokenService
 
     public void enableUser(ActivationTokenRequest activationTokenRequest) {
         if (verifyActivationToken(activationTokenRequest)) {
-            User user = userService.getUser(activationTokenRequest.email());
+            User user = userService.getUserOrThrow(activationTokenRequest.email());
             user.setEnabled(true);
             activationTokenRepository.deleteByUserId(user.getId());
             userService.saveUser(user);
@@ -54,7 +54,7 @@ public class ActivationTokenService
     }
 
     private boolean verifyActivationToken(ActivationTokenRequest activationTokenRequest) {
-        User user = userService.getUser(activationTokenRequest.email());
+        User user = userService.getUserOrThrow(activationTokenRequest.email());
         ActivationToken activationToken = getActivationToken(user);
 
         if (!activationToken.getToken().equals(activationTokenRequest.activationToken())) {
