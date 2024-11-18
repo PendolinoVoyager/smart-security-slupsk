@@ -35,22 +35,52 @@ public class ResetPasswordTokenService {
         ResetPasswordToken resetPasswordToken = createAndSaveResetPasswordToken(user);
         sendResetPasswordEmail(user, resetPasswordToken);
 
-        // TODO: jutor to zrobic bo juz mi sie nie chce dzisiaj
-//        resetPasswordTokenRepository.delete(resetPasswordToken);
-
-        return buildResponse("Reset password token has been sent");
+        return DefaultResponse.builder()
+                .message("Reset password token has been sent")
+                .build();
     }
 
     public DefaultResponse resetPasswordToken(ResetPasswordVerifyRequest resetPasswordVerifyRequest) {
         User user = userService.getUserOrThrow(resetPasswordVerifyRequest.email());
+        validateTokenOrThrow(user.getResetPasswordToken(), resetPasswordVerifyRequest.token(), user);
 
-        validateTokenOrThrow(user.getResetPasswordToken(), resetPasswordVerifyRequest.token());
+        userService.setNewPassword(user, resetPasswordVerifyRequest.newPassword());
+        deleteResetPasswordTokenOrThrow(user.getResetPasswordToken());
+
+        return DefaultResponse.builder()
+                .message("Password has been reset")
+                .build();
+    }
+
+
+    private void validateTokenOrThrow(ResetPasswordToken resetPasswordToken, String providedToken, User user) {
+        checkIfTokenExistsOrThrow(user);
         validateTokenExpiryOrThrow(user.getResetPasswordToken());
         validateAttemptsOrThrow(user.getResetPasswordToken());
 
-        userService.setNewPassword(user, resetPasswordVerifyRequest.newPassword());
+        if (!resetPasswordToken.getToken().equals(providedToken)) {
+            incrementTokenAttempts(resetPasswordToken);
+            throw new InvalidTokenException("Invalid or missing token");
+        }
+    }
 
-        return buildResponse("Password has been changed");
+    private void checkIfTokenExistsOrThrow(User user) {
+        if (user.getResetPasswordToken() == null) {
+            throw new InvalidTokenException("Token does not exist");
+        }
+    }
+
+    private void validateTokenExpiryOrThrow(ResetPasswordToken resetPasswordToken) {
+        if (resetPasswordToken.getExpiredAt().before(new Date())) {
+            throw new TokenExpiredException("Token has expired");
+        }
+    }
+
+    private void validateAttemptsOrThrow(ResetPasswordToken resetPasswordToken) {
+        if (resetPasswordToken.getAttempts() >= 3) {
+            deleteResetPasswordTokenOrThrow(resetPasswordToken);
+            throw new TooManyAttemptsException("Too many attempts");
+        }
     }
 
     private ResetPasswordToken createAndSaveResetPasswordToken(User user) {
@@ -64,33 +94,6 @@ public class ResetPasswordTokenService {
             mailService.sendResetPasswordMail(user, resetPasswordToken.getToken());
         } catch (Exception e) {
             throw new MailSendingException("Failed to send reset password email");
-        }
-    }
-
-    private void validateTokenOrThrow(ResetPasswordToken resetPasswordToken, String providedToken) {
-        if (resetPasswordToken == null) {
-            throw new InvalidTokenException("Invalid or missing token");
-        }
-
-        if (!resetPasswordToken.getToken().equals(providedToken)) {
-            incrementTokenAttempts(resetPasswordToken);
-            throw new InvalidTokenException("Invalid or missing token");
-        }
-    }
-
-    private void validateTokenExpiryOrThrow(ResetPasswordToken resetPasswordToken) {
-        if (resetPasswordToken == null || resetPasswordToken.getExpiredAt().before(new Date())) {
-            throw new TokenExpiredException("Token has expired");
-        }
-    }
-
-    private void validateAttemptsOrThrow(ResetPasswordToken resetPasswordToken) {
-        if (resetPasswordToken == null) {
-            throw new InvalidTokenException("Invalid token");
-        }
-
-        if (resetPasswordToken.getAttempts() >= 3) {
-            throw new TooManyAttemptsException("Too many attempts");
         }
     }
 
@@ -110,6 +113,14 @@ public class ResetPasswordTokenService {
                 .build();
     }
 
+    private void deleteResetPasswordTokenOrThrow(ResetPasswordToken resetPasswordToken) {
+        try {
+            resetPasswordTokenRepository.deleteByUserId(resetPasswordToken.getUser().getId());
+        } catch (Exception e) {
+            throw new InvalidTokenException("Invalid or missing token");
+        }
+    }
+
     private String generateResetPasswordToken() {
         SecureRandom random = new SecureRandom();
         StringBuilder token = new StringBuilder(6);
@@ -120,11 +131,5 @@ public class ResetPasswordTokenService {
         }
 
         return token.toString();
-    }
-
-    private DefaultResponse buildResponse(String message) {
-        return DefaultResponse.builder()
-                .message(message)
-                .build();
     }
 }
