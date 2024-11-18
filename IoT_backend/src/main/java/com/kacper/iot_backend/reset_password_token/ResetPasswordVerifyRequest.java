@@ -7,6 +7,7 @@ import jakarta.validation.constraints.Size;
 
 public record ResetPasswordVerifyRequest(
         @Email(message = "Email is invalid")
+        @NotBlank(message = "Email is required")
         String email,
 
         @NotBlank(message = "Token is required")
