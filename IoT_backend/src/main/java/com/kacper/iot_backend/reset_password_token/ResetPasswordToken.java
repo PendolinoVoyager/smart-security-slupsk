@@ -39,6 +39,12 @@ public class ResetPasswordToken
     )
     private Date expiredAt;
 
+    @Column(
+            name = "attempts",
+            nullable = false
+    )
+    private Integer attempts;
+
     @OneToOne
     @JoinColumn(name = "user_id", nullable = false, unique = true)
     private User user;

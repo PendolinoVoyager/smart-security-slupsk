@@ -15,13 +15,12 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 
-
+@Builder
 @Entity
 @Table(name = "users")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 public class User implements UserDetails
 {
     @Id
