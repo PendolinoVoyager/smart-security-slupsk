@@ -187,6 +187,43 @@ class AuthControllerTest
         LOGGER.info("Finished test shouldLoginUser");
     }
 
+    @Test
+    void shouldReturnBadRequestForNullLoginFields() throws Exception {
+        LOGGER.info("Started test shouldReturnBadRequestForNullLoginFields");
+
+        AuthLoginRequest request = new AuthLoginRequest(
+                null,
+                null
+        );
+
+        LOGGER.debug("Mocked AuthLoginRequest with null fields: {}", request);
+
+        LOGGER.info("Starting API test /api/v1/auth/login with null fields");
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+
+        LOGGER.info("Finished test shouldReturnBadRequestForNullLoginFields");
+    }
+
+    @Test
+    void shouldReturnBadRequestForNotValidEmail() throws Exception {
+        LOGGER.info("Started test shouldReturnBadRequestForNotValidEmail");
+        AuthLoginRequest request = new AuthLoginRequest(
+                "invalid-mail",
+                "Password.123"
+        );
+
+        LOGGER.debug("Mocked AuthLoginRequest with invalid-mail field: {}", request);
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+
+        LOGGER.info("Finished test shouldReturnBadRequestForNotValidEmail");
+    }
+
 
 
 
