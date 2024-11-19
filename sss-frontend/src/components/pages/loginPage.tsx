@@ -1,9 +1,32 @@
-import { TextField, Button, Typography, Box, Container, Link } from "@mui/material";
-import { useState } from "react";
+import { TextField, Button, Typography, Box, Container, Link, CircularProgress, Alert } from "@mui/material";
+import { useState, useContext } from "react";
+import { useNavigate } from "react-router-dom";
+import { AuthContext } from "../../store/authStore";
 
 const LoginPage = () => {
+    const { login } = useContext(AuthContext);
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const navigate = useNavigate();
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setError(null);
+        setIsLoading(true);
+
+        const result = await login(email, password);
+
+        setIsLoading(false);
+
+        if (result instanceof Error) {
+            setError(result.message);
+            return;
+        }
+
+        navigate("/");
+    };
 
     return (
         <Box
@@ -13,7 +36,6 @@ const LoginPage = () => {
                 backgroundColor: (theme) => theme.palette.primary.light,
             }}
         >
-            {/* Sekcja lewa */}
             <Box
                 sx={{
                     flex: 1,
@@ -27,14 +49,15 @@ const LoginPage = () => {
                 }}
             >
                 <Typography variant="h3" component="h1" sx={{ fontWeight: "bold" }}>
-                   Your{" "}
+                    Your{" "}
                     <Box
                         component="span"
                         sx={{
                             color: (theme) => theme.palette.secondary.main,
                             fontWeight: "bold",
                         }}
-                    >AI
+                    >
+                        AI
                     </Box>
                     -Powered Intercom! 👋
                 </Typography>
@@ -59,8 +82,6 @@ const LoginPage = () => {
                     </Box>
                     Smart, secure, and effortless communication at your doorstep!
                 </Typography>
-
-
             </Box>
 
             <Container
@@ -83,10 +104,7 @@ const LoginPage = () => {
                 </Typography>
                 <Box
                     component="form"
-                    onSubmit={(e) => {
-                        e.preventDefault();
-                        console.log("Email:", email, "Password:", password);
-                    }}
+                    onSubmit={handleSubmit}
                     sx={{ width: "100%" }}
                 >
                     <TextField
@@ -113,6 +131,9 @@ const LoginPage = () => {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                     />
+
+                    {error && <Alert severity="error">{error}</Alert>}
+
                     <Button
                         type="submit"
                         fullWidth
@@ -124,9 +145,17 @@ const LoginPage = () => {
                             "&:hover": {
                                 backgroundColor: (theme) => theme.palette.primary.dark,
                             },
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
                         }}
+                        disabled={isLoading}
                     >
-                        Login Now
+                        {isLoading ? (
+                            <CircularProgress size={24} sx={{ color: "white" }} />
+                        ) : (
+                            "Login Now"
+                        )}
                     </Button>
 
                     <Typography variant="body2" sx={{ textAlign: "center", mt: 2 }}>
