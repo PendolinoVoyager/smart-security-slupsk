@@ -82,16 +82,16 @@ max_segment_count = 10
 #Wersja tls - zakomentowac dla develompment
 [v5.1]
 name = "v5-1"
-listen = "172.20.10.2:8883"
+listen = "172.20.10.9:1883"
 next_connection_delay_ms = 1
    [v5.1.connections]
     connection_timeout_ms = 60000
     max_payload_size = 20480
     max_inflight_count = 100
-    [v5.1.tls]
-    certpath = "../certs/certs/ass.cert.pem"
-    keypath = "../certs/certs/ass.key.pem"
-    capath = "../certs/certs/ca.cert.pem" 
+#    [v5.1.tls]
+#    certpath = "../certs/certs/ass.cert.pem"
+#    keypath = "../certs/certs/ass.key.pem"
+#    capath = "../certs/certs/ca.cert.pem" 
 
 # [prometheus]
 # listen = "127.0.0.1:9042"
