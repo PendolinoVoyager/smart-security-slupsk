@@ -1,12 +1,10 @@
 import { FC } from "react";
 import { Outlet } from "react-router-dom";
-import { ROLE, useProtectedResource } from "../../authUtils";
 import MainNav from "../nav/mainNav";
 import { Canvas } from "@react-three/fiber";
 import AnimatedBox from "./animatedBox";
 
 const Root: FC = function () {
-  useProtectedResource(ROLE.ADMIN);
 
   return (
     <>
