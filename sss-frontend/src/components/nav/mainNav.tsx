@@ -13,7 +13,7 @@ import {
   useMediaQuery,
 } from "@mui/material";
 
-import { Menu, Person, UsbRounded } from "@mui/icons-material";
+import { Menu, Person } from "@mui/icons-material";
 import { ROLE } from "../../authUtils";
 
 export default function MainNav() {
