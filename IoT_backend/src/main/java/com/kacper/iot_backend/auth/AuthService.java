@@ -45,11 +45,7 @@ public class AuthService
         ActivationToken activationToken = activationTokenService.createActivationToken(user);
 
         userService.saveUserAndToken(user, activationToken);
-        try {
-            mailService.sendVerificationMail(user, activationToken.getToken());
-        } catch (MessagingException e) {
-            throw new MessagingException("Error during sending verification mail");
-        }
+        sendVerificationMail(user, activationToken);
 
         return AuthRegistrationResponse.builder()
                 .name(user.getName())
@@ -89,11 +85,11 @@ public class AuthService
         }
     }
 
-
-
-
-
-
-
-
+    public void sendVerificationMail(User user, ActivationToken activationToken) throws MessagingException {
+        try {
+            mailService.sendVerificationMail(user, activationToken.getToken());
+        } catch (MessagingException e) {
+            throw new MessagingException("Error during sending verification mail");
+        }
+    }
 }
