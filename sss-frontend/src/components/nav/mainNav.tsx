@@ -10,19 +10,28 @@ import {
   Paper,
   Theme,
   useMediaQuery,
+  Popover,
 } from "@mui/material";
-
 import { Menu, Person } from "@mui/icons-material";
 import { ROLE } from "../../authUtils";
+import LoginForm from "../../components/login/loginForm.tsx";
 
 export default function MainNav() {
   const { loggedIn, email, role, logout } = useContext(AuthContext);
   const [isDrawerOpen, setDrawerOpen] = useState(false);
+  const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
   const isSmallScreen = useMediaQuery((theme: Theme) =>
       theme.breakpoints.down("md")
   );
 
-  // Render items for the navigation
+  const handleLoginClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleClosePopover = () => {
+    setAnchorEl(null);
+  };
+
   const renderNavItems = () => (
       <>
         <ListItem>
@@ -49,12 +58,20 @@ export default function MainNav() {
             </ListItem>
         ) : (
             <ListItem>
-              <NavItem href={"/login"}>
-                <Box display="flex" alignItems="center" gap={1}>
-                  <Person fontSize="small" />
-                  Login
-                </Box>
-              </NavItem>
+              <IconButton onClick={handleLoginClick}>
+                <Person fontSize="small" />
+              </IconButton>
+              <Popover
+                  open={Boolean(anchorEl)}
+                  anchorEl={anchorEl}
+                  onClose={handleClosePopover}
+                  anchorOrigin={{
+                    vertical: "bottom",
+                    horizontal: "right",
+                  }}
+              >
+                <LoginForm onLoginSuccess={handleClosePopover} />
+              </Popover>
             </ListItem>
         )}
       </>
@@ -63,7 +80,6 @@ export default function MainNav() {
   return (
       <Paper elevation={1} sx={{ marginTop: 0 }}>
         {isSmallScreen ? (
-            // For small screens: Use Drawer
             <Box display={"flex"} alignItems={"center"}>
               <IconButton
                   onClick={() => setDrawerOpen(!isDrawerOpen)}
@@ -80,14 +96,12 @@ export default function MainNav() {
               </Drawer>
             </Box>
         ) : (
-            // For large screens: Use horizontal navigation
             <Box
                 display="flex"
                 justifyContent="space-between"
                 alignItems="center"
                 padding="0 16px"
             >
-              {/* Left side: Links */}
               <List
                   sx={{
                     display: "flex",
@@ -111,7 +125,6 @@ export default function MainNav() {
                 )}
               </List>
 
-              {/* Right side: Login/Logout */}
               <List
                   sx={{
                     display: "flex",
@@ -131,18 +144,20 @@ export default function MainNav() {
                     </ListItem>
                 ) : (
                     <ListItem>
-                      <NavItem href={"/login"}>
-                        <Box
-                            component="span"
-                            display="flex"
-                            alignItems="center"
-                            justifyContent="center"
-                            gap={1}
-                        >
-                          <Person fontSize="small" />
-                          Login
-                        </Box>
-                      </NavItem>
+                      <IconButton onClick={handleLoginClick}>
+                        <Person fontSize="small" />
+                      </IconButton>
+                      <Popover
+                          open={Boolean(anchorEl)}
+                          anchorEl={anchorEl}
+                          onClose={handleClosePopover}
+                          anchorOrigin={{
+                            vertical: "bottom",
+                            horizontal: "right",
+                          }}
+                      >
+                        <LoginForm onLoginSuccess={handleClosePopover} />
+                      </Popover>
                     </ListItem>
                 )}
               </List>

@@ -7,7 +7,7 @@ import Root from "./components/pages/root";
 import ErrorPage from "./components/pages/errorPage";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider } from "./store/authStore";
-import LoginPage from "./components/pages/loginPage";
+import RegisterPage from "./components/pages/registerPage.tsx";
 
 const router = createBrowserRouter([
   {
@@ -16,9 +16,9 @@ const router = createBrowserRouter([
     errorElement: <ErrorPage />,
     children: [
       {
-        path: "/login",
-        element: <LoginPage />,
-      },
+        path: "/register",
+        element: <RegisterPage />,
+      }
     ],
   },
 ]);
