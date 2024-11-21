@@ -8,14 +8,13 @@ import {
     CircularProgress,
     Alert,
 } from "@mui/material";
-import {requestActivationAccount} from "../../api/activationAccountApi.ts";
-import {useNavigate} from "react-router-dom";
+import {requestResetPassword} from "../../api/resetPasswordApi.ts";
+import { useNavigate } from "react-router-dom";
 
-const ActivationAccount = () => {
+const ResetPassword = () => {
     const navigate = useNavigate();
     const [formData, setFormData] = useState({
         email: "",
-        activationToken: "",
     });
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -29,25 +28,22 @@ const ActivationAccount = () => {
         e.preventDefault();
         setError(null);
 
-        const { email, activationToken } = formData;
+        const { email } = formData;
 
-        if (!email || !activationToken) {
-            setError("Please provide both email and activation token.");
+        if (!email) {
+            setError("Please provide your email address.");
             return;
         }
 
         setIsLoading(true);
 
-        const result = await requestActivationAccount({ email, activationToken });
+        const result = await requestResetPassword({ email });
 
         if (result instanceof Error) {
             setError(result.message);
         } else {
-            navigate("/");
+            navigate("/password-reset-confirmation");
         }
-
-
-
     };
 
     return (
@@ -72,7 +68,7 @@ const ActivationAccount = () => {
                 }}
             >
                 <Typography variant="h3" component="h1" sx={{ fontWeight: "bold" }}>
-                    Activate your account! 👏
+                    Reset Your Password 🔒
                 </Typography>
                 <Typography
                     variant="body1"
@@ -83,13 +79,13 @@ const ActivationAccount = () => {
                         maxWidth: "400px",
                     }}
                 >
-                    To complete your registration, activate your account using the form
-                    on the right. Enter your email and the activation token you received
-                    via email.
+                    Forgot your password? No problem! Enter your email address in the
+                    form on the right, and we’ll send you instructions on how to reset
+                    your password.
                 </Typography>
             </Box>
 
-            {/* Formularz Aktywacji */}
+            {/* Formularz Resetowania Hasła */}
             <Container
                 maxWidth="xs"
                 sx={{
@@ -106,7 +102,7 @@ const ActivationAccount = () => {
                     component="h2"
                     sx={{ fontWeight: "bold", mb: 3 }}
                 >
-                    Activate Your Account
+                    Reset Password
                 </Typography>
                 <Box
                     component="form"
@@ -122,16 +118,6 @@ const ActivationAccount = () => {
                         name="email"
                         autoComplete="email"
                         value={formData.email}
-                        onChange={handleChange}
-                    />
-                    <TextField
-                        margin="normal"
-                        required
-                        fullWidth
-                        id="activationToken"
-                        label="Activation Token"
-                        name="activationToken"
-                        value={formData.activationToken}
                         onChange={handleChange}
                     />
 
@@ -157,7 +143,7 @@ const ActivationAccount = () => {
                         {isLoading ? (
                             <CircularProgress size={24} sx={{ color: "white" }} />
                         ) : (
-                            "Activate Account"
+                            "Send Reset Link"
                         )}
                     </Button>
                 </Box>
@@ -166,4 +152,4 @@ const ActivationAccount = () => {
     );
 };
 
-export default ActivationAccount;
+export default ResetPassword;
