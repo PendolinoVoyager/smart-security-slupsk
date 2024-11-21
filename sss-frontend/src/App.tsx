@@ -8,6 +8,7 @@ import ErrorPage from "./components/pages/errorPage";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider } from "./store/authStore";
 import RegisterPage from "./components/pages/registerPage.tsx";
+import ActivationAccount from "./components/pages/activationAccount.tsx";
 
 const router = createBrowserRouter([
   {
@@ -18,7 +19,11 @@ const router = createBrowserRouter([
       {
         path: "/register",
         element: <RegisterPage />,
-      }
+      },
+      {
+        path: "/activation-account",
+        element: <ActivationAccount />,
+      },
     ],
   },
 ]);

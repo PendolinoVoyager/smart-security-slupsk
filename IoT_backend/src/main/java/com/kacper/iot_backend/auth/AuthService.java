@@ -45,7 +45,7 @@ public class AuthService
         ActivationToken activationToken = activationTokenService.createActivationToken(user);
 
         userService.saveUserAndToken(user, activationToken);
-        sendVerificationMail(user, activationToken);
+//        sendVerificationMail(user, activationToken);
 
         return AuthRegistrationResponse.builder()
                 .name(user.getName())

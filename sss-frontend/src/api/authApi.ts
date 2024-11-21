@@ -9,8 +9,7 @@ export enum ROLE {
     ADMIN = "ADMIN",
 }
 
-export async function requestRegister(
-{
+export async function requestRegister({
       name,
       last_name,
       email,
@@ -23,6 +22,7 @@ export async function requestRegister(
     role: ROLE;
     password: string;
 }): Promise<void | HttpError> {
+    console.log(name, last_name, email, role, password);
     const res = await fetchSafe<void>(REGISTER_URL, {
         method: "POST",
         headers: {
@@ -38,6 +38,7 @@ export async function requestRegister(
     });
 
     if (res instanceof HttpError) {
+        console.log(res);
         return res;
     }
 

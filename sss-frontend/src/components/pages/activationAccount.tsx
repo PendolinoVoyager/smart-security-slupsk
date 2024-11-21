@@ -7,57 +7,35 @@ import {
     Container,
     CircularProgress,
     Alert,
-    MenuItem,
 } from "@mui/material";
-import { useNavigate } from "react-router-dom";
-import { requestRegister, ROLE } from "../../api/authApi.ts";
 
-const RegistrationPage = () => {
-    const navigate = useNavigate();
+const ActivationAccount = () => {
     const [formData, setFormData] = useState({
-        name: "",
-        last_name: "",
         email: "",
-        role: ROLE.USER,
-        password: "",
-        confirmPassword: "",
+        activationToken: "",
     });
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
-        console.log("handleChange start: ");
         setFormData((prevData) => ({ ...prevData, [name]: value }));
-        console.log("handleChange stop: ");
-        console.log(name, value);
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError(null);
 
-        console.log(formData);
-        const { name, last_name, email, role, password, confirmPassword } = formData;
+        const { email, activationToken } = formData;
 
-        if (password !== confirmPassword) {
-            setError("Passwords do not match.");
+        if (!email || !activationToken) {
+            setError("Please provide both email and activation token.");
             return;
         }
 
         setIsLoading(true);
 
-        const payload = { name, last_name, email, role, password };
-        console.log("Payload: ", payload);
-        const result = await requestRegister(payload);
-
-        setIsLoading(false);
-
-        if (result instanceof Error) {
-            setError(result.message);
-        } else {
-            navigate("/activation-account");
-        }
+        console.log("dziala");
     };
 
     return (
@@ -68,6 +46,7 @@ const RegistrationPage = () => {
                 backgroundColor: (theme) => theme.palette.primary.light,
             }}
         >
+            {/* Lewe Pole Informacyjne */}
             <Box
                 sx={{
                     flex: 1,
@@ -81,17 +60,7 @@ const RegistrationPage = () => {
                 }}
             >
                 <Typography variant="h3" component="h1" sx={{ fontWeight: "bold" }}>
-                    Join Our{" "}
-                    <Box
-                        component="span"
-                        sx={{
-                            color: (theme) => theme.palette.secondary.main,
-                            fontWeight: "bold",
-                        }}
-                    >
-                        AI
-                    </Box>
-                    -Powered Community! 🎉
+                    Activate your account! 👏
                 </Typography>
                 <Typography
                     variant="body1"
@@ -102,20 +71,13 @@ const RegistrationPage = () => {
                         maxWidth: "400px",
                     }}
                 >
-                    Register today to experience seamless communication with the power of{" "}
-                    <Box
-                        component="span"
-                        sx={{
-                            color: (theme) => theme.palette.secondary.main,
-                            fontWeight: "bold",
-                        }}
-                    >
-                        AI
-                    </Box>{" "}
-                    at your fingertips.
+                    To complete your registration, activate your account using the form
+                    on the right. Enter your email and the activation token you received
+                    via email.
                 </Typography>
             </Box>
 
+            {/* Formularz Aktywacji */}
             <Container
                 maxWidth="xs"
                 sx={{
@@ -132,33 +94,13 @@ const RegistrationPage = () => {
                     component="h2"
                     sx={{ fontWeight: "bold", mb: 3 }}
                 >
-                    Create Your Account
+                    Activate Your Account
                 </Typography>
                 <Box
                     component="form"
                     onSubmit={handleSubmit}
                     sx={{ width: "100%" }}
                 >
-                    <TextField
-                        margin="normal"
-                        required
-                        fullWidth
-                        id="name"
-                        label="First Name"
-                        name="name"
-                        value={formData.name}
-                        onChange={handleChange}
-                    />
-                    <TextField
-                        margin="normal"
-                        required
-                        fullWidth
-                        id="last_name"
-                        label="Last Name"
-                        name="last_name"
-                        value={formData.last_name}
-                        onChange={handleChange}
-                    />
                     <TextField
                         margin="normal"
                         required
@@ -171,41 +113,13 @@ const RegistrationPage = () => {
                         onChange={handleChange}
                     />
                     <TextField
-                        select
                         margin="normal"
                         required
                         fullWidth
-                        id="role"
-                        label="Role"
-                        name="role"
-                        value={formData.role}
-                        onChange={handleChange}
-                    >
-                        <MenuItem value={ROLE.USER}>User</MenuItem>
-                        <MenuItem value={ROLE.ADMIN}>Admin</MenuItem>
-                    </TextField>
-                    <TextField
-                        margin="normal"
-                        required
-                        fullWidth
-                        name="password"
-                        label="Password"
-                        type="password"
-                        id="password"
-                        autoComplete="new-password"
-                        value={formData.password}
-                        onChange={handleChange}
-                    />
-                    <TextField
-                        margin="normal"
-                        required
-                        fullWidth
-                        name="confirmPassword"
-                        label="Confirm Password"
-                        type="password"
-                        id="confirmPassword"
-                        autoComplete="new-password"
-                        value={formData.confirmPassword}
+                        id="activationToken"
+                        label="Activation Token"
+                        name="activationToken"
+                        value={formData.activationToken}
                         onChange={handleChange}
                     />
 
@@ -231,7 +145,7 @@ const RegistrationPage = () => {
                         {isLoading ? (
                             <CircularProgress size={24} sx={{ color: "white" }} />
                         ) : (
-                            "Register Now"
+                            "Activate Account"
                         )}
                     </Button>
                 </Box>
@@ -240,4 +154,4 @@ const RegistrationPage = () => {
     );
 };
 
-export default RegistrationPage;
+export default ActivationAccount;
