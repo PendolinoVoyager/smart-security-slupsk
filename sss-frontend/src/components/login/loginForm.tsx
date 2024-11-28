@@ -82,7 +82,7 @@ const LoginForm = ({ onLoginSuccess }: { onLoginSuccess: () => void }) => {
                 <Typography variant="body2" sx={{ mb: 1 }}>
                     <Link
                         href="#"
-                        onClick={() => navigate("/forgot-password")}
+                        onClick={() => navigate("/reset-password")}
                         underline="hover"
                         sx={{ cursor: "pointer" }}
                     >

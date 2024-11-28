@@ -10,6 +10,8 @@ import { AuthProvider } from "./store/authStore";
 import RegisterPage from "./components/pages/registerPage.tsx";
 import ActivationAccount from "./components/pages/activationAccount.tsx";
 import ResetPassword from "./components/pages/resetPassword.tsx";
+import DevicePage from "./components/pages/devicePage.tsx";
+import DeviceDetails from "./components/pages/deviceDetails.tsx";
 
 const router = createBrowserRouter([
   {
@@ -28,7 +30,16 @@ const router = createBrowserRouter([
       {
         path: "/reset-password",
         element: <ResetPassword />
+      },
+      {
+        path: "/devices",
+        element: <DevicePage />
+      },
+      {
+        path: "/devices/:id",
+        element: <DeviceDetails />
       }
+
     ],
   },
 ]);
