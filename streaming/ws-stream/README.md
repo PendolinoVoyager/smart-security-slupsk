@@ -1,0 +1,1 @@
+cargo run -- --addr 192.168.8.124 -p 8080 --server -v /dev/video0 -a alsa_input.pci-0000_03_00.6.HiFi__Mic1__source
