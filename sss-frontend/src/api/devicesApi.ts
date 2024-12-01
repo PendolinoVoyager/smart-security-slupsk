@@ -1,25 +1,20 @@
-import {getToken} from "../authUtils.ts";
-import {fetchSafe, HttpError} from "../http/fetch.ts";
+import { addCredentials } from "../authUtils.ts";
+import { fetchSafe, HttpError } from "../http/fetch.ts";
 
 const API_URL = "http://localhost:8080";
 
 export async function fetchDevices(): Promise<{ id: string }[] | undefined> {
     try {
-        const token = getToken();
-        if (!token) {
-            console.error("No token found. User might not be authenticated.");
-            return undefined;
-        }
-
-        const response = await fetchSafe<{ id: string }[]>(`${API_URL}/api/v1/device/`, {
+        const requestOptions: RequestInit = {
             method: "GET",
             headers: {
                 "Content-Type": "application/json",
-                "Authorization": `Bearer ${token}`,
             },
-        });
+        };
 
-        console.log(response);
+        addCredentials(requestOptions);
+
+        const response = await fetchSafe<{ id: string }[]>(`${API_URL}/api/v1/device/`, requestOptions);
 
         if (response instanceof HttpError) {
             console.error("Fetching devices failed:", response.message);

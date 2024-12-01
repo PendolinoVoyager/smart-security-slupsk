@@ -8,8 +8,8 @@ import ErrorPage from "./components/pages/errorPage";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider } from "./store/authStore";
 import RegisterPage from "./components/pages/registerPage.tsx";
-import ActivationAccount from "./components/pages/activationAccount.tsx";
-import ResetPassword from "./components/pages/resetPassword.tsx";
+import ActivationAccountPage from "./components/pages/activationAccountPage.tsx";
+import ResetPassword from "./components/pages/resetPasswordPage.tsx";
 import DevicePage from "./components/pages/devicePage.tsx";
 import DeviceDetails from "./components/pages/deviceDetails.tsx";
 
@@ -25,7 +25,7 @@ const router = createBrowserRouter([
       },
       {
         path: "/activation-account",
-        element: <ActivationAccount />,
+        element: <ActivationAccountPage />,
       },
       {
         path: "/reset-password",

@@ -1,8 +1,8 @@
 import { Box, Container, Typography } from "@mui/material";
-import InformativePanel from "./InformativePanel";
-import ActivationForm from "./ActivationForm";
+import InformativePanel from "../reset_pass/InformativePanel";
+import ResetPasswordForm from "../reset_pass/RessetPasswordForm.tsx";
 
-const MainContainer = () => (
+const ResetPasswordPage = () => (
     <Box
         sx={{
             display: "flex",
@@ -28,11 +28,11 @@ const MainContainer = () => (
                 component="h2"
                 sx={{ fontWeight: "bold", mb: 3 }}
             >
-                Activate Your Account
+                Reset Password
             </Typography>
-            <ActivationForm />
+            <ResetPasswordForm />
         </Container>
     </Box>
 );
 
-export default MainContainer;
+export default ResetPasswordPage;

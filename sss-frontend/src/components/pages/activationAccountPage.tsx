@@ -1,8 +1,8 @@
 import { Box, Container, Typography } from "@mui/material";
-import InformativePanel from "./InformativePanel";
-import RegistrationForm from "./RegistrationForm.tsx";
+import InformativePanel from "../activation_acc/InformativePanel.tsx";
+import ActivationForm from "../activation_acc/ActivationForm.tsx";
 
-const MainContainer = () => (
+const ActivationAccountPage = () => (
     <Box
         sx={{
             display: "flex",
@@ -28,11 +28,11 @@ const MainContainer = () => (
                 component="h2"
                 sx={{ fontWeight: "bold", mb: 3 }}
             >
-                Create Your Account
+                Activate Your Account
             </Typography>
-            <RegistrationForm />
+            <ActivationForm />
         </Container>
     </Box>
 );
 
-export default MainContainer;
+export default ActivationAccountPage;
