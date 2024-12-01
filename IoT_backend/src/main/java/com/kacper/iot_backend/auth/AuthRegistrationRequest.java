@@ -12,8 +12,8 @@ public record AuthRegistrationRequest(
         @NotBlank(message = "Last name is required")
         String last_name,
 
-        @NotBlank(message = "Email is required")
         @Email(message = "Email is invalid")
+        @NotBlank(message = "Email is required")
         String email,
 
         @NotBlank(message = "Role is required")
