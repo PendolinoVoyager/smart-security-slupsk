@@ -28,6 +28,9 @@ impl Mp4Stream {
 
         if let Some(audio_dev) = &self.audio_dev {
             command
+                .arg("-fflags")
+                .arg("nobuffer")
+                .arg("-re")
                 .arg("-f")
                 .arg("pulse")
                 .arg("-i")
@@ -37,7 +40,7 @@ impl Mp4Stream {
                 .arg("-ac")
                 .arg("2");
         }
-
+        
         let child = command
             .arg("-fflags")
             .arg("nobuffer")
@@ -46,23 +49,22 @@ impl Mp4Stream {
             .arg("-i")
             .arg(&self.video_dev)
             .arg("-c:v")
-            .arg("libvpx") // Use VP8 for video encoding
+            .arg("libvpx")
             .arg("-g")
-            .arg("30") // Keyframe interval (GOP size), adjust for smoother video
+            .arg("10")
             .arg("-f")
-            .arg("webm") // Output format WebM
+            .arg("webm")
             .arg("-deadline")
-            .arg("realtime") // Low-latency encoding
-            .arg("-cpu-used")
-            .arg("3") // Leave one core alone (performance optimization)
+            .arg("realtime")
             .arg("-cluster_time_limit")
-            .arg("300") // Cluster time limit to prevent stream fragmentation
+            .arg("1000")
             .arg("-")
             .stdin(Stdio::null())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .spawn()
             .expect("Failed to spawn ffmpeg process");
+        
 
         self.child = Some(child);
     }
