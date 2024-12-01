@@ -1,46 +1,53 @@
 const videoHandle = document.querySelector("#video");
-const audioHandle = document.createElement("audio");
+const audioHandle = document.createElement("audio"); // Create a new audio element
 
-const MIME_CODEC = 'video/webm; codecs="vp8, opus"';
+let MIME_CODEC_VIDEO = 'video/webm; codecs="vp8, opus"';
+let MIME_CODEC_AUDIO = 'audio/webm; codecs="opus"';
 
-const mediaSource = new MediaSource();
-const url = URL.createObjectURL(mediaSource);
-// audioHandle.src = url;
-videoHandle.src = url;
+const mediaSourceVideo = new MediaSource(); // actual source
+// DELETING THE BELOW LINE WILL CRASH THE VIDEO
 
-let videoBuffer;
+const mediaSourceAudio = new MediaSource();
 
-mediaSource.addEventListener("sourceopen", () => {
-  console.log("MediaSource opened");
-  // Create SourceBuffer for video (only video data)
-  videoBuffer = mediaSource.addSourceBuffer('video/webm; codecs="vp8, opus"');
-  videoBuffer.mode = "sequence";
-  videoBuffer.timestampOffset = 0;
-  videoBuffer.appendWindowEnd = Infinity;
-  // videoBuffer.addEventListener("updateend", () => {
+// Attach MediaSource to video and audio elements
+videoHandle.src = URL.createObjectURL(mediaSourceVideo);
+// DO NOT MOVE 2 THE LINES BELOW
+audioHandle.src = URL.createObjectURL(mediaSourceAudio);
+audioHandle.muted = true;
+let videoBuffer, audioBuffer;
 
-  // });
-  videoBuffer.addEventListener("error", (e) => {
-    console.error("Video buffer error:", e);
-    for (let i = 0; i < videoBuffer.buffered.length; i++) {
-      console.log(
-        "Buffered range:",
-        videoBuffer.buffered.start(i),
-        videoBuffer.buffered.end(i)
-      );
+mediaSourceVideo.addEventListener("sourceopen", () => {
+  console.log("Video MediaSource opened");
+  // Create SourceBuffer for video (which will be ignored)
+  videoBuffer = mediaSourceVideo.addSourceBuffer(MIME_CODEC_VIDEO);
+  videoBuffer.mode = "segments";
+  videoBuffer.addEventListener("updateend", () => {
+    if (videoHandle.paused) {
+      videoHandle.play().catch(console.error); // Ensure video plays (for video, but not necessary if ignored)
+      videoHandle.removeAttribute("error");
     }
   });
+  videoBuffer.addEventListener("error", (e) =>
+    console.error("Video buffer error:", e)
+  );
+});
+
+mediaSourceAudio.addEventListener("sourceopen", () => {
+  console.log("Audio MediaSource opened");
+  // Create SourceBuffer for audio
+  audioBuffer = mediaSourceAudio.addSourceBuffer(MIME_CODEC_AUDIO);
+  audioBuffer.mode = "segments"; // For fragmented audio streams
 });
 
 const socket = new WebSocket("ws://192.168.8.124:8080");
 socket.binaryType = "arraybuffer";
 
 socket.addEventListener("message", (m) => {
-  if (mediaSource.readyState === "open") {
+  if (mediaSourceAudio.readyState === "open") {
     try {
+      // Assume data type can distinguish between video and audio
       if (!videoBuffer.updating) {
         videoBuffer.appendBuffer(m.data);
-        console.log(`Appended video data: ${m.data.byteLength} bytes`);
       }
     } catch (e) {
       console.error("Buffer append failed:", e);

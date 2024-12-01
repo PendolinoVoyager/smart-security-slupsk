@@ -38,7 +38,7 @@ impl Mp4Stream {
                 .arg("-c:a")
                 .arg("libopus")
                 .arg("-ac")
-                .arg("2");
+                .arg("1");
         }
         
         let child = command
