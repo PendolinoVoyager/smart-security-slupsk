@@ -1,7 +1,10 @@
 package com.kacper.iot_backend.device;
 
+import com.kacper.iot_backend.user.User;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -12,13 +15,16 @@ import java.util.List;
 @RestController
 public class DeviceController
 {
+    private final DeviceService deviceService;
+
+    public DeviceController(DeviceService deviceService) {
+        this.deviceService = deviceService;
+    }
+
     @GetMapping("/")
-    public ResponseEntity<List<Device>> getUserDevices() {
-        List<Device> devices = List.of(
-                new Device(1),
-                new Device(2),
-                new Device(3)
-        );
-        return new ResponseEntity<>(devices, HttpStatus.OK);
+    public List<DevicesListResponse> getUserDevices(
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        return deviceService.getUserDevices(userDetails);
     }
 }
