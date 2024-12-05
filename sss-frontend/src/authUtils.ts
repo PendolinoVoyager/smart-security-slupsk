@@ -2,9 +2,9 @@ import { useNavigate } from "react-router-dom";
 import { fetchSafe, HttpError } from "./http/fetch";
 import { useEffect } from "react";
 
-export const AUTH_PROVIDER_URL = "http://127.0.0.1:8080";
+export const AUTH_PROVIDER_URL = "http://localhost:8080";
 
-const LOGIN_URL = `${AUTH_PROVIDER_URL}/auth/login`;
+const LOGIN_URL = `${AUTH_PROVIDER_URL}/api/v1/auth/login`;
 export const LOCALSTORAGE_AUTHDATA_NAME = "auth_data";
 export type AuthData = {
   role: ROLE;

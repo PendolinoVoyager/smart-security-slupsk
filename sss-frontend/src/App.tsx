@@ -7,7 +7,11 @@ import Root from "./components/pages/root";
 import ErrorPage from "./components/pages/errorPage";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider } from "./store/authStore";
-import LoginPage from "./components/pages/loginPage";
+import RegisterPage from "./components/pages/registerPage.tsx";
+import ActivationAccountPage from "./components/pages/activationAccountPage.tsx";
+import ResetPassword from "./components/pages/resetPasswordPage.tsx";
+import DevicePage from "./components/pages/devicePage.tsx";
+import DeviceDetails from "./components/pages/deviceDetails.tsx";
 
 const router = createBrowserRouter([
   {
@@ -16,9 +20,26 @@ const router = createBrowserRouter([
     errorElement: <ErrorPage />,
     children: [
       {
-        path: "/login",
-        element: <LoginPage />,
+        path: "/register",
+        element: <RegisterPage />,
       },
+      {
+        path: "/activation-account",
+        element: <ActivationAccountPage />,
+      },
+      {
+        path: "/reset-password",
+        element: <ResetPassword />
+      },
+      {
+        path: "/devices",
+        element: <DevicePage />
+      },
+      {
+        path: "/devices/:id",
+        element: <DeviceDetails />
+      }
+
     ],
   },
 ]);
