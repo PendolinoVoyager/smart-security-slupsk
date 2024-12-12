@@ -1,12 +1,11 @@
 package com.kacper.iot_backend.auth;
 
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 
 public record AuthRegistrationRequest(
         @NotBlank(message = "Name is required")
+        @Min(value = 2, message = "Name must be at least 2 characters long")
+        @Max(value = 50, message = "Name must be at most 50 characters long")
         String name,
 
         @NotBlank(message = "Last name is required")
@@ -15,9 +14,6 @@ public record AuthRegistrationRequest(
         @Email(message = "Email is invalid")
         @NotBlank(message = "Email is required")
         String email,
-
-        @NotBlank(message = "Role is required")
-        String role,
 
         @NotBlank(message = "Password cannot be empty")
         @Size(min = 8, message = "Password must be at least 8 characters long")

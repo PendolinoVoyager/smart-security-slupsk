@@ -12,9 +12,20 @@ const NavItem: FC<INavItemProps> = function ({ href, children, onClick }) {
   const path = useLocation();
   const isActive = path.pathname === href;
   return (
-    <Link to={href} onClick={onClick}>
-      <Button variant={isActive ? "contained" : "outlined"}>{children}</Button>
-    </Link>
+      <Link to={href} onClick={onClick} style={{ textDecoration: "none" }}>
+        <Button
+            variant={isActive ? "contained" : "outlined"}
+            sx={{
+              minWidth: "7rem",
+              height: "2.8rem",
+              textAlign: "center",
+              whiteSpace: "nowrap",
+            }}
+        >
+          {children}
+        </Button>
+      </Link>
   );
 };
+
 export default NavItem;

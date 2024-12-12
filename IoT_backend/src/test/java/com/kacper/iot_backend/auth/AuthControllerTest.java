@@ -52,7 +52,6 @@ class AuthControllerTest
                 "John",
                 "Doe",
                 "john.doe@example.com",
-                "USER",
                 passwordEncoder.encode("password")
         );
 
@@ -92,7 +91,6 @@ class AuthControllerTest
                 "John",
                 "Doe",
                 "john.doe@example.com",
-                "USER",
                 "123"
         );
 
@@ -114,7 +112,6 @@ class AuthControllerTest
         LOGGER.info("Started test shouldReturnBadRequestForNullFields");
 
         AuthRegistrationRequest request = new AuthRegistrationRequest(
-                null,
                 null,
                 null,
                 null,
@@ -140,7 +137,6 @@ class AuthControllerTest
                 "John",
                 "Doe",
                 "invalid-email",
-                "USER",
                 "Password.123"
         );
 

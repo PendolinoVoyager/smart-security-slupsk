@@ -13,16 +13,14 @@ export async function requestRegister({
       name,
       last_name,
       email,
-      role,
       password,
 }: {
     name: string;
     last_name: string;
     email: string;
-    role: ROLE;
     password: string;
 }): Promise<void | HttpError> {
-    console.log(name, last_name, email, role, password);
+    console.log(name, last_name, email, password);
     const res = await fetchSafe<void>(REGISTER_URL, {
         method: "POST",
         headers: {
@@ -32,7 +30,6 @@ export async function requestRegister({
             name,
             last_name,
             email,
-            role,
             password,
         }),
     });
