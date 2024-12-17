@@ -1,6 +1,7 @@
 package com.kacper.iot_backend.user;
 
 import com.kacper.iot_backend.activation_token.ActivationToken;
+import com.kacper.iot_backend.device.Device;
 import com.kacper.iot_backend.reset_password_token.ResetPasswordToken;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -73,7 +74,6 @@ public class User implements UserDetails
     @OneToOne(
             mappedBy = "user",
             cascade = CascadeType.ALL,
-            fetch = FetchType.LAZY,
             optional = false
     )
     private ActivationToken activationToken;
@@ -81,10 +81,16 @@ public class User implements UserDetails
     @OneToOne(
             mappedBy = "user",
             cascade = CascadeType.ALL,
-            fetch = FetchType.LAZY,
             optional = false
     )
     private ResetPasswordToken resetPasswordToken;
+
+    @OneToMany(
+            mappedBy = "user",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
+    private List<Device> devices;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

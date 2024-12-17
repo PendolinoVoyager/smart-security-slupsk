@@ -26,6 +26,7 @@ const LoginForm = ({ onLoginSuccess }: { onLoginSuccess: () => void }) => {
         }
 
         onLoginSuccess();
+        navigate("/");
     };
 
     return (
@@ -38,12 +39,15 @@ const LoginForm = ({ onLoginSuccess }: { onLoginSuccess: () => void }) => {
                 gap: 2,
                 width: "300px",
                 padding: 2,
-                textAlign: "center", // Wyśrodkowanie napisu
+                textAlign: "center",
             }}
         >
-            {/* Nagłówek formularza */}
             <Typography variant="h5" sx={{ mb: 2 }}>
                 Login
+            </Typography>
+
+            <Typography variant="body2" sx={{ mb: 2 }}>
+                Default user is admin@example.com with password Password.123
             </Typography>
 
             <TextField

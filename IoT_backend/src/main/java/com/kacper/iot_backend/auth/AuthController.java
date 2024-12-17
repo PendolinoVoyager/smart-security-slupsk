@@ -26,7 +26,6 @@ public class AuthController
     public ResponseEntity<AuthRegistrationResponse> register(
             @Valid @RequestBody AuthRegistrationRequest authRegistrationRequest
     ) throws MessagingException {
-        LOGGER.info("Request: {}", authRegistrationRequest);
         return new ResponseEntity<>(authService.register(authRegistrationRequest), HttpStatus.CREATED);
     }
 

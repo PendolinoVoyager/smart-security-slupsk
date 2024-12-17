@@ -48,7 +48,7 @@ public class UserService
                 .last_name(authRegistrationRequest.last_name())
                 .email(authRegistrationRequest.email())
                 .password(passwordEncoder.encode(authRegistrationRequest.password()))
-                .role(authRegistrationRequest.role().toUpperCase())
+                .role("USER")
                 .created_at(new Date())
                 .build();
     }

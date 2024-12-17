@@ -11,9 +11,7 @@ const DevicePage = () => {
         const loadDevices = async () => {
             setIsLoading(true);
             setError(null);
-
             const result = await fetchDevices();
-
             if (!result) {
                 setError("Failed to fetch devices. Please try again later.");
             } else {
