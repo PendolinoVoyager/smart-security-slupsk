@@ -1,12 +1,13 @@
+#![feature(type_changing_struct_update)]
 //! Binary utility to stream to a websocket.
-
-mod mp4_stream;
-
-use std::io::{self, Read};
-use std::net::{IpAddr, SocketAddr, TcpListener, TcpStream};
-
+mod ffmpeg_stream;
+mod gstreamer_stream;
+mod stream;
 use clap::Parser;
-use mp4_stream::Mp4Stream;
+use ffmpeg_stream::FfmpegMpegtsStream;
+use std::io::{self};
+use std::net::{IpAddr, Ipv4Addr, SocketAddr, TcpListener, TcpStream};
+use stream::VideoStream;
 use tracing::Level;
 use tracing_subscriber::FmtSubscriber;
 use tungstenite::{Message, WebSocket};
@@ -42,11 +43,13 @@ struct Config {
     /// Do not log
     #[clap(long, action, default_value_t = false)]
     silent: bool,
+
+    #[clap(long, default_value_t = false)]
+    localhost: bool,
 }
 
 fn main() -> anyhow::Result<()> {
     let config = Config::parse();
-
     if !config.silent {
         let subscriber = FmtSubscriber::builder()
             .with_writer(io::stderr) // Write logs to stderr
@@ -57,18 +60,22 @@ fn main() -> anyhow::Result<()> {
     }
 
     if config.server {
-        serve_ws(config)
+        serve_ws(config)?;
     } else {
-        connect_ws(config)
+        connect_ws(config)?;
     }
+    Ok(())
 }
 
 /// Make a websocket server, listening for the connection and then responding with stream.
 fn serve_ws(config: Config) -> anyhow::Result<()> {
-    let addr = get_if_addr().ok_or(std::io::Error::new(
-        io::ErrorKind::AddrNotAvailable,
-        "Public address not available",
-    ))?;
+    let addr = match config.localhost {
+        false => get_if_addr().ok_or(std::io::Error::new(
+            io::ErrorKind::AddrNotAvailable,
+            "Public address not available",
+        ))?,
+        true => IpAddr::V4(Ipv4Addr::LOCALHOST),
+    };
     let sock_addr = SocketAddr::new(addr, config.port);
 
     tracing::info!("Attempting to bind the socket to {}", &sock_addr);
@@ -110,16 +117,26 @@ fn stream_until_disconnect(mut ws: WebSocket<TcpStream>, config: Config) {
     let mut buf: Box<[u8; BUF_SIZE]> = Box::new([0; BUF_SIZE]);
 
     tracing::info!("Initializing stream");
-    let mut stream = Mp4Stream::new(Some(config.video_device), config.audio_device);
-    stream.init();
-    let mut output = stream.output().unwrap();
+    let mut stream = FfmpegMpegtsStream::new(Some(config.video_device), config.audio_device).init();
 
     tracing::info!("Starting streaming...");
     if !ws.can_write() {
         tracing::error!("Cannot write to the websocket!");
     }
-    while let Ok(len) = output.read(buf.as_mut_slice()) {
-        tracing::info!("{len}");
+    let mut flag_overflow = false;
+    loop {
+        let len =
+            match stream.read(&mut buf.as_mut_slice()[(if flag_overflow { 65536 } else { 0 })..]) {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!("{:?}", e);
+                    break;
+                }
+            };
+
+        if len == 65536 {
+            flag_overflow = true;
+        }
         if len == 0 {
             tracing::error!("ffmpeg pipe broken, exiting...");
             if let Some(e) = stream.error() {
@@ -127,12 +144,19 @@ fn stream_until_disconnect(mut ws: WebSocket<TcpStream>, config: Config) {
             }
             break;
         }
-        let message = Message::Binary(buf[0..len].to_vec());
+        let combined_len = if flag_overflow { 65536 + len } else { len };
+        tracing::info!("{combined_len}");
+        let message = Message::Binary(buf[0..combined_len].to_vec());
         if ws.send(message).is_err() {
             tracing::warn!("Cannot send packet, connection broken!");
             break;
         }
+        flag_overflow = false;
     }
+    // while let Ok(len) =
+    //     stream.read(&mut buf.as_mut_slice()[(if flag_overflow { 65536 } else { 0 })..])
+    // {
+    // }
     tracing::info!("Stream ended");
     stream.stop();
 }

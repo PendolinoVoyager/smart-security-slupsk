@@ -7,7 +7,7 @@ const VideoContainer: React.FC = () => {
   const [currentStream, setCurrentStream] = useState<string>("");
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
 
-  const streams = [{ name: "DEBUG", url: "ws://192.168.10.21:8080" }];
+  const streams = [{ name: "DEBUG", url: "ws://127.0.0.1:8080" }];
 
   const handleStreamSelect = (stream: string) => {
     setCurrentStream(stream);
@@ -24,6 +24,9 @@ const VideoContainer: React.FC = () => {
     setIsPlaying(false);
   };
 
+  const handleError = () => {
+    setIsPlaying(false);
+  };
   return (
     <Box margin={"1rem"}>
       <VideoControls
@@ -32,15 +35,9 @@ const VideoContainer: React.FC = () => {
         onStart={handleStart}
         onStop={handleStop}
         isPlaying={isPlaying}
-      >
-        {" "}
-      </VideoControls>
+      ></VideoControls>
       {currentStream && (
-        <VideoFeed
-          url={currentStream}
-          mime="video/webm; codecs=vp8,opus"
-          play={isPlaying}
-        />
+        <VideoFeed url={currentStream} play={isPlaying} onError={handleError} />
       )}
     </Box>
   );

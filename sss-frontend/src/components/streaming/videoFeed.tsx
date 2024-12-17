@@ -1,31 +1,49 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import React, { useEffect, useRef } from "react";
-import WebSocketMSE from "./WebSocketMSE";
 import { Paper } from "@mui/material";
+import mpegts from "mpegts.js";
 
 interface VideoFeedProps {
-  mime: string;
   url: string;
   play: boolean;
+  onError?: (e: Error) => void;
 }
-const VideoFeed: React.FC<VideoFeedProps> = ({ mime, url, play = false }) => {
+const VideoFeed: React.FC<VideoFeedProps> = ({
+  url,
+  play = false,
+  onError = () => {},
+}) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
-  const mediaSourceHandlerRef = useRef<WebSocketMSE | null>(null);
+  const player = useRef<mpegts.Player | null>(null);
   useEffect(() => {
     const videoElement = videoRef.current;
 
-    if (play) {
-      if (videoElement) {
-        mediaSourceHandlerRef.current = new WebSocketMSE(
-          videoElement,
-          url,
-          mime
-        );
+    if (play && videoElement) {
+      if (mpegts.getFeatureList().mseLivePlayback) {
+        try {
+          player.current = mpegts.createPlayer({
+            type: "mse",
+            isLive: true,
+            url,
+          });
+          player.current.attachMediaElement(videoElement);
+          player.current.load();
+          player.current.play();
+          player.current.on("error", (e) => {
+            onError(e);
+          });
+        } catch (e: unknown) {
+          if (e instanceof Error) {
+            onError(e);
+          }
+          alert("Stream failed, device offline!");
+        }
       }
     }
+
     return () => {
-      // Cleanup the media source handler
-      mediaSourceHandlerRef.current?.destroy();
+      player.current?.destroy();
+      player.current = null;
     };
   }, [play]);
 
@@ -40,6 +58,8 @@ const VideoFeed: React.FC<VideoFeedProps> = ({ mime, url, play = false }) => {
           borderRadius: "8px",
           boxShadow: "0 4px 12px rgba(0, 0, 0, 0.3)",
         }}
+        id="videoElement"
+        preload="none"
       />
     </Paper>
   );
