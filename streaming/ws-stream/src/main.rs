@@ -10,17 +10,17 @@ use std::net::{IpAddr, Ipv4Addr, SocketAddr, TcpListener, TcpStream};
 use stream::VideoStream;
 use tracing::Level;
 use tracing_subscriber::FmtSubscriber;
-use tungstenite::{Message, WebSocket};
+use tungstenite::{accept_hdr, Message, WebSocket};
 
 /// Buffer size for the stream.
 /// It must be enough to fully encompass a packet
-const BUF_SIZE: usize = 1024 * 100;
+const BUF_SIZE: usize = 1024 * 256;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 /// ffmpeg based utility to stream video via WebSockets
 /// Requires ffmpeg, v4l2 and OpenSSL.
-/// Streams using WebM, vp8 and Vorbis.
+/// Streams using MPEGTS.
 struct Config {
     /// IP address to stream to: e.g. "192.168.1.10"
     #[arg(long, long)]
@@ -82,6 +82,13 @@ fn serve_ws(config: Config) -> anyhow::Result<()> {
     let listener: TcpListener = TcpListener::bind(sock_addr)?;
     tracing::info!("WebSocket server bound to {}!", &sock_addr);
 
+    let callback = |req: &tungstenite::http::Request<()>,
+                    response: tungstenite::http::Response<_>| {
+        tracing::info!("Request URI: {}", req.uri()); // Get the URI
+        tracing::info!("Headers: {:?}", req.headers()); // Log headers
+        Ok(response)
+    };
+
     while let Ok((stream, addr)) = listener.accept() {
         if addr.ip().to_string() != config.addr {
             let _ = stream.shutdown(std::net::Shutdown::Both);
@@ -89,8 +96,16 @@ fn serve_ws(config: Config) -> anyhow::Result<()> {
         }
         drop(listener);
         tracing::info!("Connected to remote host");
-        let ws = tungstenite::accept(stream)?;
-        stream_until_disconnect(ws, config);
+
+        match accept_hdr(stream, callback) {
+            Ok(ws) => {
+                stream_until_disconnect(ws, config);
+            }
+            Err(e) => {
+                tracing::error!("Bad WebSocket handshake with {}", addr.ip());
+                tracing::error!("{:?}", e);
+            }
+        }
 
         break;
     }
@@ -114,8 +129,8 @@ fn connect_ws(config: Config) -> anyhow::Result<()> {
 }
 
 fn stream_until_disconnect(mut ws: WebSocket<TcpStream>, config: Config) {
+    const CHUNK_SIZE: usize = 65536;
     let mut buf: Box<[u8; BUF_SIZE]> = Box::new([0; BUF_SIZE]);
-
     tracing::info!("Initializing stream");
     let mut stream = FfmpegMpegtsStream::new(Some(config.video_device), config.audio_device).init();
 
@@ -123,20 +138,17 @@ fn stream_until_disconnect(mut ws: WebSocket<TcpStream>, config: Config) {
     if !ws.can_write() {
         tracing::error!("Cannot write to the websocket!");
     }
-    let mut flag_overflow = false;
-    loop {
-        let len =
-            match stream.read(&mut buf.as_mut_slice()[(if flag_overflow { 65536 } else { 0 })..]) {
-                Ok(r) => r,
-                Err(e) => {
-                    tracing::error!("{:?}", e);
-                    break;
-                }
-            };
 
-        if len == 65536 {
-            flag_overflow = true;
-        }
+    let mut overflow_len = 0;
+    loop {
+        let read_buf = &mut buf[overflow_len..overflow_len + CHUNK_SIZE];
+        let len = match stream.read(read_buf) {
+            Ok(r) => r,
+            Err(e) => {
+                tracing::error!("{:?}", e);
+                break;
+            }
+        };
         if len == 0 {
             tracing::error!("ffmpeg pipe broken, exiting...");
             if let Some(e) = stream.error() {
@@ -144,19 +156,27 @@ fn stream_until_disconnect(mut ws: WebSocket<TcpStream>, config: Config) {
             }
             break;
         }
-        let combined_len = if flag_overflow { 65536 + len } else { len };
+
+        let combined_len = overflow_len + len;
         tracing::info!("{combined_len}");
+
         let message = Message::Binary(buf[0..combined_len].to_vec());
         if ws.send(message).is_err() {
             tracing::warn!("Cannot send packet, connection broken!");
             break;
         }
-        flag_overflow = false;
+
+        overflow_len = if combined_len > CHUNK_SIZE {
+            combined_len - CHUNK_SIZE
+        } else {
+            0
+        };
+
+        if overflow_len > 0 {
+            buf.copy_within(CHUNK_SIZE..CHUNK_SIZE + overflow_len, 0);
+        }
     }
-    // while let Ok(len) =
-    //     stream.read(&mut buf.as_mut_slice()[(if flag_overflow { 65536 } else { 0 })..])
-    // {
-    // }
+
     tracing::info!("Stream ended");
     stream.stop();
 }

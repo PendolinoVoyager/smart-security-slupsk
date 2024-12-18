@@ -154,6 +154,7 @@ impl FfmpegMpegtsStream<InitStateOk> {
         None
     }
 }
+
 impl VideoStream for FfmpegMpegtsStream<InitStateOk> {
     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
         if self.child.is_none() {
@@ -163,8 +164,8 @@ impl VideoStream for FfmpegMpegtsStream<InitStateOk> {
             ));
         }
         if let Some(stdout) = &mut self.stdout {
-            let ammount = stdout.read(buf)?;
-            Ok(ammount)
+            let amount = stdout.read(buf)?;
+            Ok(amount)
         } else {
             Err(std::io::Error::new(
                 std::io::ErrorKind::BrokenPipe,

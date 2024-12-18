@@ -21,11 +21,17 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
     if (play && videoElement) {
       if (mpegts.getFeatureList().mseLivePlayback) {
         try {
-          player.current = mpegts.createPlayer({
-            type: "mse",
-            isLive: true,
-            url,
-          });
+          player.current = mpegts.createPlayer(
+            {
+              type: "m2ts",
+              isLive: true,
+              url,
+            }
+            // This is a lie! It doesn't work, JS doesn't allow any headers
+            // {
+            //   headers: { "Authorization": "Userino :)" },
+            // }
+          );
           player.current.attachMediaElement(videoElement);
           player.current.load();
           player.current.play();
@@ -36,7 +42,6 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
           if (e instanceof Error) {
             onError(e);
           }
-          alert("Stream failed, device offline!");
         }
       }
     }
