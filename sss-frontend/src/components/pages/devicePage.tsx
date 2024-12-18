@@ -1,11 +1,26 @@
 import { useEffect, useState } from "react";
 import { fetchDevices } from "../../api/devicesApi.ts";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableContainer,
+    TableHead,
+    TableRow,
+    Paper,
+    Box,
+    Button,
+    Typography,
+    CircularProgress,
+    Alert,
+} from "@mui/material";
 
 const DevicePage = () => {
     const [devices, setDevices] = useState<{ id: string }[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const navigate = useNavigate();
 
     useEffect(() => {
         const loadDevices = async () => {
@@ -17,28 +32,68 @@ const DevicePage = () => {
             } else {
                 setDevices(result);
             }
-
             setIsLoading(false);
         };
 
         loadDevices();
     }, []);
 
+    const handleAddDevice = () => {
+        navigate("/devices/add");
+    };
+
     return (
-        <div>
-            <h1>Device Page</h1>
-            {isLoading && <p>Loading devices...</p>}
-            {error && <p style={{ color: "red" }}>Error: {error}</p>}
-            {!isLoading && !error && (
-                <ul>
-                    {devices.map((device) => (
-                        <li key={device.id}>
-                            <Link to={`/devices/${device.id}`}>{device.id}</Link>
-                        </li>
-                    ))}
-                </ul>
+        <Box sx={{ padding: 2 }}>
+            <Typography variant="h4" gutterBottom>
+               Your Devices ⚙️
+            </Typography>
+            <Box display="flex" justifyContent="space-between" alignItems="center" marginBottom={2}>
+                <Button
+                    variant="contained"
+                    color="primary"
+                    onClick={handleAddDevice}
+                >
+                    Add New Device
+                </Button>
+            </Box>
+
+            {isLoading && (
+                <Box display="flex" justifyContent="center" alignItems="center" height="100px">
+                    <CircularProgress />
+                </Box>
             )}
-        </div>
+            {error && <Alert severity="error">{error}</Alert>}
+            {!isLoading && !error && (
+                <TableContainer component={Paper}>
+                    <Table>
+                        <TableHead>
+                            <TableRow>
+                                <TableCell>ID</TableCell>
+                                <TableCell>Name</TableCell>
+                                <TableCell>Actions</TableCell>
+                            </TableRow>
+                        </TableHead>
+                        <TableBody>
+                            {devices.map((device) => (
+                                <TableRow key={device.id}>
+                                    <TableCell>{device.id}</TableCell>
+                                    <TableCell>Narazie nic ale pozniej se wstawie</TableCell>
+                                    <TableCell>
+                                        <Button
+                                            variant="outlined"
+                                            color="info"
+                                            onClick={() => navigate(`/devices/${device.id}`)}
+                                        >
+                                            View
+                                        </Button>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </TableContainer>
+            )}
+        </Box>
     );
 };
 

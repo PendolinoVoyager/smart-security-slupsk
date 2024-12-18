@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                   https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="5" author="Kacper Karabinowski">
+        <update tableName="devices" >
+            <column name="uuid" value="ABCD1234" />
+            <where>id=200</where>
+        </update>
+    </changeSet>
+
+    <changeSet id="6" author="Kacper Karabinowski">
+    <insert tableName="devices">
+        <column name="id" value="200" />
+        <column name="device_name" value="Default Device" />
+        <column name="address" value="Default address" />
+        <column name="uuid" value="ABCD1234" />
+        <column name="user_id" value="200" />
+    </insert>
+    </changeSet>
+
+    <changeSet id="7" author="Kacper Karabinowski">
+        <insert tableName="devices">
+            <column name="id" value="200" />
+            <column name="device_name" value="Default Device" />
+            <column name="address" value="Default address" />
+            <column name="uuid" value="ABCD1234" />
+            <column name="user_id" value="200" />
+        </insert>
+    </changeSet>
+</databaseChangeLog>
