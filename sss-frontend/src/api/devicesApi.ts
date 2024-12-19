@@ -3,7 +3,7 @@ import { fetchSafe, HttpError } from "../http/fetch.ts";
 
 const API_URL = "http://localhost:8080";
 
-export async function fetchDevices(): Promise<{ id: string }[] | undefined> {
+export async function fetchDevices(): Promise<{ id: string, address: string, deviceName: string, uuid: string }[] | undefined> {
     try {
         const requestOptions: RequestInit = {
             method: "GET",
@@ -14,7 +14,8 @@ export async function fetchDevices(): Promise<{ id: string }[] | undefined> {
 
         addCredentials(requestOptions);
 
-        const response = await fetchSafe<{ id: string }[]>(`${API_URL}/api/v1/device/`, requestOptions);
+        const response = await fetchSafe<{ id: string, address: string, deviceName: string, uuid: string }[]>(`${API_URL}/api/v1/device/`, requestOptions);
+        console.log(response);
 
         if (response instanceof HttpError) {
             console.error("Fetching devices failed:", response.message);
