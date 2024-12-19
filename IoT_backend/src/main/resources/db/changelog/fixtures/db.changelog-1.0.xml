@@ -5,31 +5,9 @@
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
 
-    <changeSet id="1" author="default-data">
+    <changeSet id="1" author="Kacper Karabinowski">
         <insert tableName="users">
             <column name="id" value="100" />
-            <column name="name" value="Admin" />
-            <column name="last_name" value="Admin" />
-            <column name="email" value="admin@example.com" />
-            <column name="password" value="hashed_password_here" />
-            <column name="role" value="ADMIN" />
-            <column name="created_at" value="2024-01-01 00:00:00" />
-            <column name="is_enabled" valueBoolean="true" />
-        </insert>
-    </changeSet>
-
-    <changeSet id="2" author="default-data">
-        <insert tableName="devices">
-            <column name="id" value="100" />
-            <column name="device_name" value="Default Device" />
-            <column name="address" value="192.168.0.1" />
-            <column name="user_id" value="1" />
-        </insert>
-    </changeSet>
-
-    <changeSet id="3" author="Kacper Karabinowski">
-        <insert tableName="users">
-            <column name="id" value="200" />
             <column name="name" value="Admin" />
             <column name="last_name" value="Admin" />
             <column name="email" value="admin@example.com" />
@@ -40,13 +18,15 @@
         </insert>
     </changeSet>
 
-    <changeSet id="4" author="Kacper Karabinowski">
+    <changeSet id="2" author="Kacper Karabinowski">
         <insert tableName="devices">
-            <column name="id" value="200" />
+            <column name="id" value="100" />
             <column name="device_name" value="Default Device" />
-            <column name="address" value="192.168.0.1" />
-            <column name="user_id" value="200" />
+            <column name="address" value= "Default Address" />
+            <column name="uuid" value="Default_UUID" />
+            <column name="user_id" value="100" />
         </insert>
     </changeSet>
+
 
 </databaseChangeLog>
