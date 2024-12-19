@@ -4,7 +4,7 @@ mod ffmpeg_stream;
 mod gstreamer_stream;
 mod stream;
 use clap::Parser;
-use ffmpeg_stream::FfmpegMpegtsStream;
+use gstreamer_stream::GStreamerLibcameraStream;
 use std::io::{self};
 use std::net::{IpAddr, Ipv4Addr, SocketAddr, TcpListener, TcpStream};
 use stream::VideoStream;
@@ -132,8 +132,9 @@ fn stream_until_disconnect(mut ws: WebSocket<TcpStream>, config: Config) {
     const CHUNK_SIZE: usize = 65536;
     let mut buf: Box<[u8; BUF_SIZE]> = Box::new([0; BUF_SIZE]);
     tracing::info!("Initializing stream");
-    let mut stream = FfmpegMpegtsStream::new(Some(config.video_device), config.audio_device).init();
+    let mut stream = GStreamerLibcameraStream::init(&config).unwrap();
 
+    stream.start();
     tracing::info!("Starting streaming...");
     if !ws.can_write() {
         tracing::error!("Cannot write to the websocket!");
@@ -145,20 +146,20 @@ fn stream_until_disconnect(mut ws: WebSocket<TcpStream>, config: Config) {
         let len = match stream.read(read_buf) {
             Ok(r) => r,
             Err(e) => {
-                tracing::error!("{:?}", e);
+                tracing::error!("{}", e.to_string());
                 break;
             }
         };
         if len == 0 {
-            tracing::error!("ffmpeg pipe broken, exiting...");
-            if let Some(e) = stream.error() {
-                tracing::error!(e)
-            }
-            break;
+            std::thread::yield_now();
+            continue;
         }
 
         let combined_len = overflow_len + len;
-        tracing::info!("{combined_len}");
+        if combined_len < 1024 {
+            overflow_len += len;
+            continue;
+        }
 
         let message = Message::Binary(buf[0..combined_len].to_vec());
         if ws.send(message).is_err() {

@@ -1209,7 +1209,6 @@ dependencies = [
  "gstreamer-app",
  "gstreamer-audio",
  "gstreamer-video",
- "libc",
  "serde",
  "serde_json",
  "tracing",

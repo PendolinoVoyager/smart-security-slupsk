@@ -2,44 +2,43 @@
 //! It might use ffmpeg but that may change in the future.
 
 use std::io::Read;
-use std::marker::PhantomData;
 use std::process::{Child, ChildStdout, Stdio};
 
-use crate::stream::VideoStream;
+use crate::stream::{StreamState, VideoStream};
 
-pub(crate) struct InitStateOk;
-pub(crate) struct InitStateUninit;
 /// Wrapper for a mp4 stream
-pub struct FfmpegMpegtsStream<State> {
+pub struct FfmpegMpegtsStream {
     /// Video device currently used. Defaults to "/dev/video0"
     pub video_dev: String,
     /// Audio device currently used
     pub audio_dev: Option<String>,
     child: Option<Child>,
     stdout: Option<ChildStdout>,
-    _phantom_data: PhantomData<State>,
 }
 
 // General implementation
-impl<T> FfmpegMpegtsStream<T> {
+impl FfmpegMpegtsStream {
     pub fn new(video_dev: Option<String>, audio_dev: Option<String>) -> Self {
         Self {
             child: None,
             video_dev: video_dev.unwrap_or("/dev/video0".into()),
             audio_dev,
             stdout: None,
-            _phantom_data: PhantomData,
         }
     }
-}
-
-////////////////////
-// Uninit state impl
-////////////////////
-
-impl FfmpegMpegtsStream<InitStateUninit> {
     /// Init the stream to get the source of packets.
-    pub fn init(mut self) -> FfmpegMpegtsStream<InitStateOk> {
+    fn init(&mut self) {
+        let mut child = self.spawn_ffmpeg_command();
+        match child.stdout.take() {
+            Some(stdout) => self.stdout = Some(stdout),
+            None => {
+                tracing::error!("Cannot get child stdout! Possible ffmpeg init failed!");
+                panic!()
+            }
+        };
+        self.child = Some(child);
+    }
+    fn spawn_ffmpeg_command(&self) -> Child {
         let mut command = std::process::Command::new("ffmpeg");
         if let Some(audio_dev) = &self.audio_dev {
             command
@@ -67,7 +66,7 @@ impl FfmpegMpegtsStream<InitStateUninit> {
                 .arg("1");
         }
 
-        let mut child = command
+        command
             .arg("-fflags")
             .arg("nobuffer")
             .arg("-f")
@@ -95,54 +94,8 @@ impl FfmpegMpegtsStream<InitStateUninit> {
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .spawn()
-            .expect("Failed to spawn ffmpeg process");
-        match child.stdout.take() {
-            Some(stdout) => self.stdout = Some(stdout),
-            None => {
-                tracing::error!("Cannot get child stdout! Possible ffmpeg init failed!");
-                panic!()
-            }
-        };
-        self.child = Some(child);
-
-        FfmpegMpegtsStream::<InitStateOk> {
-            _phantom_data: PhantomData,
-            video_dev: self.video_dev.clone(),
-            audio_dev: self.audio_dev.clone(),
-            child: self.child.take(),
-            stdout: self.stdout.take(),
-        }
+            .expect("Failed to spawn ffmpeg process")
     }
-}
-
-impl<T> Drop for FfmpegMpegtsStream<T> {
-    fn drop(&mut self) {
-        if let Some(p) = &mut self.child {
-            let _ = p.kill();
-        }
-    }
-}
-
-////////////////////
-// Init state impl
-////////////////////
-
-impl FfmpegMpegtsStream<InitStateOk> {
-    /// Stop the webcam stream. Receiving the packets will do nothing.
-    pub fn stop(mut self) -> FfmpegMpegtsStream<InitStateUninit> {
-        if let Some(mut child) = self.child.take() {
-            let _ = child.kill();
-        }
-        FfmpegMpegtsStream::<InitStateUninit> {
-            _phantom_data: PhantomData,
-            video_dev: self.video_dev.clone(),
-            audio_dev: self.audio_dev.clone(),
-            child: self.child.take(),
-            stdout: self.stdout.take(),
-        }
-    }
-
-    /// Take error from stderr (if applicable)
     pub fn error(&mut self) -> Option<String> {
         if let Some(child) = &mut self.child {
             if let Some(stderr) = &mut child.stderr {
@@ -155,7 +108,15 @@ impl FfmpegMpegtsStream<InitStateOk> {
     }
 }
 
-impl VideoStream for FfmpegMpegtsStream<InitStateOk> {
+impl Drop for FfmpegMpegtsStream {
+    fn drop(&mut self) {
+        if let Some(p) = &mut self.child {
+            let _ = p.kill();
+        }
+    }
+}
+
+impl VideoStream for FfmpegMpegtsStream {
     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
         if self.child.is_none() {
             return Err(std::io::Error::new(
@@ -171,6 +132,21 @@ impl VideoStream for FfmpegMpegtsStream<InitStateOk> {
                 std::io::ErrorKind::BrokenPipe,
                 "stdout not present",
             ))
+        }
+    }
+    fn start(&mut self) {
+        self.init();
+    }
+    fn stop(&mut self) {
+        if let Some(mut child) = self.child.take() {
+            let _ = child.kill();
+        }
+        self.stdout.take();
+    }
+    fn stream_state(&self) -> StreamState {
+        match &self.child {
+            Some(_) => StreamState::Running,
+            None => StreamState::Idle,
         }
     }
 }

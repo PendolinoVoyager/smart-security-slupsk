@@ -55,12 +55,10 @@ fn create_pipeline() -> anyhow::Result<gst::Pipeline> {
         gst_app::AppSinkCallbacks::builder()
             .new_sample(move |appsink| {
                 let sample = appsink.pull_sample().map_err(|_| gst::FlowError::Eos)?;
-
                 let buffer = sample.buffer().ok_or(gst::FlowError::Error)?;
 
                 // Map the buffer and process the data
                 let map = buffer.map_readable().map_err(|_| gst::FlowError::Error)?;
-
                 let _ = file.write(map.as_slice());
 
                 println!("Got {} bytes of video data", map.len());
