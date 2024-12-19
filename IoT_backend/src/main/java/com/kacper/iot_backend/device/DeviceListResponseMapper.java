@@ -12,7 +12,8 @@ public class DeviceListResponseMapper implements Function<Device, DevicesListRes
         return new DevicesListResponse(
                 device.getId(),
                 device.getAddress(),
-                device.getDeviceName()
+                device.getDeviceName(),
+                device.getUuid()
         );
     }
 }

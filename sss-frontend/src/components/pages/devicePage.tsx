@@ -16,8 +16,15 @@ import {
     Alert,
 } from "@mui/material";
 
+type Device = {
+    id: string;
+    address: string;
+    deviceName: string;
+    uuid: string;
+};
+
 const DevicePage = () => {
-    const [devices, setDevices] = useState<{ id: string }[]>([]);
+    const [devices, setDevices] = useState<Device[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const navigate = useNavigate();
@@ -45,7 +52,7 @@ const DevicePage = () => {
     return (
         <Box sx={{ padding: 2 }}>
             <Typography variant="h4" gutterBottom>
-               Your Devices ⚙️
+                Your Devices ⚙️
             </Typography>
             <Box display="flex" justifyContent="space-between" alignItems="center" marginBottom={2}>
                 <Button
@@ -69,7 +76,9 @@ const DevicePage = () => {
                         <TableHead>
                             <TableRow>
                                 <TableCell>ID</TableCell>
-                                <TableCell>Name</TableCell>
+                                <TableCell>Device Name</TableCell>
+                                <TableCell>Address</TableCell>
+                                <TableCell>UUID</TableCell>
                                 <TableCell>Actions</TableCell>
                             </TableRow>
                         </TableHead>
@@ -77,7 +86,9 @@ const DevicePage = () => {
                             {devices.map((device) => (
                                 <TableRow key={device.id}>
                                     <TableCell>{device.id}</TableCell>
-                                    <TableCell>Narazie nic ale pozniej se wstawie</TableCell>
+                                    <TableCell>{device.deviceName || "N/A"}</TableCell>
+                                    <TableCell>{device.address || "N/A"}</TableCell>
+                                    <TableCell>{device.uuid || "N/A"}</TableCell>
                                     <TableCell>
                                         <Button
                                             variant="outlined"

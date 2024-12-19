@@ -31,6 +31,12 @@ public class Device
     )
     private String deviceName;
 
+    @Column(
+            name = "uuid",
+            nullable = false
+    )
+    private String uuid;
+
     @ManyToOne
     @JoinColumn(
             name = "user_id",
