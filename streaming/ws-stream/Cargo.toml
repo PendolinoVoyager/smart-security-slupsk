@@ -3,6 +3,10 @@ name = "ws-stream"
 version = "0.1.0"
 edition = "2021"
 
+[profile.release]
+lto = "fat"
+
+
 [dependencies]
 anyhow = "1.0.93"
 byte-slice-cast = "1.2.2"
@@ -13,9 +17,9 @@ gstreamer = "0.23.3"
 gstreamer-app = "0.23.3"
 gstreamer-audio = "0.23.2"
 gstreamer-video = "0.23.3"
+libc = "0.2.169"
 serde = { version = "1.0.215", features = ["derive"] }
 serde_json = "1.0.133"
 tracing = "0.1.41"
 tracing-subscriber = "0.3.18"
 tungstenite = "0.24.0"
-

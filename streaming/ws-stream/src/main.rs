@@ -19,7 +19,7 @@ const BUF_SIZE: usize = 1024 * 256;
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 /// ffmpeg based utility to stream video via WebSockets
-/// Requires ffmpeg, v4l2 and OpenSSL.
+/// Requires ffmpeg, v4l2, and gstreamer.
 /// Streams using MPEGTS.
 struct Config {
     /// IP address to stream to: e.g. "192.168.1.10"
@@ -160,6 +160,7 @@ fn stream_until_disconnect(mut ws: WebSocket<TcpStream>, config: Config) {
             overflow_len += len;
             continue;
         }
+        // tracing::info!("{combined_len}");
 
         let message = Message::Binary(buf[0..combined_len].to_vec());
         if ws.send(message).is_err() {

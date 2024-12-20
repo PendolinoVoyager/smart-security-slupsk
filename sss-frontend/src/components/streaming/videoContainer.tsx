@@ -7,7 +7,7 @@ const VideoContainer: React.FC = () => {
   const [currentStream, setCurrentStream] = useState<string>("");
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
 
-  const streams = [{ name: "DEBUG", url: "ws://192.168.10.38:8080/stream" }];
+  const streams = [{ name: "DEBUG", url: "ws://192.168.8.156:8080/stream" }];
 
   const handleStreamSelect = (stream: string) => {
     setCurrentStream(stream);

@@ -1,3 +1,5 @@
+use std::os::fd::IntoRawFd;
+use std::process::Child;
 use std::sync::OnceLock;
 
 use anyhow::Result;
@@ -6,11 +8,9 @@ use gstreamer::prelude::*;
 use gstreamer::{FlowError, FlowSuccess, Pipeline};
 use gstreamer_app::AppSink;
 
-const RPI_ZERO2W_STD_LIBCAMERA_FORMAT: &str = "video/x-raw,width=1296,height=972,framerate=30/1";
-
 type QueueDataType = Vec<u8>;
-const QUEUE_CAPACITY: usize = 256;
-
+const QUEUE_CAPACITY: usize = 512;
+/// Internal queue for gstreamer stream. Don't touch it, or nullptr dereferencing will happen somewhere.
 static mut QUEUE: OnceLock<ArrayQueue<QueueDataType>> = OnceLock::new();
 
 /// Callback for writing to the queue
@@ -41,6 +41,7 @@ fn init_queue() {
 
 pub struct GStreamerLibcameraStream {
     pipeline: Pipeline,
+    libcamera_process: Child,
 }
 
 impl GStreamerLibcameraStream {
@@ -49,9 +50,31 @@ impl GStreamerLibcameraStream {
         init_queue();
         gstreamer::init()?;
 
-        let pipeline = get_rpi_zero2w_pipeline(config, callback)?;
+        let mut child = spawn_libcamera_process()?;
 
-        Ok(Self { pipeline })
+        let fd = match child.stdout.take() {
+            Some(stdout) => Ok(stdout.into_raw_fd()),
+            None => Err(std::io::Error::new(
+                std::io::ErrorKind::BrokenPipe,
+                "libcamera process stdout not present, cannot pipe",
+            )),
+        }?;
+        // here its fine, reading data ok
+        // let mut buf = [0_u8; 1024];
+        // unsafe {
+        //     loop {
+        //         let data = libc::read(fd, buf.as_mut_ptr() as *mut libc::c_void, 1024);
+        //         println!("{:?}", data);
+        //     }
+        // }
+        tracing::info!("Created libcamera subprocess! stdout: {fd}");
+        let pipeline = get_rpi_zero2w_pipeline(fd, config, callback)?;
+        tracing::info!("Gstreamer pipeline set up, ready for streaming");
+
+        Ok(Self {
+            pipeline,
+            libcamera_process: child,
+        })
     }
 }
 
@@ -80,6 +103,7 @@ impl crate::stream::VideoStream for GStreamerLibcameraStream {
 
     fn stop(&mut self) {
         let _ = self.pipeline.set_state(gstreamer::State::Paused);
+        let _ = self.libcamera_process.kill();
     }
 
     fn stream_state(&self) -> crate::stream::StreamState {
@@ -93,7 +117,17 @@ impl crate::stream::VideoStream for GStreamerLibcameraStream {
     }
 }
 
-fn get_rpi_zero2w_pipeline<F>(config: &crate::Config, callback: F) -> anyhow::Result<Pipeline>
+/// Spawn a gstreamer pipeline with the corresponding callback with data.
+/// Requires libcamera process to work, as it's the easiest way to get hardware accelerated video.
+///
+/// - `fd` - file descriptor of the libcamera process's stdout (or any file that outputs raw h264 stream)
+/// - `config` - app wide config
+/// - `callback` - a function to call when a new sample is pulled
+fn get_rpi_zero2w_pipeline<F>(
+    fd: i32,
+    config: &crate::Config,
+    callback: F,
+) -> anyhow::Result<Pipeline>
 where
     F: 'static + Send + FnMut(&gstreamer_app::AppSink) -> Result<FlowSuccess, FlowError>,
 {
@@ -101,12 +135,14 @@ where
     let pipeline = gstreamer::Pipeline::default();
 
     // video elements
-    let videosrc = gstreamer::ElementFactory::make("libcamerasrc").build()?;
-    let videoconvert = gstreamer::ElementFactory::make("videoconvert").build()?;
-    // let video_f = gstreamer::ElementFactory::make(RPI_ZERO2W_STD_LIBCAMERA_FORMAT).build()?;
-    let x264enc = gstreamer::ElementFactory::make("x264enc")
-        .property_from_str("tune", "zerolatency")
+    let videosrc = gstreamer::ElementFactory::make("fdsrc")
+        // gstreamer expects fd to be i32
+        .property("fd", fd)
+        // timeout in micros
+        .property("timeout", 5000_u64)
         .build()?;
+
+    let parse = gstreamer::ElementFactory::make("h264parse").build()?;
 
     // audio elements
     // let audiosrc = gstreamer::ElementFactory::make("pulsesrc").build()?;
@@ -128,9 +164,7 @@ where
 
     pipeline.add_many([
         &videosrc,
-        // &video_f,
-        &videoconvert,
-        &x264enc,
+        &parse,
         // &audiosrc,
         // &audioconvert,
         // &opusenc,
@@ -138,9 +172,31 @@ where
         appsink.upcast_ref(),
     ])?;
 
-    gstreamer::Element::link_many([&videosrc, &videoconvert, &x264enc, &mpegtsmux])?;
+    gstreamer::Element::link_many([&videosrc, &parse, &mpegtsmux])?;
     // gstreamer::Element::link_many([&audiosrc, &audioconvert, &opusenc, &mpegtsmux])?;
     mpegtsmux.link(&appsink)?;
 
     Ok(pipeline)
+}
+
+/// Spawn the libcamera process. Necessary to do so, as it basically guarantees hardware acceleration.
+fn spawn_libcamera_process() -> std::io::Result<std::process::Child> {
+    let mut command = std::process::Command::new("libcamera-vid");
+    command.args([
+        "--width",
+        "640",
+        "--height",
+        "480",
+        "--framerate",
+        "24",
+        "--inline",
+        "-t",
+        "0s",
+    ]);
+    command.arg("-o");
+    command.arg("-");
+    command.stdout(std::process::Stdio::piped());
+    command.stdin(std::process::Stdio::null());
+    command.stderr(std::process::Stdio::piped());
+    command.spawn()
 }
