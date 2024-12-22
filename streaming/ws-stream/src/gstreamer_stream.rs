@@ -1,3 +1,5 @@
+#![allow(static_mut_refs)]
+
 use std::os::fd::IntoRawFd;
 use std::process::Child;
 use std::sync::OnceLock;
@@ -8,8 +10,12 @@ use gstreamer::prelude::*;
 use gstreamer::{FlowError, FlowSuccess, Pipeline};
 use gstreamer_app::AppSink;
 
+use crate::stream::StreamReadError;
+
 type QueueDataType = Vec<u8>;
+
 const QUEUE_CAPACITY: usize = 512;
+
 /// Internal queue for gstreamer stream. Don't touch it, or nullptr dereferencing will happen somewhere.
 static mut QUEUE: OnceLock<ArrayQueue<QueueDataType>> = OnceLock::new();
 
@@ -24,9 +30,9 @@ fn callback(sink: &AppSink) -> Result<FlowSuccess, FlowError> {
         .map_err(|_| gstreamer::FlowError::Error)?;
     // if the queue push failed (queue full), just ignore it and force.
     // There will be a jump in the video, but it will be more real time than waiting for it
-    #[allow(static_mut_refs)]
     unsafe {
         let queue = QUEUE.get_mut().unwrap();
+
         queue.force_push(map.to_vec());
     }
     Ok(FlowSuccess::Ok)
@@ -34,7 +40,6 @@ fn callback(sink: &AppSink) -> Result<FlowSuccess, FlowError> {
 /// Initialize the gstreamer based queue. If it's not initialized, you'll get a null pointer somewhere (or Option unwrap);
 fn init_queue() {
     unsafe {
-        #[allow(static_mut_refs)]
         QUEUE.get_or_init(|| ArrayQueue::new(QUEUE_CAPACITY));
     }
 }
@@ -59,16 +64,9 @@ impl GStreamerLibcameraStream {
                 "libcamera process stdout not present, cannot pipe",
             )),
         }?;
-        // here its fine, reading data ok
-        // let mut buf = [0_u8; 1024];
-        // unsafe {
-        //     loop {
-        //         let data = libc::read(fd, buf.as_mut_ptr() as *mut libc::c_void, 1024);
-        //         println!("{:?}", data);
-        //     }
-        // }
+
         tracing::info!("Created libcamera subprocess! stdout: {fd}");
-        let pipeline = get_rpi_zero2w_pipeline(fd, config, callback)?;
+        let pipeline = make_gst_pipeline::get_rpi_zero2w_pipeline(fd, config, callback)?;
         tracing::info!("Gstreamer pipeline set up, ready for streaming");
 
         Ok(Self {
@@ -79,9 +77,8 @@ impl GStreamerLibcameraStream {
 }
 
 impl crate::stream::VideoStream for GStreamerLibcameraStream {
-    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+    fn read(&mut self, buf: &mut [u8]) -> Result<usize, StreamReadError> {
         unsafe {
-            #[allow(static_mut_refs)]
             let data = QUEUE
                 .get()
                 .expect("Queue not initialized, bad developer")
@@ -117,68 +114,6 @@ impl crate::stream::VideoStream for GStreamerLibcameraStream {
     }
 }
 
-/// Spawn a gstreamer pipeline with the corresponding callback with data.
-/// Requires libcamera process to work, as it's the easiest way to get hardware accelerated video.
-///
-/// - `fd` - file descriptor of the libcamera process's stdout (or any file that outputs raw h264 stream)
-/// - `config` - app wide config
-/// - `callback` - a function to call when a new sample is pulled
-fn get_rpi_zero2w_pipeline<F>(
-    fd: i32,
-    config: &crate::Config,
-    callback: F,
-) -> anyhow::Result<Pipeline>
-where
-    F: 'static + Send + FnMut(&gstreamer_app::AppSink) -> Result<FlowSuccess, FlowError>,
-{
-    // Create the pipeline
-    let pipeline = gstreamer::Pipeline::default();
-
-    // video elements
-    let videosrc = gstreamer::ElementFactory::make("fdsrc")
-        // gstreamer expects fd to be i32
-        .property("fd", fd)
-        // timeout in micros
-        .property("timeout", 5000_u64)
-        .build()?;
-
-    let parse = gstreamer::ElementFactory::make("h264parse").build()?;
-
-    // audio elements
-    // let audiosrc = gstreamer::ElementFactory::make("pulsesrc").build()?;
-    // let audioconvert = gstreamer::ElementFactory::make("audioconvert").build()?;
-    // let opusenc = gstreamer::ElementFactory::make("avenc_aac").build()?;
-
-    let mpegtsmux = gstreamer::ElementFactory::make("mpegtsmux").build()?;
-    let _appsink = gstreamer::ElementFactory::make("appsink")
-        .property("emit-signals", true)
-        .property("sync", false)
-        .build()?;
-
-    let appsink = gstreamer_app::AppSink::builder().build();
-    appsink.set_callbacks(
-        gstreamer_app::AppSinkCallbacks::builder()
-            .new_sample(callback)
-            .build(),
-    );
-
-    pipeline.add_many([
-        &videosrc,
-        &parse,
-        // &audiosrc,
-        // &audioconvert,
-        // &opusenc,
-        &mpegtsmux,
-        appsink.upcast_ref(),
-    ])?;
-
-    gstreamer::Element::link_many([&videosrc, &parse, &mpegtsmux])?;
-    // gstreamer::Element::link_many([&audiosrc, &audioconvert, &opusenc, &mpegtsmux])?;
-    mpegtsmux.link(&appsink)?;
-
-    Ok(pipeline)
-}
-
 /// Spawn the libcamera process. Necessary to do so, as it basically guarantees hardware acceleration.
 fn spawn_libcamera_process() -> std::io::Result<std::process::Child> {
     let mut command = std::process::Command::new("libcamera-vid");
@@ -199,4 +134,129 @@ fn spawn_libcamera_process() -> std::io::Result<std::process::Child> {
     command.stdin(std::process::Stdio::null());
     command.stderr(std::process::Stdio::piped());
     command.spawn()
+}
+
+pub(super) mod make_gst_pipeline {
+
+    use gstreamer::{prelude::*, FlowError, FlowSuccess, Pipeline};
+    use gstreamer_app::AppSink;
+
+    #[derive(Default)]
+    struct Elements {
+        video: Vec<gstreamer::Element>,
+        audio: Vec<gstreamer::Element>,
+        mux: Option<gstreamer::Element>,
+        sink: Option<AppSink>,
+    }
+    impl Elements {
+        fn as_vec(&self) -> Vec<&gstreamer::Element> {
+            let mut elements = Vec::new();
+            elements.extend(self.video.iter());
+
+            elements.extend(self.audio.as_slice());
+
+            if let Some(mux) = &self.mux {
+                elements.push(mux);
+            }
+
+            if let Some(sink) = &self.sink {
+                elements.push(sink.upcast_ref());
+            }
+
+            elements
+        }
+    }
+
+    /// Spawn a gstreamer pipeline with the corresponding callback with data.
+    /// Requires libcamera process to work, as it's the easiest way to get hardware accelerated video.
+    ///
+    /// - `fd` - file descriptor of the libcamera process's stdout (or any file that outputs raw h264 stream)
+    /// - `config` - app wide config
+    /// - `callback` - a function to call when a new sample is pulled
+    pub fn get_rpi_zero2w_pipeline<F>(
+        fd: i32,
+        config: &crate::Config,
+        callback: F,
+    ) -> anyhow::Result<Pipeline>
+    where
+        F: 'static + Send + FnMut(&gstreamer_app::AppSink) -> Result<FlowSuccess, FlowError>,
+    {
+        let mut elements = Elements::default();
+        let pipeline = gstreamer::Pipeline::default();
+
+        let videosrc = gstreamer::ElementFactory::make("fdsrc")
+            .property("fd", fd)
+            .property("timeout", 5000_u64)
+            .build()?;
+        let parse = gstreamer::ElementFactory::make("h264parse").build()?;
+
+        elements.video = vec![videosrc, parse];
+
+        if !config.no_audio {
+            add_audio_elements(&mut elements)?;
+        }
+
+        let mpegtsmux = gstreamer::ElementFactory::make("mpegtsmux").build()?;
+        elements.mux = Some(mpegtsmux);
+
+        let appsink = gstreamer_app::AppSink::builder().build();
+        appsink.set_callbacks(
+            gstreamer_app::AppSinkCallbacks::builder()
+                .new_sample(callback)
+                .build(),
+        );
+        elements.sink = Some(appsink.upcast());
+
+        pipeline.add_many(elements.as_vec())?;
+
+        link_elements(&elements)?;
+
+        Ok(pipeline)
+    }
+
+    /// Add audio elements to the gstreamer pipeline.
+    /// May fail if no suitable audio backend is present.
+    #[inline(always)]
+    fn add_audio_elements(elements: &mut Elements) -> anyhow::Result<()> {
+        match crate::audio::get_audio_backend() {
+            Some(backend) => {
+                let audiosrc =
+                    gstreamer::ElementFactory::make(backend.as_gstreamer_str()).build()?;
+                let audioconvert = gstreamer::ElementFactory::make("audioconvert").build()?;
+                let audioenc = gstreamer::ElementFactory::make("avenc_aac").build()?;
+                elements.audio = vec![audiosrc, audioconvert, audioenc];
+
+                Ok(())
+            }
+            None => {
+                tracing::warn!("No audio backend present for the ffmpeg pipeline");
+                Err(anyhow::Error::msg("cannot add audio"))
+            }
+        }
+    }
+
+    fn link_elements(elements: &Elements) -> anyhow::Result<()> {
+        let mux = elements
+            .mux
+            .as_ref()
+            .ok_or(anyhow::Error::msg("No muxer found for gstreamer pipeline"))?;
+
+        // link video
+        let mut base: Vec<&gstreamer::Element> = elements.video.as_slice().iter().collect();
+        base.push(mux);
+        gstreamer::Element::link_many(base)?;
+        // link audio
+        let mut base: Vec<&gstreamer::Element> = elements.audio.as_slice().iter().collect();
+        base.push(mux);
+        gstreamer::Element::link_many(base)?;
+
+        mux.link(
+            elements
+                .sink
+                .as_ref()
+                .expect("no sink found, stream broken"),
+        )?;
+
+        Ok(())
+    }
 }

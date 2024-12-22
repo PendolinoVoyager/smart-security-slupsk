@@ -1,21 +1,19 @@
 #![feature(type_changing_struct_update)]
+#![feature(let_chains)]
 //! Binary utility to stream to a websocket.
+mod audio;
 mod ffmpeg_stream;
 mod gstreamer_stream;
 mod stream;
+mod stream_factory;
+
 use clap::Parser;
-use gstreamer_stream::GStreamerLibcameraStream;
 use std::io::{self};
 use std::net::{IpAddr, Ipv4Addr, SocketAddr, TcpListener, TcpStream};
-use stream::VideoStream;
+use stream::{StreamBuffer, VideoStream};
 use tracing::Level;
 use tracing_subscriber::FmtSubscriber;
 use tungstenite::{accept_hdr, Message, WebSocket};
-
-/// Buffer size for the stream.
-/// It must be enough to fully encompass a packet
-const BUF_SIZE: usize = 1024 * 256;
-
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 /// ffmpeg based utility to stream video via WebSockets
@@ -23,29 +21,30 @@ const BUF_SIZE: usize = 1024 * 256;
 /// Streams using MPEGTS.
 struct Config {
     /// IP address to stream to: e.g. "192.168.1.10"
-    #[arg(long, long)]
+    #[arg(long, short)]
     addr: String,
 
-    /// Port to bind the streaming websocket to
+    /// Port to bind the streaming WebSocket to.
     #[arg(short, long, default_value_t = 0)]
     port: u16,
 
-    /// wait for a connection from the provided address
+    /// Wait for a connection from the provided address
     #[clap(long, action, default_value_t = false)]
     server: bool,
-    /// Audio device to stream from
-    #[clap(long, short)]
-    audio_device: Option<String>,
-    /// Video device. Defaults to /dev/video0
-    #[clap(long, short, default_value_t = String::from("/dev/video0"))]
-    video_device: String,
+    /// Disable audio for the stream.
+    /// If not present, alsa will be used.
+    /// When audio cannot be produced, warnings will be emitted.
+    #[clap(long = "noaudio", action, default_value_t = false)]
+    no_audio: bool,
 
     /// Do not log
     #[clap(long, action, default_value_t = false)]
     silent: bool,
-
-    #[clap(long, default_value_t = false)]
-    localhost: bool,
+    /// Specify the stream kind. Available options
+    /// - gstreamer (default)
+    /// - ffmpeg
+    #[clap(long, default_value_t = String::from("gstreamer"))]
+    streamkind: String,
 }
 
 fn main() -> anyhow::Result<()> {
@@ -69,12 +68,12 @@ fn main() -> anyhow::Result<()> {
 
 /// Make a websocket server, listening for the connection and then responding with stream.
 fn serve_ws(config: Config) -> anyhow::Result<()> {
-    let addr = match config.localhost {
+    let addr = match config.addr == "127.0.0.1" {
+        true => IpAddr::V4(Ipv4Addr::LOCALHOST),
         false => get_if_addr().ok_or(std::io::Error::new(
             io::ErrorKind::AddrNotAvailable,
             "Public address not available",
         ))?,
-        true => IpAddr::V4(Ipv4Addr::LOCALHOST),
     };
     let sock_addr = SocketAddr::new(addr, config.port);
 
@@ -129,58 +128,31 @@ fn connect_ws(config: Config) -> anyhow::Result<()> {
 }
 
 fn stream_until_disconnect(mut ws: WebSocket<TcpStream>, config: Config) {
-    const CHUNK_SIZE: usize = 65536;
-    let mut buf: Box<[u8; BUF_SIZE]> = Box::new([0; BUF_SIZE]);
     tracing::info!("Initializing stream");
-    let mut stream = GStreamerLibcameraStream::init(&config).unwrap();
+    let mut stream = match stream_factory::create_stream(&config) {
+        Err(e) => {
+            tracing::error!("{e}");
+            return;
+        }
+        Ok(s) => s,
+    };
 
     stream.start();
     tracing::info!("Starting streaming...");
     if !ws.can_write() {
         tracing::error!("Cannot write to the websocket!");
     }
-
-    let mut overflow_len = 0;
-    loop {
-        let read_buf = &mut buf[overflow_len..overflow_len + CHUNK_SIZE];
-        let len = match stream.read(read_buf) {
-            Ok(r) => r,
-            Err(e) => {
-                tracing::error!("{}", e.to_string());
-                break;
-            }
-        };
-        if len == 0 {
-            std::thread::yield_now();
-            continue;
-        }
-
-        let combined_len = overflow_len + len;
-        if combined_len < 1024 {
-            overflow_len += len;
-            continue;
-        }
-        // tracing::info!("{combined_len}");
-
-        let message = Message::Binary(buf[0..combined_len].to_vec());
+    let mut reader = StreamBuffer::new(1024, stream);
+    while let Ok(buf) = reader.read() {
+        tracing::info!("{}", buf.len());
+        let message = Message::Binary(buf.to_vec());
         if ws.send(message).is_err() {
             tracing::warn!("Cannot send packet, connection broken!");
             break;
         }
-
-        overflow_len = if combined_len > CHUNK_SIZE {
-            combined_len - CHUNK_SIZE
-        } else {
-            0
-        };
-
-        if overflow_len > 0 {
-            buf.copy_within(CHUNK_SIZE..CHUNK_SIZE + overflow_len, 0);
-        }
     }
 
     tracing::info!("Stream ended");
-    stream.stop();
 }
 
 /// Helper function to get the address from the first non-loopback interface
@@ -192,12 +164,11 @@ fn get_if_addr() -> Option<IpAddr> {
     // Iterate over the interfaces and look for one that isn't a loopback.
     for iface in ifaces {
         if iface.address.is_loopback() {
-            continue; // Skip loopback interfaces
+            continue;
         }
 
-        // Return the first non-loopback interface's address
         return Some(iface.address);
     }
 
-    None // No suitable interface found
+    None
 }

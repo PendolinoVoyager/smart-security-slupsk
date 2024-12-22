@@ -8,6 +8,7 @@ lto = "fat"
 
 
 [dependencies]
+alsa = "0.9.1"
 anyhow = "1.0.93"
 byte-slice-cast = "1.2.2"
 clap = { version = "4.5.21", features = ["derive"] }
