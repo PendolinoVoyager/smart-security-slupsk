@@ -2,5 +2,14 @@
 name = "streaming-server"
 version = "0.1.0"
 edition = "2024"
+description = "Simple streaming server and manager for device-to-browser-client connections."
 
 [dependencies]
+clap = "4.5.23"
+http-body-util = "0.1.2"
+hyper = { version = "1.5.2", features = ["full"] }
+hyper-util = { version = "0.1.10", features = ["full"] }
+tokio = { version = "1.42.0", features = ["full"] }
+tokio-tungstenite = "0.26.1"
+tracing = "0.1.41"
+tracing-subscriber = "0.3.19"
