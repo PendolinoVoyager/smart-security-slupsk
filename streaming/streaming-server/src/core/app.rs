@@ -14,12 +14,13 @@ pub async fn init_app() -> ! {
 /// App wide Context. Available in 'static lifetime for all tasks / function calls in the app
 /// Context must be static, Sync, and Send.
 /// Interior mutability can be made with sync primitives or other methods.
+#[allow(unused)]
 #[derive(Debug)]
 pub struct AppContext {
-    env: String,
-    addr_http: SocketAddr,
-    addr_ws: SocketAddr,
-    devices: tokio::sync::Mutex<HashMap<SocketAddr, String>>,
+    pub env: String,
+    pub addr_http: SocketAddr,
+    pub addr_ws: SocketAddr,
+    pub devices: tokio::sync::Mutex<HashMap<String, String>>,
 }
 impl Default for AppContext {
     fn default() -> Self {
@@ -52,25 +53,38 @@ async fn start_servers(ctx: &'static AppContext) {
             );
             panic!("{err}")
         });
-
+    tracing::info!("Successfully setup HTTP listener on {}", ctx.addr_http);
     let ws_listener = tokio::net::TcpListener::bind(ctx.addr_ws)
         .await
         .unwrap_or_else(|err| {
             tracing::error!(
-                "failure to bind the TCP listener for HTTP server to {}:\n{err}",
+                "failure to bind the TCP listener for WebSocket server to {}:\n{err}",
                 ctx.addr_ws
             );
             panic!("{err}")
         });
+    tracing::info!("Successfully setup WebSocket listener on {}", ctx.addr_ws);
+
     let http_handle = tokio::spawn(super::http::handle_http(http_listener, ctx));
     let ws_handle = tokio::spawn(super::ws::handle_ws(ws_listener, ctx));
+    tracing::info!("All tasks spawned, ready to go!");
     let _ = tokio::join!(http_handle, ws_handle);
 }
 
 fn setup_tracing_subscriber() {
+    let level = match std::env::var("RUST_LOG") {
+        Ok(s) => {
+            if s == "debug" {
+                LevelFilter::DEBUG
+            } else {
+                LevelFilter::INFO
+            }
+        }
+        Err(_) => LevelFilter::INFO,
+    };
     let subscriber = tracing_subscriber::FmtSubscriber::builder()
         .with_writer(std::io::stderr)
-        .with_max_level(LevelFilter::TRACE)
+        .with_max_level(level)
         .finish();
     tracing::subscriber::set_global_default(subscriber).expect("Setting default subscriber failed");
     tracing::debug!("tracing subscriber set up");

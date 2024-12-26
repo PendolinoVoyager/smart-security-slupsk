@@ -1,6 +1,6 @@
 use super::app::AppContext;
 
-pub async fn handle_ws(listener: tokio::net::TcpListener, ctx: &AppContext) {
+pub async fn handle_ws(listener: tokio::net::TcpListener, _ctx: &AppContext) {
     while let Ok((tcp_stream, sock_addr)) = listener.accept().await {
         tracing::debug!("incoming WebSocket connection from {sock_addr}");
         let ws = match tokio_tungstenite::accept_hdr_async(tcp_stream, websocket_handshake_handler)
@@ -31,6 +31,6 @@ fn websocket_handshake_handler(
     Ok(response)
 }
 
-async fn _handle_ws(ws: tokio_tungstenite::WebSocketStream<tokio::net::TcpStream>) {
+async fn _handle_ws(_ws: tokio_tungstenite::WebSocketStream<tokio::net::TcpStream>) {
     todo!()
 }
