@@ -16,6 +16,7 @@ macro_rules! route {
 pub async fn route(req: AppRequest, ctx: &'static AppContext) -> AppResponse {
     match req.uri().path() {
         "/hello" => route!(hello_handler, req, ctx),
+        "/benchmark" => route!(bench_handler, req, ctx),
         _ => {
             tracing::info!("route not found: {}", req.uri());
             NOT_FOUND_RESPONSE.clone()

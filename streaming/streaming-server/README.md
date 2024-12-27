@@ -1,3 +1,5 @@
+TODO: ADD METRICS ENDPOINT
+
 # HTTP and WebSocket Server
 
 ## Overview
@@ -14,8 +16,6 @@ Major:
 Minor:
 - **Stream Playback**: Saves the last video stream for retrospective playback.
 - **Metrics and Monitoring**: Include metrics for server performance and usage statistics.
-- **Scalability**: containerization ,ainly.
-
 
 ## Architecture
 

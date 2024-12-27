@@ -19,8 +19,8 @@ pub async fn hello_handler(
          "hostname": hostname,
          "operating_system":  os_type,
          "os_release":  os_release,
-         "http_address": ctx.addr_http,
-         "connected_devices": connected_devices
+         "connected_devices": connected_devices,    
+         "config": ctx.config,
      } );
 
     JSONAppResponse::pack(body, StatusCode::OK)

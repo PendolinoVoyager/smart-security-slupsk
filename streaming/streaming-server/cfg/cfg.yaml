@@ -1,0 +1,29 @@
+# development | production
+env: "development"
+
+development:
+  # verbose | off | on
+  # verbose will log almost everything, including request headers etc.
+  # use it for debug
+  log: "verbose"
+  db_uri: "sql db uri string"
+
+  http:
+    addr: "127.0.0.1"
+    port: 8000
+
+  ws:
+    addr: "127.0.0.1"
+    port: 8080
+
+production:
+  log: "verbose"
+  db_uri: "sql db uri string"
+
+  http:
+    addr: "127.0.0.1"
+    port: 8000
+
+  ws:
+    addr: "127.0.0.1"
+    port: 8080
