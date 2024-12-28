@@ -3,6 +3,7 @@ use std::io::stderr;
 use anyhow::Result;
 use sys_info::hostname;
 use tracing_loki::url::Url;
+use tracing_subscriber::EnvFilter;
 use tracing_subscriber::filter::LevelFilter;
 use tracing_subscriber::{Layer, layer::SubscriberExt, util::SubscriberInitExt};
 
@@ -15,7 +16,7 @@ pub async fn setup(config: &AppConfig) -> Result<()> {
 
     let (loki_layer, loki_task) = tracing_loki::builder()
         .label("host", hostname()?)?
-        .extra_field("pid", format!("{}", std::process::id()))?
+        .label("service", "sss-streaming-server")?
         .build_url(Url::parse("http://127.0.0.1:3100").unwrap())?;
 
     // Set log level based on configuration
@@ -26,10 +27,13 @@ pub async fn setup(config: &AppConfig) -> Result<()> {
     };
 
     // Layer for Loki, only for `info!`, `warn!`, `error!`
-    // let loki_filter = EnvFilter::default()
-    //     .add_directive(LevelFilter::INFO.into())
-    // .add_directive(LevelFilter::DEBUG.into());
-    // loki_layer.with_filter(loki_filter);
+    let loki_filter = EnvFilter::default().add_directive(LevelFilter::INFO.into());
+
+    let loki_layer: tracing_subscriber::filter::Filtered<
+        tracing_loki::Layer,
+        tracing_subscriber::EnvFilter,
+        _,
+    > = loki_layer.with_filter(loki_filter);
 
     // Layer for stderr, including all logs
     let stderr_layer = tracing_subscriber::fmt::Layer::new()

@@ -1,36 +1,83 @@
-use super::app::AppContext;
+use std::net::SocketAddr;
 
-pub async fn handle_ws(listener: tokio::net::TcpListener, _ctx: &AppContext) {
+use super::app::AppContext;
+use tokio::net::TcpStream;
+use tokio_tungstenite::WebSocketStream;
+
+pub async fn handle_ws(listener: tokio::net::TcpListener, ctx: &'static AppContext) {
     while let Ok((tcp_stream, sock_addr)) = listener.accept().await {
-        tracing::debug!("incoming WebSocket connection from {sock_addr}");
-        let ws = match tokio_tungstenite::accept_hdr_async(tcp_stream, websocket_handshake_handler)
-            .await
+        tracing::debug!("attempted WebSocket connection from {sock_addr}");
+        tokio::spawn(_handle_ws(tcp_stream, sock_addr, ctx));
+    }
+}
+
+#[inline(always)]
+async fn _handle_ws(tcp_stream: TcpStream, sock_addr: SocketAddr, ctx: &'static AppContext) {
+    let mut initial_request: Option<hyper::Request<()>> = None;
+    // peek the http request because tokio_tungstenite doesn't allow async callbacks for auth
+    let is_authenticated = preauth_websocket(&tcp_stream, ctx).await;
+
+    let ws: WebSocketStream<TcpStream> =
+        match tokio_tungstenite::accept_hdr_async(tcp_stream, |req: &hyper::Request<()>, res| {
+            initial_request = Some(req.clone());
+            if is_authenticated {
+                Ok(res)
+            } else {
+                Err(hyper::Response::new(Some("unauthorized".into())))
+            }
+        })
+        .await
         {
             Ok(c) => {
                 tracing::debug!("successful WebSocket connection with {sock_addr}");
+                tracing::info!(event = "ws_connection", host = sock_addr.to_string());
                 c
             }
             Err(e) => {
                 tracing::debug!("bad WebSocket handshake with {sock_addr}:\n{e}");
-                continue;
+                tracing::info!(
+                    event = "ws_bad_handshake",
+                    host = sock_addr.to_string(),
+                    err = e.to_string()
+                );
+                return;
             }
         };
-        tokio::spawn(_handle_ws(ws));
+
+    if let Some(req) = initial_request {
+        crate::ws::router::route(req, ws, ctx).await;
+    } else {
+        tracing::error!(
+            event = "ws_fail",
+            addr = sock_addr.to_string(),
+            "failed to capture ws request"
+        );
     }
 }
 
-#[allow(clippy::result_large_err)]
-fn websocket_handshake_handler(
-    req: &tokio_tungstenite::tungstenite::http::Request<()>,
-    response: tokio_tungstenite::tungstenite::http::Response<()>,
-) -> std::result::Result<
-    tokio_tungstenite::tungstenite::http::Response<()>,
-    tokio_tungstenite::tungstenite::http::Response<Option<String>>,
-> {
-    tracing::debug!("{:#?}", req);
-    Ok(response)
-}
+/// Asynchronously authenticate the WebSocket by peeking the Request.
+/// It returns only a boolean, because the tokio_tungstenite::accept_hdr_async
+/// actually creates valid responses.
+///
+/// `returns` - is_authenticated
+async fn preauth_websocket(stream: &TcpStream, ctx: &'static AppContext) -> bool {
+    let mut request_buf = vec![b' '; 1024];
 
-async fn _handle_ws(_ws: tokio_tungstenite::WebSocketStream<tokio::net::TcpStream>) {
-    todo!()
+    let read = match stream.peek(&mut request_buf).await {
+        Ok(r) if r != 0 => r,
+        _ => return false,
+    };
+    unsafe {
+        request_buf.set_len(read.max(1024));
+    }
+    let mut headers = [httparse::EMPTY_HEADER; 16];
+    let mut req: httparse::Request<'_, '_> = httparse::Request::new(&mut headers);
+
+    if req.parse(&request_buf).is_err() {
+        return false;
+    }
+
+    tracing::trace!("WS connection: {:?}", req.path);
+
+    crate::services::auth::websocket_handshake_handler(req, ctx).await
 }

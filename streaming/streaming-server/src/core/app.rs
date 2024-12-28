@@ -1,5 +1,6 @@
 use std::collections::HashMap;
-use std::error::Error;
+
+use sqlx::{Pool, Postgres};
 
 use crate::core::config::AppConfig;
 
@@ -22,21 +23,31 @@ pub async fn init_app() -> ! {
 /// App wide Context. Available in 'static lifetime for all tasks / function calls in the app
 /// Context must be static, Sync, and Send.
 /// Interior mutability can be made with sync primitives or other methods.
+/// TODO: Make db generic over db type
 #[allow(unused)]
 #[derive(Debug)]
 pub struct AppContext {
     pub devices: tokio::sync::Mutex<HashMap<String, String>>,
     pub config: AppConfig,
+    pub db: Pool<Postgres>,
 }
 
 impl AppContext {
     /// Create app wide Context, available in all handlers.
     /// Context must be static, Sync, and Send.
     /// Interior mutability can be made with sync primitives or other methods.
-    pub async fn create(config: AppConfig) -> Result<&'static mut Self, Box<dyn Error>> {
+    pub async fn create(config: AppConfig) -> anyhow::Result<&'static mut Self> {
+        let db = crate::services::db::init(&config).await.inspect_err(|e| {
+            tracing::error!(
+                event = "db_connection_failed",
+                uri = config.db_uri,
+                err = e.to_string()
+            );
+        })?;
         let ctx = Box::new(Self {
             devices: tokio::sync::Mutex::new(HashMap::new()),
             config,
+            db,
         });
         let ctx = Box::leak(ctx);
 
@@ -54,7 +65,7 @@ async fn start_servers(ctx: &'static AppContext) {
             panic!("{err}")
         });
 
-    tracing::info!(
+    tracing::debug!(
         "Successfully setup HTTP listener on {}",
         ctx.config.http.address
     );
@@ -62,26 +73,31 @@ async fn start_servers(ctx: &'static AppContext) {
     let ws_listener = tokio::net::TcpListener::bind(ctx.config.ws.address)
         .await
         .unwrap_or_else(|err| {
-            tracing::error!(
+            tracing::info!(
                 "failure to bind the TCP listener for WebSocket server to {}:\n{err}",
                 ctx.config.ws.address
             );
             panic!("{err}")
         });
-    tracing::info!(
+    tracing::debug!(
         "Successfully setup WebSocket listener on {}",
         ctx.config.ws.address
     );
 
     let http_handle = tokio::spawn(super::http::handle_http(http_listener, ctx));
     let ws_handle = tokio::spawn(super::ws::handle_ws(ws_listener, ctx));
-    tracing::info!("All tasks spawned, ready to go!");
+
+    tracing::info!(
+        event = "app_boot",
+        result = "success",
+        config = serde_json::to_string(&ctx.config).unwrap()
+    );
     let _ = tokio::join!(http_handle, ws_handle);
 }
 
 fn print_logo() {
     eprintln!(
-        "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\x1b[0;32m"
+        "==============================================================================\x1b[0;32m"
     );
 
     if let Ok(logo) = std::fs::read_to_string("logo.ascii") {
@@ -91,6 +107,6 @@ fn print_logo() {
         }
     }
     eprintln!(
-        "\x1b[0m~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+        "\x1b[0m=============================================================================="
     );
 }

@@ -1,5 +1,3 @@
-TODO: ADD METRICS ENDPOINT
-
 # HTTP and WebSocket Server
 
 ## Overview

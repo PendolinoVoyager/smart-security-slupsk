@@ -83,17 +83,17 @@ impl AppConfig {
                 "cannot find selected environment YAML configuration",
             ));
         }
-        // Parse `db_uri`
+
         let db_uri = yaml["db_uri"]
             .as_str()
             .ok_or_else(|| anyhow::Error::msg("Missing or invalid `db_uri`"))?
             .to_string();
 
-        // Parse HTTP config
         let http_addr = yaml["http"]["addr"]
             .as_str()
             .ok_or_else(|| anyhow::Error::msg("Missing or invalid `http.addr`"))?
             .to_string();
+
         let http_port = yaml["http"]["port"]
             .as_i64()
             .ok_or_else(|| anyhow::Error::msg("Missing or invalid `http.port`"))?

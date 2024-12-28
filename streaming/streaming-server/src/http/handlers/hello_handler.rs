@@ -10,9 +10,9 @@ pub async fn hello_handler(
     _req: AppRequest,
     ctx: &'static AppContext,
 ) -> anyhow::Result<AppResponse> {
-    let os_type = os_type().unwrap_or_else(|_| "Unknown OS".to_string());
-    let os_release = os_release().unwrap_or_else(|_| "Unknown Release".to_string());
-    let hostname = hostname().unwrap_or_else(|_| "Unknown Hostname".to_string());
+    let os_type = os_type().unwrap_or("Unknown OS".to_string());
+    let os_release = os_release().unwrap_or("Unknown Release".to_string());
+    let hostname = hostname().unwrap_or("Unknown Hostname".to_string());
 
     let connected_devices = ctx.devices.lock().await.len();
     let body = json!({
