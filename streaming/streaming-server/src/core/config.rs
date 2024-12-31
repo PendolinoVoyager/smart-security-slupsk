@@ -51,6 +51,7 @@ pub struct AppConfig {
     pub http: HttpConfig,
     pub ws: WsConfig,
     pub log: String,
+    pub app_db_uri: String,
 }
 
 impl AppConfig {
@@ -87,6 +88,10 @@ impl AppConfig {
         let db_uri = yaml["db_uri"]
             .as_str()
             .ok_or_else(|| anyhow::Error::msg("Missing or invalid `db_uri`"))?
+            .to_string();
+        let app_db_uri = yaml["redis_db_uri"]
+            .as_str()
+            .ok_or_else(|| anyhow::Error::msg("Invalid redis uri string"))?
             .to_string();
 
         let http_addr = yaml["http"]["addr"]
@@ -128,6 +133,7 @@ impl AppConfig {
             log,
             http,
             ws,
+            app_db_uri,
         })
     }
 }

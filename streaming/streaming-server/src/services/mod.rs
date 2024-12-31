@@ -1,2 +1,3 @@
+pub mod app_db;
 pub mod auth;
-pub mod db;
+pub mod core_db;

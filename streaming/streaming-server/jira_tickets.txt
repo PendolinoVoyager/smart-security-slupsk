@@ -1,0 +1,20 @@
+
+ DB SCHEMA:
+ 
+ id  |   address   |  device_name   | user_id 
+-----+-------------+----------------+---------
+ 100 | 192.168.0.1 | Default Device |       1
+
+ REDIS SCHEMA
+
+| ID | DEVICE_NAME    | USER_ID |     SERVER_ADDR    | 
+-----+----------------+---------+---------------------
+| 100| Default Device |    1    | 154.21.23.211:8080 |
+
+0.5 GET SERVER IP INSTEAD OF LOCALHOST IN app_db.rs
+
+PART B
+
+1. refine http endpoints to show all available devices (redis based)
+2. add user auth (get public rsa key from backend)
+3. add device auth (unknown at the moment)

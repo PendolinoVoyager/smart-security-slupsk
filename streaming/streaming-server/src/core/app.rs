@@ -1,11 +1,11 @@
-use std::collections::HashMap;
+use std::collections::HashSet;
 
 use sqlx::{Pool, Postgres};
 
 use crate::core::config::AppConfig;
 
-/// Entry point for the app, never returns.
-pub async fn init_app() -> ! {
+/// Entry point for the app.
+pub async fn init_app() -> anyhow::Result<()> {
     let config = AppConfig::load_from_yaml("cfg/cfg.yaml")
         .unwrap_or_else(|e| panic!("Cannot parse the config file: {e}"));
     super::logging::setup(&config)
@@ -16,8 +16,7 @@ pub async fn init_app() -> ! {
         .expect("cannot create app context with current settings");
 
     print_logo();
-    start_servers(ctx).await;
-    unreachable!("critical failure: app exited early")
+    start_servers(ctx).await
 }
 
 /// App wide Context. Available in 'static lifetime for all tasks / function calls in the app
@@ -27,9 +26,14 @@ pub async fn init_app() -> ! {
 #[allow(unused)]
 #[derive(Debug)]
 pub struct AppContext {
-    pub devices: tokio::sync::Mutex<HashMap<String, String>>,
+    /// Locally stored devices
+    pub devices: tokio::sync::Mutex<HashSet<i64>>,
+    /// App wide config
     pub config: AppConfig,
-    pub db: Pool<Postgres>,
+    /// Connection pool to main Postgre database
+    pub core_db: Pool<Postgres>,
+    /// Connection pool to app redis DB to manage devices
+    pub app_db: deadpool::managed::Pool<deadpool_redis::Manager, deadpool_redis::Connection>,
 }
 
 impl AppContext {
@@ -37,33 +41,52 @@ impl AppContext {
     /// Context must be static, Sync, and Send.
     /// Interior mutability can be made with sync primitives or other methods.
     pub async fn create(config: AppConfig) -> anyhow::Result<&'static mut Self> {
-        let db = crate::services::db::init(&config).await.inspect_err(|e| {
-            tracing::error!(
-                event = "db_connection_failed",
-                uri = config.db_uri,
-                err = e.to_string()
-            );
-        })?;
+        let core_db = crate::services::core_db::init(&config)
+            .await
+            .inspect_err(|e| {
+                tracing::error!(
+                    event = "db_connection_failed",
+                    uri = config.db_uri,
+                    err = e.to_string()
+                );
+            })?;
+        tracing::info!(event = "db_connection");
+        let app_db = crate::services::app_db::init(&config)
+            .await
+            .inspect_err(|e| {
+                tracing::error!(
+                    event = "redis_connection_failed",
+                    uri = config.app_db_uri,
+                    err = e.to_string()
+                )
+            })?;
+        tracing::info!(event = "app_db_connection");
+
         let ctx = Box::new(Self {
-            devices: tokio::sync::Mutex::new(HashMap::new()),
+            devices: tokio::sync::Mutex::new(HashSet::new()),
             config,
-            db,
+            core_db,
+            app_db,
         });
         let ctx = Box::leak(ctx);
 
         Ok(ctx)
     }
+    /// Clean up self without dropping so other threads don't do stupid stuff with memory.
+    pub async fn cleanup(&self) {
+        let _ = crate::services::app_db::remove_all_connections(self).await;
+        tracing::debug!("Starting app cleanup");
+    }
 }
-async fn start_servers(ctx: &'static AppContext) {
+async fn start_servers(ctx: &'static mut AppContext) -> anyhow::Result<()> {
     let http_listener = tokio::net::TcpListener::bind(ctx.config.http.address)
         .await
-        .unwrap_or_else(|err| {
+        .inspect_err(|err| {
             tracing::error!(
                 "failure to bind the TCP listener for HTTP server to {}:\n{err}",
                 ctx.config.http.address
             );
-            panic!("{err}")
-        });
+        })?;
 
     tracing::debug!(
         "Successfully setup HTTP listener on {}",
@@ -72,13 +95,12 @@ async fn start_servers(ctx: &'static AppContext) {
 
     let ws_listener = tokio::net::TcpListener::bind(ctx.config.ws.address)
         .await
-        .unwrap_or_else(|err| {
+        .inspect_err(|err| {
             tracing::info!(
                 "failure to bind the TCP listener for WebSocket server to {}:\n{err}",
                 ctx.config.ws.address
             );
-            panic!("{err}")
-        });
+        })?;
     tracing::debug!(
         "Successfully setup WebSocket listener on {}",
         ctx.config.ws.address
@@ -92,7 +114,28 @@ async fn start_servers(ctx: &'static AppContext) {
         result = "success",
         config = serde_json::to_string(&ctx.config).unwrap()
     );
-    let _ = tokio::join!(http_handle, ws_handle);
+
+    let res = tokio::select! {
+        _ = tokio::signal::ctrl_c() => {
+            tracing::debug!( "Shutting down the application...");
+
+          tracing::info!(event = "app_shutdown");
+
+          Ok(())
+        }
+        _ = http_handle => {
+            tracing::error!(event = "app_error", "early exit due to http server");
+            Err(anyhow::Error::msg("bad http exit"))
+        }
+        _ = ws_handle => {
+            tracing::error!(event = "app_error", "early exit due to websocket server");
+            Err(anyhow::Error::msg("bad ws exit"))
+
+        }
+    };
+
+    ctx.cleanup().await;
+    res
 }
 
 fn print_logo() {

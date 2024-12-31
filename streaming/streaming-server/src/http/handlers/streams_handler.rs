@@ -38,7 +38,7 @@ pub async fn streams_handler(
 
     let query = sqlx::query("SELECT id, device_name FROM devices WHERE user_id = $1").bind(user_id);
     tracing::debug!("executed query {}", query.sql());
-    let devices = query.fetch_all(&ctx.db).await?;
+    let devices = query.fetch_all(&ctx.core_db).await?;
 
     let available_devices: Vec<StreamsResponseDevice> = devices
         .into_iter()

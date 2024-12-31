@@ -21,7 +21,8 @@ pub async fn setup(config: &AppConfig) -> Result<()> {
 
     // Set log level based on configuration
     let level = match config.log.as_str() {
-        "verbose" => LevelFilter::TRACE,
+        "trace" => LevelFilter::TRACE,
+        "debug" => LevelFilter::DEBUG,
         "on" => LevelFilter::INFO,
         _ => LevelFilter::INFO,
     };
