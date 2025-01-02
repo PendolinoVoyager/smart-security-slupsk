@@ -14,6 +14,11 @@ import {
     Typography,
     CircularProgress,
     Alert,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogTitle,
+    TextField,
 } from "@mui/material";
 
 type Device = {
@@ -27,6 +32,12 @@ const DevicePage = () => {
     const [devices, setDevices] = useState<Device[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [open, setOpen] = useState(false);
+    const [newDevice, setNewDevice] = useState({
+        uuid: "",
+        address: "",
+        deviceName: "",
+    });
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -45,8 +56,25 @@ const DevicePage = () => {
         loadDevices();
     }, []);
 
-    const handleAddDevice = () => {
-        navigate("/devices/add");
+    const handleOpen = () => {
+        setOpen(true);
+    };
+
+    const handleClose = () => {
+        setOpen(false);
+    };
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { name, value } = e.target;
+        setNewDevice({ ...newDevice, [name]: value });
+    };
+
+    const handleSubmit = () => {
+        // Replace with API call to save the device
+        console.log("Device added:", newDevice);
+        setDevices([...devices, { id: (devices.length + 1).toString(), ...newDevice }]);
+        setNewDevice({ uuid: "", address: "", deviceName: "" });
+        handleClose();
     };
 
     return (
@@ -58,7 +86,7 @@ const DevicePage = () => {
                 <Button
                     variant="contained"
                     color="primary"
-                    onClick={handleAddDevice}
+                    onClick={handleOpen}
                 >
                     Add New Device
                 </Button>
@@ -104,6 +132,46 @@ const DevicePage = () => {
                     </Table>
                 </TableContainer>
             )}
+
+            <Dialog open={open} onClose={handleClose}>
+                <DialogTitle>Add New Device</DialogTitle>
+                <DialogContent>
+                    <TextField
+                        autoFocus
+                        margin="dense"
+                        label="UUID"
+                        name="uuid"
+                        value={newDevice.uuid}
+                        onChange={handleChange}
+                        fullWidth
+                        required
+                    />
+                    <TextField
+                        margin="dense"
+                        label="Address"
+                        name="address"
+                        value={newDevice.address}
+                        onChange={handleChange}
+                        fullWidth
+                    />
+                    <TextField
+                        margin="dense"
+                        label="Device Name"
+                        name="deviceName"
+                        value={newDevice.deviceName}
+                        onChange={handleChange}
+                        fullWidth
+                    />
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={handleClose} color="secondary">
+                        Cancel
+                    </Button>
+                    <Button onClick={handleSubmit} color="primary">
+                        Add
+                    </Button>
+                </DialogActions>
+            </Dialog>
         </Box>
     );
 };
