@@ -5,15 +5,15 @@
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
 
-    <include file="/db/changelog/user/db.changelog-1.0.xml"/>
-    <include file="db/changelog/user/db.changelog-1.1.xml"/>
-    <include file="/db/changelog/activation_token/db.changelog-1.0.xml"/>
-    <include file="db/changelog/activation_token/db.changelog-1.1.xml"/>
-    <include file="db/changelog/device/db.changelog-1.0.xml"/>
-    <include file="db/changelog/user/db.changelog-1.2.xml"/>
-    <include file="db/changelog/reset_password_token/db.changelog-1.0.xml"/>
-    <include file="db/changelog/reset_password_token/db.changelog-1.1.xml"/>
-    <include file="db/changelog/device/db.changelog-1.1.xml" />
-    <include file="db/changelog/device/db.changelog-1.2.xml" />
-    <include file="db/changelog/fixtures/db.changelog-1.0.xml" />
+    <include file="/db/changelog/user/user.changelog-1.0.xml"/>
+    <include file="/db/changelog/user/user.changelog-1.1.xml"/>
+    <include file="/db/changelog/activation_token/activation_token.changelog-1.0.xml"/>
+    <include file="/db/changelog/activation_token/activation_token.changelog-1.1.xml"/>
+    <include file="/db/changelog/device/device.changelog-1.0.xml"/>
+    <include file="/db/changelog/user/user.changelog-1.2.xml"/>
+    <include file="/db/changelog/reset_password_token/reset_password_token.changelog-1.0.xml"/>
+    <include file="/db/changelog/reset_password_token/reset_password_token.changelog-1.1.xml"/>
+    <include file="/db/changelog/device/device.changelog-1.1.xml" />
+    <include file="/db/changelog/device/device.changelog-1.2.xml" />
+    <include file="/db/changelog/fixtures/fixtures.changelog-1.0.xml" />
 </databaseChangeLog>

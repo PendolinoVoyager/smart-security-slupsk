@@ -5,7 +5,7 @@
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
 
-    <changeSet id="2" author="Kacper Karabinowski">
+    <changeSet id="activation_token_000" author="Kacper Karabinowski">
         <createTable tableName="activation_tokens">
             <column name="id" type="int">
                 <constraints primaryKey="true" nullable="false"/>

@@ -5,11 +5,11 @@
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
 
-    <changeSet id="3" author="Kacper Karabinowski">
-        <addColumn tableName="users">
-            <column name="is_enabled" type="boolean">
-                <constraints nullable="false"/>
+    <changeSet id="device_000" author="Kacper Karabinowski">
+        <createTable tableName="devices">
+            <column name="id" type="int" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false" />
             </column>
-        </addColumn>
+        </createTable>
     </changeSet>
 </databaseChangeLog>
