@@ -6,6 +6,6 @@
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
 
     <changeSet id="activation_token_001" author="Kacper Karabinowski">
-        <addAutoIncrement tableName="activation_tokens" columnName="id" />
+        <addAutoIncrement tableName="activation_tokens" columnName="id" columnDataType="int"/>
     </changeSet>
 </databaseChangeLog>
