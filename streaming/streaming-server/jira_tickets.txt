@@ -11,8 +11,10 @@
 -----+----------------+---------+---------------------
 | 100| Default Device |    1    | 154.21.23.211:8080 |
 
-0.5 GET SERVER IP INSTEAD OF LOCALHOST IN app_db.rs
-
+TODAY:
+1. REFACTOR WS_STREAM TO REACT ON START
+2. TEST THE THANG (NORMAL, USER DISCONNECT, STREAM STOP)
+3. REWRITE THE WS_STREAM TO BE CONTINOUS WITH START AND STOP COMMANDS
 PART B
 
 1. refine http endpoints to show all available devices (redis based)

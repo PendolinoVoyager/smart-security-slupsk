@@ -10,10 +10,9 @@
 //!
 
 use std::net::SocketAddr;
-use std::str::FromStr;
 
-use crate::core::app::AppContext;
 use crate::core::config::AppConfig;
+use crate::core::context::AppContext;
 use deadpool_redis::Runtime;
 use redis::AsyncCommands;
 use sqlx::{Execute, Row};
@@ -47,7 +46,7 @@ impl RedisDeviceSchema {
         Ok(Self {
             device_name: row.try_get("device_name")?,
             user_id: row.try_get("user_id")?,
-            server_addr: SocketAddr::from_str("127.0.0.1:8000")?,
+            server_addr: ctx.config.ws.address,
         })
     }
 }
@@ -85,7 +84,7 @@ pub async fn remove_device(ctx: &AppContext, device_id: i64) -> anyhow::Result<(
 
 pub async fn remove_all_connections(ctx: &AppContext) -> anyhow::Result<usize> {
     let guard = ctx.devices.lock().await;
-    let connections: Vec<String> = guard.iter().map(|n| n.to_string()).collect();
+    let connections: Vec<String> = guard.all_devices().iter().map(|n| n.to_string()).collect();
     let mut conn = ctx.app_db.get().await?;
     let res = conn.del::<_, usize>(connections).await?;
     Ok(res)

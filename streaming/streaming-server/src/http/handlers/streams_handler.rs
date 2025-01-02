@@ -1,6 +1,6 @@
 //! This module is responsible for GET endpoint for the available devices the user can view stream from.
 
-use crate::core::app::AppContext;
+use crate::core::context::AppContext;
 use crate::core::http::{AppRequest, AppResponse};
 use crate::http::JSONAppResponse;
 use hyper::StatusCode;

@@ -1,8 +1,8 @@
 use tokio::net::TcpStream;
 use tokio_tungstenite::WebSocketStream;
 
-use crate::core::app::AppContext;
-use crate::ws::handlers::device_checkout_handler;
+use crate::core::context::AppContext;
+use crate::ws::handlers::*;
 
 macro_rules! route {
     ($name:expr, $handler:ident, $req:expr, $socket:expr, $ctx:expr ) => {{
@@ -20,6 +20,7 @@ pub async fn route(
 ) {
     match req.uri().path() {
         "/device_checkout" => route!("device_checkout", device_checkout_handler, req, socket, ctx),
+        "/stream" => route!("stream", stream_handler, req, socket, ctx),
         _ => {
             tracing::info!(event = "ws_route_accessed", "404");
         }

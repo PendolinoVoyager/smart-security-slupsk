@@ -1,7 +1,7 @@
 use hyper::Response;
 use hyper::header::CONTENT_TYPE;
 
-use crate::core::app::AppContext;
+use crate::core::context::AppContext;
 use crate::core::http::{AppRequest, AppResponse};
 
 pub async fn bench_handler(

@@ -1,6 +1,6 @@
 use std::net::SocketAddr;
 
-use super::app::AppContext;
+use crate::core::context::AppContext;
 use tokio::net::TcpStream;
 use tokio_tungstenite::WebSocketStream;
 
