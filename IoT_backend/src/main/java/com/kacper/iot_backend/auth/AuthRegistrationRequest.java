@@ -4,11 +4,11 @@ import jakarta.validation.constraints.*;
 
 public record AuthRegistrationRequest(
         @NotBlank(message = "Name is required")
-        @Min(value = 2, message = "Name must be at least 2 characters long")
-        @Max(value = 50, message = "Name must be at most 50 characters long")
+        @Size(min = 2, max = 50, message = "Name must be between 2 and 50 characters long")
         String name,
 
         @NotBlank(message = "Last name is required")
+        @Size(min = 2, max = 50, message = "Last name must be between 2 and 50 characters long")
         String last_name,
 
         @Email(message = "Email is invalid")

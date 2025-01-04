@@ -26,6 +26,7 @@ public class AuthController
     public ResponseEntity<AuthRegistrationResponse> register(
             @Valid @RequestBody AuthRegistrationRequest authRegistrationRequest
     ) throws MessagingException {
+        LOGGER.info("Received request to register user: {}", authRegistrationRequest);
         return new ResponseEntity<>(authService.register(authRegistrationRequest), HttpStatus.CREATED);
     }
 
