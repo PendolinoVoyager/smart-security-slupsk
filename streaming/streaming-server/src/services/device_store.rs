@@ -5,7 +5,7 @@
 use std::collections::HashMap;
 use tokio::sync::mpsc::*;
 use tokio_tungstenite::tungstenite::Message;
-type DeviceId = i64;
+type DeviceId = i32;
 /// Device registered in DeviceStore
 #[derive(Debug)]
 pub struct Device {

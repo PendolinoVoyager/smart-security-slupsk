@@ -10,8 +10,8 @@ use tokio_tungstenite::tungstenite::protocol::CloseFrame;
 
 #[derive(Debug)]
 struct StreamRequestParams {
-    token: String,
-    device_id: i64,
+    //   token: String,
+    device_id: i32,
 }
 impl FromStr for StreamRequestParams {
     type Err = anyhow::Error;
@@ -21,10 +21,10 @@ impl FromStr for StreamRequestParams {
             .collect();
 
         Ok(Self {
-            token: params
-                .get("token")
-                .ok_or(anyhow::Error::msg("missing jwt token"))?
-                .to_owned(),
+            //         token: params
+            //           .get("token")
+            //          .ok_or(anyhow::Error::msg("missing jwt token"))?
+            //        .to_owned(),
             device_id: params
                 .get("device_id")
                 .ok_or(anyhow::Error::msg("missing device_id"))?
@@ -95,7 +95,7 @@ pub async fn stream_handler(
         Err(e) => e.to_string(),
     };
     tracing::info!(
-        event = "stream_start",
+        event = "stream_end",
         from = params.device_id,
         to = peer_addr.to_string(),
         result

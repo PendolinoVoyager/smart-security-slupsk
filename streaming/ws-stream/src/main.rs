@@ -8,8 +8,8 @@ mod stream;
 mod stream_factory;
 
 use clap::Parser;
-use std::io::{self};
-use std::net::{IpAddr, Ipv4Addr, SocketAddr, TcpListener, TcpStream};
+use std::io::{self, Read, Write};
+use std::net::{IpAddr, Ipv4Addr, SocketAddr, TcpListener};
 use stream::{StreamBuffer, VideoStream};
 use tracing::Level;
 use tracing_subscriber::FmtSubscriber;
@@ -116,18 +116,21 @@ fn connect_ws(config: Config) -> anyhow::Result<()> {
         io::ErrorKind::AddrNotAvailable,
         "Public address not available",
     ))?;
-    let sock_addr = SocketAddr::new(addr, config.port);
-    tracing::info!("Attempting to connect to {}", &sock_addr);
-    let tcp_stream = TcpStream::connect(sock_addr)?;
-    tracing::info!("TcpConnection established with {}!", &sock_addr);
-    let ws = tungstenite::accept(tcp_stream)?;
+    tracing::info!("Attempting to connect to {}", &config.addr);
+    let (mut ws, res) = tungstenite::connect(&config.addr)?;
     tracing::info!("WebSocket created");
+    tracing::debug!("{res:?}");
+    // TODO
+    let _wait = ws.read();
     stream_until_disconnect(ws, config);
 
     Ok(())
 }
 
-fn stream_until_disconnect(mut ws: WebSocket<TcpStream>, config: Config) {
+fn stream_until_disconnect<S>(mut ws: WebSocket<S>, config: Config)
+where
+    S: Read + Write,
+{
     tracing::info!("Initializing stream");
     let mut stream = match stream_factory::create_stream(&config) {
         Err(e) => {

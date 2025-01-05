@@ -9,8 +9,11 @@ const VideoContainer: React.FC = () => {
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
 
   const streams = [
-    { name: "DEBUG", url: "ws://192.168.8.156:8080/stream" },
-    { name: "DEBUG_LOCALHOST", url: "ws://127.0.0.1:8080/stream" },
+    { name: "DEBUG", url: "ws://192.168.8.156:8080/stream?device_id=100" },
+    {
+      name: "DEBUG_LOCALHOST",
+      url: "ws://127.0.0.1:8080/stream?device_id=100",
+    },
   ];
   const flash = useFlash();
   const handleStreamSelect = (stream: string) => {

@@ -58,7 +58,7 @@ pub async fn device_checkout_handler(
     tracing::debug!("device tasked resolved with: {:?}", res);
 }
 
-fn get_device_id(req: hyper::Request<()>) -> Option<i64> {
+fn get_device_id(req: hyper::Request<()>) -> Option<i32> {
     let params: HashMap<String, String> = req
         .uri()
         .query()
@@ -71,5 +71,5 @@ fn get_device_id(req: hyper::Request<()>) -> Option<i64> {
 
     params
         .get("device_id")
-        .and_then(|id_str| id_str.parse::<i64>().ok())
+        .and_then(|id_str| id_str.parse::<i32>().ok())
 }
