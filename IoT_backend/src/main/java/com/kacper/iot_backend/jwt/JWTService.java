@@ -3,31 +3,54 @@ package com.kacper.iot_backend.jwt;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.Resource;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.security.KeyFactory;
+import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.function.Function;
+import java.util.logging.Logger;
 
 @Service
 public class JWTService
 {
 
-    private final SecretKey secretKey;
+//    private final SecretKey secretKey;
+    private final PrivateKey privateKey;
     private static final long EXPIRATION_TIME = 864000000;
+    private final static Logger logger = Logger.getLogger(JWTService.class.getName());
 
     /**
-     * @param secretString secret string from application.properties
      * keyBytes - is decoded from secretString
      */
-    public JWTService(@Value("${app.secretKey}") String secretString) {
-        byte[] keyBytes = Base64.getDecoder().decode(secretString.getBytes(StandardCharsets.UTF_8));
-        this.secretKey = new SecretKeySpec(keyBytes, "HmacSHA256");
+    public JWTService(@Value("${app.secretKey}")Resource privateKeyResource) throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
+        logger.info("Creating JWTService " + privateKeyResource.getURI());
+        byte[] keyBytes = Files.readAllBytes(Path.of(privateKeyResource.getURI()));
+        keyBytes = parsePEMFile(keyBytes);
+        PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(keyBytes);
+        KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+        privateKey = keyFactory.generatePrivate(spec);
+    }
+
+    private byte[] parsePEMFile(byte[] keyBytes) {
+        String keyString = new String(keyBytes, StandardCharsets.UTF_8);
+        keyString = keyString.replace("-----BEGIN PRIVATE KEY-----", "")
+                .replace("-----END PRIVATE KEY-----", "")
+                .replaceAll("\\s+", "");
+        return Base64.getDecoder().decode(keyString);
     }
 
     /**
@@ -39,7 +62,7 @@ public class JWTService
                 .subject(userDetails.getUsername())
                 .issuedAt(new Date(System.currentTimeMillis()))
                 .expiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
-                .signWith(secretKey)
+                .signWith(privateKey)
                 .compact();
     }
 
@@ -54,12 +77,12 @@ public class JWTService
                 .subject(userDetails.getUsername())
                 .issuedAt(new Date(System.currentTimeMillis()))
                 .expiration(new Date(System.currentTimeMillis() +EXPIRATION_TIME))
-                .signWith(secretKey)
+                .signWith(privateKey)
                 .compact();
     }
 
     private <T> T extractClaim(String token, Function<Claims, T> claimsTFunction) {
-        return claimsTFunction.apply(Jwts.parser().verifyWith(secretKey).build().parseSignedClaims(token).getPayload());
+        return claimsTFunction.apply(Jwts.parser().verifyWith((SecretKey) privateKey).build().parseSignedClaims(token).getPayload());
     }
 
     /**
