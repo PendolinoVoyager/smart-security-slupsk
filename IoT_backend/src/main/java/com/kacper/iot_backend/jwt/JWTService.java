@@ -59,9 +59,9 @@ public class JWTService
      */
     public String generateToken(UserDetails userDetails) {
         return Jwts.builder()
-                .subject(userDetails.getUsername())
-                .issuedAt(new Date(System.currentTimeMillis()))
-                .expiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
+                .setSubject(userDetails.getUsername())
+                .setIssuedAt(new Date(System.currentTimeMillis()))
+                .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
                 .signWith(privateKey)
                 .compact();
     }
@@ -73,16 +73,23 @@ public class JWTService
      */
     public String generateRefreshToken(HashMap<String, Object> claims, UserDetails userDetails) {
         return Jwts.builder()
-                .claims(claims)
-                .subject(userDetails.getUsername())
-                .issuedAt(new Date(System.currentTimeMillis()))
-                .expiration(new Date(System.currentTimeMillis() +EXPIRATION_TIME))
+                .setClaims(claims)
+                .setSubject(userDetails.getUsername())
+                .setIssuedAt(new Date(System.currentTimeMillis()))
+                .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
                 .signWith(privateKey)
                 .compact();
     }
 
     private <T> T extractClaim(String token, Function<Claims, T> claimsTFunction) {
-        return claimsTFunction.apply(Jwts.parser().verifyWith((SecretKey) privateKey).build().parseSignedClaims(token).getPayload());
+        logger.info("\nExtracting claim from token: " + token);
+        Claims claims = Jwts.parserBuilder()
+                .setSigningKey(privateKey)
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
+
+        return claimsTFunction.apply(claims);
     }
 
     /**

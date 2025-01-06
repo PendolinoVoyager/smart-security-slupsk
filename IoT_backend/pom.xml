@@ -16,7 +16,7 @@
 
     <properties>
         <java.version>21</java.version>
-        <jjwt.version>0.12.5</jjwt.version>
+        <jjwt.version>0.11.5</jjwt.version>
         <springdoc.version>2.6.0</springdoc.version>
         <spring.integration.mqtt.version>6.2.3</spring.integration.mqtt.version>
         <bouncycastle.version>1.78</bouncycastle.version>
