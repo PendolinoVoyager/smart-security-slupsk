@@ -1,177 +1,149 @@
 #![feature(type_changing_struct_update)]
 #![feature(let_chains)]
 //! Binary utility to stream to a websocket.
-mod audio;
-mod ffmpeg_stream;
-mod gstreamer_stream;
+mod config;
 mod stream;
-mod stream_factory;
-
 use clap::Parser;
-use std::io::{self, Read, Write};
-use std::net::{IpAddr, Ipv4Addr, SocketAddr, TcpListener};
+use config::Config;
+use futures::{SinkExt, StreamExt};
+use stream::stream_factory::{self, StreamKind};
 use stream::{StreamBuffer, VideoStream};
+use tokio::net::TcpStream;
+use tokio::task::spawn_blocking;
+use tokio_tungstenite::tungstenite::Message;
+use tokio_tungstenite::MaybeTlsStream;
 use tracing::Level;
 use tracing_subscriber::FmtSubscriber;
-use tungstenite::{accept_hdr, Message, WebSocket};
-#[derive(Parser, Debug)]
-#[command(version, about, long_about = None)]
-/// ffmpeg based utility to stream video via WebSockets
-/// Requires ffmpeg, v4l2, and gstreamer.
-/// Streams using MPEGTS.
-struct Config {
-    /// IP address to stream to: e.g. "192.168.1.10"
-    #[arg(long, short)]
-    addr: String,
 
-    /// Port to bind the streaming WebSocket to.
-    #[arg(short, long, default_value_t = 0)]
-    port: u16,
+type AppWebSocket = tokio_tungstenite::WebSocketStream<MaybeTlsStream<TcpStream>>;
 
-    /// Wait for a connection from the provided address
-    #[clap(long, action, default_value_t = false)]
-    server: bool,
-    /// Disable audio for the stream.
-    /// If not present, alsa will be used.
-    /// When audio cannot be produced, warnings will be emitted.
-    #[clap(long = "noaudio", action, default_value_t = false)]
-    no_audio: bool,
-
-    /// Do not log
-    #[clap(long, action, default_value_t = false)]
-    silent: bool,
-    /// Specify the stream kind. Available options
-    /// - gstreamer (default)
-    /// - ffmpeg
-    #[clap(long, default_value_t = String::from("gstreamer"))]
-    streamkind: String,
-}
-
-fn main() -> anyhow::Result<()> {
-    let config = Config::parse();
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
+    let config = config::Config::parse();
     if !config.silent {
         let subscriber = FmtSubscriber::builder()
-            .with_writer(io::stderr) // Write logs to stderr
+            .with_writer(std::io::stderr) // Write logs to stderr
             .with_max_level(Level::INFO) // Set the maximum level of logs (optional)
             .finish();
         tracing::subscriber::set_global_default(subscriber)
             .expect("Setting default subscriber failed");
     }
 
-    if config.server {
-        serve_ws(config)?;
-    } else {
-        connect_ws(config)?;
-    }
+    connect_ws(config)
+        .await
+        .inspect_err(|e| tracing::error!("Stream resulted in failure: {e}"))?;
+
     Ok(())
 }
 
-/// Make a websocket server, listening for the connection and then responding with stream.
-fn serve_ws(config: Config) -> anyhow::Result<()> {
-    let addr = match config.addr == "127.0.0.1" {
-        true => IpAddr::V4(Ipv4Addr::LOCALHOST),
-        false => get_if_addr().ok_or(std::io::Error::new(
-            io::ErrorKind::AddrNotAvailable,
-            "Public address not available",
-        ))?,
-    };
-    let sock_addr = SocketAddr::new(addr, config.port);
-
-    tracing::info!("Attempting to bind the socket to {}", &sock_addr);
-    let listener: TcpListener = TcpListener::bind(sock_addr)?;
-    tracing::info!("WebSocket server bound to {}!", &sock_addr);
-
-    let callback = |req: &tungstenite::http::Request<()>,
-                    response: tungstenite::http::Response<_>| {
-        tracing::info!("Request URI: {}", req.uri()); // Get the URI
-        tracing::info!("Headers: {:?}", req.headers()); // Log headers
-        Ok(response)
-    };
-
-    while let Ok((stream, addr)) = listener.accept() {
-        if addr.ip().to_string() != config.addr {
-            let _ = stream.shutdown(std::net::Shutdown::Both);
-            continue;
-        }
-        drop(listener);
-        tracing::info!("Connected to remote host");
-
-        match accept_hdr(stream, callback) {
-            Ok(ws) => {
-                stream_until_disconnect(ws, config);
-            }
-            Err(e) => {
-                tracing::error!("Bad WebSocket handshake with {}", addr.ip());
-                tracing::error!("{:?}", e);
-            }
-        }
-
-        break;
-    }
-    Ok(())
-}
 /// Make an connection to a websocket server and stream.
-fn connect_ws(config: Config) -> anyhow::Result<()> {
-    let addr = get_if_addr().ok_or(std::io::Error::new(
-        io::ErrorKind::AddrNotAvailable,
-        "Public address not available",
-    ))?;
+async fn connect_ws(config: Config) -> anyhow::Result<()> {
     tracing::info!("Attempting to connect to {}", &config.addr);
-    let (mut ws, res) = tungstenite::connect(&config.addr)?;
+
+    let (ws, res) = tokio_tungstenite::connect_async(&config.addr).await?;
+
     tracing::info!("WebSocket created");
     tracing::debug!("{res:?}");
-    // TODO
-    let _wait = ws.read();
-    stream_until_disconnect(ws, config);
+    if config.raw {
+        stream_until_disconnect(ws, config).await;
+    } else {
+        stream_to_streaming_server(ws, config).await?;
+    }
 
     Ok(())
 }
 
-fn stream_until_disconnect<S>(mut ws: WebSocket<S>, config: Config)
-where
-    S: Read + Write,
-{
+async fn stream_until_disconnect(mut ws: AppWebSocket, config: Config) {
     tracing::info!("Initializing stream");
-    let mut stream = match stream_factory::create_stream(&config) {
-        Err(e) => {
-            tracing::error!("{e}");
-            return;
-        }
-        Ok(s) => s,
-    };
+    let stream = initialize_stream(&config).unwrap();
 
-    stream.start();
     tracing::info!("Starting streaming...");
-    if !ws.can_write() {
-        tracing::error!("Cannot write to the websocket!");
-    }
-    let mut reader = StreamBuffer::new(1024, stream);
-    while let Ok(buf) = reader.read() {
-        tracing::info!("{}", buf.len());
-        let message = Message::Binary(buf.to_vec());
-        if ws.send(message).is_err() {
+
+    let (tx, mut rx) = tokio::sync::mpsc::channel::<Message>(size_of::<Message>() * 30);
+
+    let handle = spawn_blocking(move || {
+        let mut reader = Box::pin(StreamBuffer::new(1024, stream));
+        while let Ok(buf) = reader.read() {
+            let buf = buf.to_vec();
+            if tx.blocking_send(Message::Binary(buf.into())).is_err() {
+                break;
+            }
+        }
+    });
+
+    while let Some(msg) = rx.recv().await {
+        tracing::info!("{}", msg.len());
+
+        if ws.send(msg).await.is_err() {
             tracing::warn!("Cannot send packet, connection broken!");
             break;
         }
     }
 
+    handle.abort();
+
     tracing::info!("Stream ended");
 }
 
-/// Helper function to get the address from the first non-loopback interface
-fn get_if_addr() -> Option<IpAddr> {
-    tracing::info!("Looking for public interface...");
+/// Stream while listening for START / STOP packets
+/// This should be nonblocking
+async fn stream_to_streaming_server(mut ws: AppWebSocket, config: Config) -> anyhow::Result<()> {
+    loop {
+        let res = match ws.next().await {
+            Some(v) => v?,
+            None => return Err(anyhow::Error::msg("socket connection broken")),
+        };
+        if res.into_text().is_ok_and(|msg| msg == "START") {
+            // stream until STOP received
+            tracing::info!("Starting streaming...");
+            let stream = initialize_stream(&config)?;
 
-    let ifaces = getifaddrs::getifaddrs().ok()?;
+            let (tx, mut rx) = tokio::sync::mpsc::channel::<Message>(size_of::<Message>() * 30);
 
-    // Iterate over the interfaces and look for one that isn't a loopback.
-    for iface in ifaces {
-        if iface.address.is_loopback() {
-            continue;
+            let handle = spawn_blocking(move || {
+                let mut reader = Box::pin(StreamBuffer::new(1024, stream));
+                while let Ok(buf) = reader.read() {
+                    let buf = buf.to_vec();
+                    if tx.blocking_send(Message::Binary(buf.into())).is_err() {
+                        break;
+                    }
+                }
+            });
+            loop {
+                tokio::select! {
+                    msg = rx.recv() => {
+                        let msg = match msg {
+                            Some(m) => m,
+                            None => break
+                        };
+                        if ws.send(msg).await.is_err() {
+                            tracing::warn!("Cannot send packet, connection broken!");
+                            break;
+                        }
+                    },
+                    msg = ws.next() => {
+                        let msg = match msg {
+                            Some(m) => m?,
+                            None => break,
+                        };
+                        if msg.into_text()? == "STOP" {
+                            break;
+                        }
+                    }
+
+                }
+            }
+
+            tracing::info!("Stream ended");
+            handle.abort();
         }
-
-        return Some(iface.address);
     }
+}
 
-    None
+fn initialize_stream(config: &Config) -> anyhow::Result<StreamKind> {
+    let mut stream =
+        stream_factory::create_stream(config).inspect_err(|e| tracing::error!("{e}"))?;
+
+    stream.start();
+    Ok(stream)
 }

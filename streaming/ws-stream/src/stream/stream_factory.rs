@@ -1,5 +1,5 @@
-use crate::ffmpeg_stream::FfmpegMpegtsStream;
-use crate::gstreamer_stream::GStreamerLibcameraStream;
+use super::ffmpeg_stream::FfmpegMpegtsStream;
+use super::gstreamer_stream::GStreamerLibcameraStream;
 use crate::stream::VideoStream;
 
 // all elements implement VideoStream
@@ -38,7 +38,7 @@ impl VideoStream for StreamKind {
         }
     }
 }
-pub fn create_stream(config: &crate::Config) -> anyhow::Result<StreamKind> {
+pub fn create_stream(config: &crate::config::Config) -> anyhow::Result<StreamKind> {
     match config.streamkind.as_str() {
         "gstreamer" => Ok(StreamKind::GStreamerLibcameraStream(
             GStreamerLibcameraStream::init(config)?,

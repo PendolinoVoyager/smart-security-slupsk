@@ -10,7 +10,7 @@ use gstreamer::prelude::*;
 use gstreamer::{FlowError, FlowSuccess, Pipeline};
 use gstreamer_app::AppSink;
 
-use crate::stream::StreamReadError;
+use super::StreamReadError;
 
 type QueueDataType = Vec<u8>;
 
@@ -51,7 +51,7 @@ pub struct GStreamerLibcameraStream {
 
 impl GStreamerLibcameraStream {
     /// Create and initialize a gstreamer stream.
-    pub fn init(config: &crate::Config) -> Result<Self> {
+    pub fn init(config: &crate::config::Config) -> Result<Self> {
         init_queue();
         gstreamer::init()?;
 
@@ -175,7 +175,7 @@ pub(super) mod make_gst_pipeline {
     /// - `callback` - a function to call when a new sample is pulled
     pub fn get_rpi_zero2w_pipeline<F>(
         fd: i32,
-        config: &crate::Config,
+        config: &crate::config::Config,
         callback: F,
     ) -> anyhow::Result<Pipeline>
     where
@@ -218,7 +218,7 @@ pub(super) mod make_gst_pipeline {
     /// May fail if no suitable audio backend is present.
     #[inline(always)]
     fn add_audio_elements(elements: &mut Elements) -> anyhow::Result<()> {
-        match crate::audio::get_audio_backend() {
+        match crate::stream::audio::get_audio_backend() {
             Some(backend) => {
                 let audiosrc =
                     gstreamer::ElementFactory::make(backend.as_gstreamer_str()).build()?;

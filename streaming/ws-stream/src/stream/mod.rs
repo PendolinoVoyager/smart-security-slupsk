@@ -1,4 +1,7 @@
-#![allow(dead_code)]
+pub mod audio;
+pub mod ffmpeg_stream;
+pub mod gstreamer_stream;
+pub mod stream_factory;
 
 /// Trait for different kind of streams
 /// It's unclear at this stage what the source of the video stream is, so a bit of abstraction is needed.
@@ -108,7 +111,7 @@ impl<T: VideoStream> StreamBuffer<T> {
         self.head = 0;
         Ok(&self.buf[0..len])
     }
-
+    #[allow(unused)]
     pub fn into_inner(self) -> T {
         self.stream
     }

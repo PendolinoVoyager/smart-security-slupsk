@@ -112,7 +112,10 @@ async fn stream_until_err(
 ) -> anyhow::Result<()> {
     device.command_sender.send("START".into()).await?;
     while let Some(stream_packet) = device.stream_receiver.recv().await {
-        socket.send(stream_packet).await?
+        if let Err(e) = socket.send(stream_packet).await {
+            tracing::debug!("stream ended: {e}");
+            break;
+        }
     }
 
     device.command_sender.send("STOP".into()).await?;

@@ -6,9 +6,9 @@
 use std::io::Read;
 use std::process::{Child, ChildStdout, Stdio};
 
-use crate::audio::get_audio_backend;
+use super::audio::get_audio_backend;
+use crate::config::Config;
 use crate::stream::{StreamReadError, StreamState, VideoStream};
-use crate::Config;
 
 /// Wrapper for a mp4 stream
 pub struct FfmpegMpegtsStream {
