@@ -34,12 +34,14 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/api/v1/auth/register",
                                 "/api/v1/auth/login",
+                                "/api/v1/auth/device",
                                 "/api/v1/activation-token/verify",
                                 "/api/v1/reset-password-token/send",
                                 "/api/v1/reset-password-token/reset",
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html").permitAll()
+                        .requestMatchers("/api/v1/device/onlyDeviceRole").hasRole("DEVICE")
                         .anyRequest().authenticated())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authenticationProvider(authenticationProvider())

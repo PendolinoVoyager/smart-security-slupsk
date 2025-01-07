@@ -66,6 +66,15 @@ public class JWTService
                 .compact();
     }
 
+    public String generatePermanentDeviceToken(String email) {
+        return Jwts.builder()
+                .setSubject(email)
+                .claim("isDevice", true)
+                .setIssuedAt(new Date(System.currentTimeMillis()))
+                .signWith(privateKey)
+                .compact();
+    }
+
     /**
      * @param claims claims
      * @param userDetails user details
@@ -92,6 +101,14 @@ public class JWTService
         return claimsTFunction.apply(claims);
     }
 
+    public Claims extractAllClaims(String token) {
+        return Jwts.parserBuilder()
+                .setSigningKey(privateKey)
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
+    }
+
     /**
      * @param token token
      * @return extracted username from token
@@ -116,5 +133,11 @@ public class JWTService
     public boolean isTokenValid(String token, UserDetails userDetails) {
         final String username = extractUsername(token);
         return (username.equals(userDetails.getUsername())) && !isTokenExpired(token);
+    }
+
+    public boolean isDeviceToken(String jwtToken) {
+        Claims claims = extractAllClaims(jwtToken);
+        Boolean isDevice = claims.get("isDevice", Boolean.class);
+        return isDevice != null && isDevice;
     }
 }

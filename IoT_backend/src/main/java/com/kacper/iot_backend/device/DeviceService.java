@@ -1,5 +1,6 @@
 package com.kacper.iot_backend.device;
 
+import com.kacper.iot_backend.exception.ResourceNotFoundException;
 import com.kacper.iot_backend.user.User;
 import com.kacper.iot_backend.user.UserService;
 import com.kacper.iot_backend.utils.DefaultResponse;
@@ -38,5 +39,12 @@ public class DeviceService
                 .map(deviceListResponseMapper)
                 .toList();
 
+    }
+
+    public User getUserByDevice(Integer deviceId) {
+        Device device = deviceRepository.findById(deviceId)
+                .orElseThrow(() -> new ResourceNotFoundException("Device not found"));
+
+        return device.getUser();
     }
 }
