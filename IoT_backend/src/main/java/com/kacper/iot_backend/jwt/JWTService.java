@@ -68,7 +68,7 @@ public class JWTService
 
     public String generatePermanentDeviceToken(String email) {
         return Jwts.builder()
-                .setSubject(email)
+                .setSubject(email) // zamienic na id + update claim z user mail
                 .claim("isDevice", true)
                 .setIssuedAt(new Date(System.currentTimeMillis()))
                 .signWith(privateKey)
