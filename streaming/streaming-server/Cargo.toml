@@ -9,6 +9,7 @@ description = "Simple streaming server and manager for device-to-browser-client 
 
 [dependencies]
 anyhow = "1.0.95"
+chrono = "0.4.39"
 deadpool = "0.12.1"
 deadpool-redis = { version = "0.18.0", features = ["serde", "tokio"] }
 futures-util = "0.3.31"
@@ -16,6 +17,7 @@ http-body-util = "0.1.2"
 httparse = "1.9.5"
 hyper = { version = "1.5.2", features = ["full"] }
 hyper-util = { version = "0.1.10", features = ["full"] }
+jsonwebtoken = "9.3.0"
 lazy_static = "1.5.0"
 redis = { version = "0.27.6", features = ["json", "tokio-comp"] }
 serde = { version = "1.0.216", features = ["derive"] }

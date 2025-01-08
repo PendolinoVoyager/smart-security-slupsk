@@ -1,8 +1,9 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import VideoControls from "./videoControls";
 import VideoFeed from "./videoFeed";
 import { Box } from "@mui/material";
 import { useFlash } from "../../store/flashStore";
+import fetchStreams from "../../api/fetchStreams";
 
 const VideoContainer: React.FC = () => {
   const [currentStream, setCurrentStream] = useState<string>("");
@@ -15,6 +16,12 @@ const VideoContainer: React.FC = () => {
       url: "ws://127.0.0.1:8080/stream?device_id=100",
     },
   ];
+  useEffect(() => {
+    (async () => {
+      const res = await fetchStreams();
+      console.log(res);
+    })();
+  }, []);
   const flash = useFlash();
   const handleStreamSelect = (stream: string) => {
     setCurrentStream(stream);

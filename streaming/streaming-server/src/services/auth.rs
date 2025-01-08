@@ -14,8 +14,3 @@ pub async fn websocket_handshake_handler(
         _ => true,
     }
 }
-
-/// Handle user authentication
-pub async fn user_auth_handler(email: String, token: String) -> bool {
-    true
-}

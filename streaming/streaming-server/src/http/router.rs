@@ -1,3 +1,5 @@
+use hyper::Method;
+
 use crate::core::context::AppContext;
 use crate::core::http::{AppRequest, AppResponse};
 
@@ -19,6 +21,16 @@ macro_rules! route {
     }};
 }
 pub async fn route(req: AppRequest, ctx: &'static AppContext) -> AppResponse {
+    if req.method() == Method::OPTIONS {
+        return cors_options_handler(req, ctx).await.unwrap_or_else(|e| {
+            tracing::warn!(
+                event = "handler_failure",
+                route = stringify!($handler),
+                err = e.to_string()
+            );
+            super::INTERNAL_SERVER_ERROR_RESPONSE.clone()
+        });
+    }
     match req.uri().path() {
         "/hello" => route!("hello", hello_handler, req, ctx),
         "/benchmark" => route!("benchmark", bench_handler, req, ctx),

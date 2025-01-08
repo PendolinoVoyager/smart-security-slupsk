@@ -33,7 +33,7 @@ pub async fn init(
 pub struct RedisDeviceSchema {
     pub id: i32,
     pub device_name: String,
-    pub user_id: i32,
+    pub owner: String,
     pub server_addr: SocketAddr,
 }
 impl FromRedisValue for RedisDeviceSchema {
@@ -64,15 +64,15 @@ impl RedisDeviceSchema {
         Ok(Self {
             id: device_id,
             device_name: row.try_get("device_name")?,
-            user_id: row.try_get("user_id")?,
+            owner: row.try_get("email")?,
             server_addr: ctx.config.ws.address,
         })
     }
     pub async fn find_by_user(
         conn: &mut Connection,
-        user_id: i32,
+        user: &str,
     ) -> anyhow::Result<Vec<RedisDeviceSchema>> {
-        let query = format!("@user_id:[{user_id}, {user_id}]");
+        let query = format!("@owner:{{{user}}}"); // Use {} for exact match, or * for wildcards
         let result = cmd("FT.SEARCH")
             .arg("idx_device")
             .arg(query)

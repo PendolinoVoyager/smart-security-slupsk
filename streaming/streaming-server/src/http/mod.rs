@@ -1,4 +1,4 @@
-use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
+use hyper::header::{ACCESS_CONTROL_ALLOW_ORIGIN, CONTENT_LENGTH, CONTENT_TYPE};
 /// This module handles basic response format.
 use hyper::{Response, StatusCode};
 use serde::{Deserialize, Serialize};
@@ -38,6 +38,7 @@ impl<T: Serialize> JSONAppResponse<T> {
             .header(CONTENT_TYPE, "application/json")
             .status(status)
             .header(CONTENT_LENGTH, body.len())
+            .header(ACCESS_CONTROL_ALLOW_ORIGIN, "*")
             .body(body.into())
             .map_err(|e| {
                 tracing::error!("unexpected response build failure: {e}");

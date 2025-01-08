@@ -1,3 +1,4 @@
+#![feature(ptr_as_ref_unchecked)]
 mod core;
 mod http;
 mod services;

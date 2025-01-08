@@ -49,12 +49,15 @@ export class HttpError extends Error {
 export async function fetchSafe<T>(
   uri: string,
   headers?: RequestInit
-): Promise<T | undefined | HttpError> {
+): Promise<T | HttpError> {
   try {
     const res = await fetch(uri, headers);
     if (!res.ok) throw HttpError.from_response(res);
 
     const data: T = await res.json();
+    if (data == null) {
+      return new HttpError("missing body", 500);
+    }
     return data;
   } catch (err) {
     return err as HttpError;
