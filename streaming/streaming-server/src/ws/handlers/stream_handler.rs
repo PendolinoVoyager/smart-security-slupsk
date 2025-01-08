@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::str::FromStr;
 
 use crate::core::context::AppContext;
+use crate::services::core_db::CoreDBId;
 use crate::services::device_store::Device;
 use futures_util::SinkExt;
 use tokio::net::TcpStream;
@@ -11,7 +12,7 @@ use tokio_tungstenite::tungstenite::protocol::CloseFrame;
 #[derive(Debug)]
 struct StreamRequestParams {
     //   token: String,
-    device_id: i32,
+    device_id: CoreDBId,
 }
 impl FromStr for StreamRequestParams {
     type Err = anyhow::Error;
@@ -56,10 +57,10 @@ pub async fn stream_handler(
         Ok(p) => p,
     };
 
-    let device = match ctx.devices.lock().await.get_device(params.device_id) {
-        Some(d) => d,
-        None => {
-            tracing::debug!("no device found for {}", params.device_id);
+    let device = match ctx.get_device(params.device_id).await {
+        Ok(d) => d,
+        Err(e) => {
+            tracing::debug!("no device found for {}:\n{e}", params.device_id);
             let _ = socket
                 .close(Some(CloseFrame {
                     code: tokio_tungstenite::tungstenite::protocol::frame::coding::CloseCode::Bad(
@@ -76,10 +77,10 @@ pub async fn stream_handler(
         Ok(a) => a,
         Err(e) => {
             tracing::debug!("host ended connection before stream: {e}");
-            ctx.devices
-                .lock()
+            let _ = ctx
+                .return_device(device)
                 .await
-                .return_device(params.device_id, device);
+                .inspect_err(|e| tracing::warn!(event = "device_sync_fail", err = e.to_string()));
             return;
         }
     };
@@ -90,7 +91,7 @@ pub async fn stream_handler(
         to = peer_addr.to_string()
     );
 
-    let result = match stream_until_err(ctx, &params, &mut socket, device).await {
+    let result = match stream_until_err(ctx, &mut socket, device).await {
         Ok(_) => "ok".to_owned(),
         Err(e) => e.to_string(),
     };
@@ -106,7 +107,6 @@ pub async fn stream_handler(
 
 async fn stream_until_err(
     ctx: &'static AppContext,
-    params: &StreamRequestParams,
     socket: &mut WebSocketStream<TcpStream>,
     mut device: Device,
 ) -> anyhow::Result<()> {
@@ -119,9 +119,6 @@ async fn stream_until_err(
     }
 
     device.command_sender.send("STOP".into()).await?;
-    ctx.devices
-        .lock()
-        .await
-        .return_device(params.device_id, device);
+    ctx.return_device(device).await?;
     Ok(())
 }

@@ -25,13 +25,13 @@ use crate::core::context::AppContext;
 use crate::core::http::{AppRequest, AppResponse};
 pub async fn cors_options_handler(
     _req: AppRequest,
-    _ctx: &'static AppContext,
+    ctx: &'static AppContext,
 ) -> anyhow::Result<AppResponse> {
     hyper::Response::builder()
         .status(StatusCode::NO_CONTENT)
         .header(CONNECTION, "close")
         .header(ACCESS_CONTROL_ALLOW_METHODS, "POST, GET, OPTIONS, DELETE")
-        .header(ACCESS_CONTROL_ALLOW_ORIGIN, "*")
+        .header(ACCESS_CONTROL_ALLOW_ORIGIN, &ctx.config.http.allow_origin)
         .header(
             ACCESS_CONTROL_ALLOW_HEADERS,
             "X-Requested-With, Authorization",

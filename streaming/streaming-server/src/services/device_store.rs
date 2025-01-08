@@ -5,16 +5,23 @@
 use std::collections::HashMap;
 use tokio::sync::mpsc::*;
 use tokio_tungstenite::tungstenite::Message;
-type DeviceId = i32;
+
+use super::core_db::CoreDBId;
 /// Device registered in DeviceStore
 #[derive(Debug)]
 pub struct Device {
+    pub id: CoreDBId,
     pub stream_receiver: Receiver<Message>,
     pub command_sender: Sender<Message>,
 }
 impl Device {
-    pub fn new(stream_receiver: Receiver<Message>, command_sender: Sender<Message>) -> Self {
+    pub fn new(
+        id: CoreDBId,
+        stream_receiver: Receiver<Message>,
+        command_sender: Sender<Message>,
+    ) -> Self {
         Self {
+            id,
             stream_receiver,
             command_sender,
         }
@@ -27,6 +34,7 @@ enum DeviceSlot {
     Taken,
     Poisoned,
 }
+type DeviceId = crate::services::core_db::CoreDBId;
 #[derive(Default, Debug)]
 pub struct DeviceStore {
     devices: HashMap<DeviceId, DeviceSlot>,
@@ -48,7 +56,7 @@ impl DeviceStore {
             None => {
                 self.devices.insert(
                     device,
-                    DeviceSlot::Ready(Device::new(stream_receiver, command_sender)),
+                    DeviceSlot::Ready(Device::new(device, stream_receiver, command_sender)),
                 );
             }
             Some(DeviceSlot::Ready(_) | DeviceSlot::Taken) => {
@@ -64,13 +72,14 @@ impl DeviceStore {
         }
         Ok(())
     }
-    pub fn return_device(&mut self, device_id: DeviceId, device: Device) {
-        match self.devices.get(&device_id) {
+    pub fn return_device(&mut self, device: Device) {
+        tracing::debug!("{self:?}");
+        match self.devices.get(&device.id) {
             Some(DeviceSlot::Taken) => {
-                self.devices.insert(device_id, DeviceSlot::Ready(device));
+                self.devices.insert(device.id, DeviceSlot::Ready(device));
             }
             _ => {
-                tracing::debug!("attempted to reinsert device {device_id}");
+                tracing::warn!("attempted to reinsert device {}", device.id);
             }
         }
     }
@@ -84,6 +93,10 @@ impl DeviceStore {
             Some(DeviceSlot::Ready(d)) => {
                 self.devices.insert(device, DeviceSlot::Taken);
                 Some(d)
+            }
+            Some(other) => {
+                self.devices.insert(device, other);
+                None
             }
             _ => None,
         }

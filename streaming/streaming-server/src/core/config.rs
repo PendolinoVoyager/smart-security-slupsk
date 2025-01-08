@@ -35,6 +35,8 @@ impl Display for Env {
 #[derive(Debug, Clone, Serialize)]
 pub struct HttpConfig {
     pub address: SocketAddr,
+    /// CORS allow origin. Defaults to "*"
+    pub allow_origin: String,
 }
 /// Global App config related to WebSocket server
 #[derive(Debug, Clone, Serialize)]
@@ -104,8 +106,14 @@ impl AppConfig {
             .ok_or_else(|| anyhow::Error::msg("Missing or invalid `http.port`"))?
             as u16;
 
+        let allow_origin = yaml["http"]["allow-origin"]
+            .as_str()
+            .unwrap_or("*")
+            .to_owned();
+
         let http = HttpConfig {
             address: format!("{}:{}", http_addr, http_port).parse()?,
+            allow_origin,
         };
 
         // Parse WebSocket config

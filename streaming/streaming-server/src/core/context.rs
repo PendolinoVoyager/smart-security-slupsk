@@ -1,7 +1,13 @@
+use core::panic;
+
+use crate::services::core_db::CoreDBId;
+use crate::services::device_store::Device;
+
 use super::config::AppConfig;
 
 use sqlx::Postgres;
 use tokio::sync::Mutex;
+use tokio_tungstenite::tungstenite::Message;
 /// App wide Context. Available in 'static lifetime for all tasks / function calls in the app
 /// Context must be static, Sync, and Send.
 /// Interior mutability can be made with sync primitives or other methods.
@@ -57,6 +63,70 @@ impl AppContext {
 
     /// Clean up self without dropping so other threads don't do stupid stuff with memory.
     pub async fn cleanup(&'static self) {
-        let _ = crate::services::app_db::remove_all_connections(self).await;
+        let _ = crate::services::app_db::RedisDeviceSchema::remove_all_connections(self).await;
+    }
+    /// Register a device to the database and store. If either fails, a cleanup will be performed in both of them.
+    pub async fn register_device(
+        &'static self,
+        device_id: crate::services::core_db::CoreDBId,
+        stream_receiver: tokio::sync::mpsc::Receiver<Message>,
+        command_sender: tokio::sync::mpsc::Sender<Message>,
+    ) -> anyhow::Result<()> {
+        let store_fut = self.devices.lock();
+        let redis_fut =
+            crate::services::app_db::RedisDeviceSchema::register_device(self, device_id);
+        let (mut store, redis_result) = tokio::join!(store_fut, redis_fut);
+
+        redis_result?;
+
+        let store_result = store.register_device(device_id, stream_receiver, command_sender);
+
+        if store_result.is_err() {
+            crate::services::app_db::RedisDeviceSchema::remove_device(self, device_id).await?;
+            return store_result;
+        }
+        Ok(())
+    }
+
+    pub async fn get_device(&'static self, device_id: CoreDBId) -> anyhow::Result<Device> {
+        let mut conn = self.app_db.get().await?;
+        let store_fut = self.devices.lock();
+        let redis_fut = crate::services::app_db::RedisDeviceSchema::get(&mut conn, device_id);
+        let (mut store, redis_result) = tokio::join!(store_fut, redis_fut);
+        let redis_result = redis_result?;
+        if redis_result.busy {
+            return Err(anyhow::Error::msg("device is busy"));
+        }
+        match store.get_device(device_id) {
+            Some(d) => {
+                if let Err(e) = crate::services::app_db::RedisDeviceSchema::set_device_busy(
+                    self, device_id, true,
+                )
+                .await
+                {
+                    store.return_device(d);
+                    return Err(e);
+                }
+                Ok(d)
+            }
+            None => panic!("fatal synchronization error:\n{device_id} is missing but is in redis"),
+        }
+    }
+    pub async fn return_device(&'static self, device: Device) -> anyhow::Result<()> {
+        let store_fut = self.devices.lock();
+        let redis_fut =
+            crate::services::app_db::RedisDeviceSchema::set_device_busy(self, device.id, true);
+        let (mut store, redis_result) = tokio::join!(store_fut, redis_fut);
+        store.return_device(device);
+        redis_result?;
+        Ok(())
+    }
+
+    pub async fn remove_device(&'static self, device_id: CoreDBId) -> anyhow::Result<()> {
+        let redis_fut = crate::services::app_db::RedisDeviceSchema::remove_device(self, device_id);
+        let store_fut = self.devices.lock();
+        let (mut store, redis_res) = tokio::join!(store_fut, redis_fut);
+        store.poison_or_remove(device_id);
+        redis_res
     }
 }

@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use crate::core::context::AppContext;
+use crate::services::core_db::CoreDBId;
 use crate::ws::ws_task::WebSocketTask;
 use tokio::net::TcpStream;
 use tokio_tungstenite::WebSocketStream;
@@ -29,12 +30,10 @@ pub async fn device_checkout_handler(
         tokio::sync::mpsc::channel::<Message>(size_of::<Message>() * 100);
     let stream_sender = Arc::new(stream_sender);
     task.on_init(|_| async move {
-        ctx.devices
-            .lock()
+        ctx.register_device(device_id, stream_receiver, command_sender)
             .await
-            .register_device(device_id, stream_receiver, command_sender)
             .inspect_err(|e| tracing::warn!(event = "device_register_fail", err = e.to_string()))?;
-        crate::services::app_db::register_device(ctx, device_id).await?;
+        crate::services::app_db::RedisDeviceSchema::register_device(ctx, device_id).await?;
         Ok(())
     });
     task.on_message({
@@ -49,16 +48,14 @@ pub async fn device_checkout_handler(
     });
 
     task.on_cleanup(|_| async move {
-        crate::services::app_db::remove_device(ctx, device_id).await?;
-        let mut devices = ctx.devices.lock().await;
-        devices.poison_or_remove(device_id);
+        ctx.remove_device(device_id).await?;
         Ok(())
     });
     let res = task.run().await;
     tracing::debug!("device tasked resolved with: {:?}", res);
 }
 
-fn get_device_id(req: hyper::Request<()>) -> Option<i32> {
+fn get_device_id(req: hyper::Request<()>) -> Option<CoreDBId> {
     let params: HashMap<String, String> = req
         .uri()
         .query()
@@ -71,5 +68,5 @@ fn get_device_id(req: hyper::Request<()>) -> Option<i32> {
 
     params
         .get("device_id")
-        .and_then(|id_str| id_str.parse::<i32>().ok())
+        .and_then(|id_str| id_str.parse::<CoreDBId>().ok())
 }

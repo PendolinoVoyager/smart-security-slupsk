@@ -8,21 +8,28 @@ import fetchStreams from "../../api/fetchStreams";
 const VideoContainer: React.FC = () => {
   const [currentStream, setCurrentStream] = useState<string>("");
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const flash = useFlash();
 
-  const streams = [
-    { name: "DEBUG", url: "ws://192.168.8.156:8080/stream?device_id=100" },
-    {
-      name: "DEBUG_LOCALHOST",
-      url: "ws://127.0.0.1:8080/stream?device_id=100",
-    },
-  ];
+  const [streams, setStreams] = useState<{ name: string; url: string }[]>([]);
   useEffect(() => {
     (async () => {
       const res = await fetchStreams();
-      console.log(res);
+      if (res instanceof Error) {
+        flash.addFlash(
+          "error",
+          "Connection error, failed to fetch streams:\n" + res
+        );
+        return;
+      }
+      const r = res.map((v) => {
+        return {
+          url: "ws://" + v.server_addr + `/stream?device_id=${v.id}`,
+          name: v.device_name,
+        };
+      });
+      setStreams(r);
     })();
   }, []);
-  const flash = useFlash();
   const handleStreamSelect = (stream: string) => {
     setCurrentStream(stream);
     setIsPlaying(false); // Reset play state when switching streams

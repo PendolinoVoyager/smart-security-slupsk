@@ -3,9 +3,9 @@
 //! The entry point is `init` function.
 //! Device connection schema in the database is as follows:
 //! ```ignore
-//! | ID |  DEVICE_NAME   | USER_ID |     SERVER_ADDR    |
-//! -----+----------------+---------+---------------------
-//! | 10 | Default Device |    1    | 154.21.23.211:8080 |
+//! | ID |  DEVICE_NAME   | USER_ID |     SERVER_ADDR    |  BUSY |
+//! -----+----------------+---------+-----------------------------
+//! | 10 | Default Device |    1    | 154.21.23.211:8080 |  true |
 //! ```
 //!
 
@@ -18,6 +18,8 @@ use redis::{AsyncCommands, FromRedisValue, JsonAsyncCommands, cmd};
 use serde::de::Error;
 use sqlx::{Execute, Row};
 
+use super::core_db::CoreDBId;
+
 /// Initialize the Redis connection pool from the config provided in AppConfig.
 pub async fn init(
     cfg: &AppConfig,
@@ -29,12 +31,14 @@ pub async fn init(
 
     Ok(pool)
 }
+
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct RedisDeviceSchema {
     pub id: i32,
     pub device_name: String,
-    pub owner: String,
+    pub user_id: i32,
     pub server_addr: SocketAddr,
+    pub busy: bool,
 }
 impl FromRedisValue for RedisDeviceSchema {
     fn from_redis_value(v: &redis::Value) -> redis::RedisResult<Self> {
@@ -53,26 +57,32 @@ impl FromRedisValue for RedisDeviceSchema {
     }
 }
 impl RedisDeviceSchema {
-    pub async fn fetch_from_sql(ctx: &AppContext, device_id: i32) -> anyhow::Result<Self> {
-        let query =
-            sqlx::query("SELECT device_name, user_id FROM devices WHERE id = $1").bind(device_id);
+    pub async fn fetch_from_sql(ctx: &AppContext, device_id: CoreDBId) -> anyhow::Result<Self> {
+        let query = sqlx::query(
+            "SELECT device_name, user_id 
+            FROM devices 
+            WHERE id = $1",
+        )
+        .bind(device_id);
         tracing::debug!("executed query {}", query.sql());
         let row = query.fetch_one(&ctx.core_db).await.inspect_err(|e| {
             tracing::debug!("cannot fetch device {device_id}: {e}");
         })?;
-
+        tracing::debug!("executed query and returned: {row:?}");
         Ok(Self {
             id: device_id,
             device_name: row.try_get("device_name")?,
-            owner: row.try_get("email")?,
+            user_id: row.try_get("user_id")?,
             server_addr: ctx.config.ws.address,
+            busy: false,
         })
     }
     pub async fn find_by_user(
         conn: &mut Connection,
-        user: &str,
+        user_id: CoreDBId,
     ) -> anyhow::Result<Vec<RedisDeviceSchema>> {
-        let query = format!("@owner:{{{user}}}"); // Use {} for exact match, or * for wildcards
+        let query = format!("@user_id:[{user_id}, {user_id}]");
+        tracing::debug!("executing redis search: {query}");
         let result = cmd("FT.SEARCH")
             .arg("idx_device")
             .arg(query)
@@ -102,58 +112,72 @@ impl RedisDeviceSchema {
     /// Get all the devices registered in Redis database.
     /// Don't use this unless sure you want to debug or allow admin to do something
     #[allow(unused)]
-    pub async fn find_all(conn: &mut Connection) -> anyhow::Result<Vec<RedisDeviceSchema>> {
-        let keys: Vec<String> = conn.keys("device:*").await?;
-        Ok(conn.json_get(keys, ".").await?)
+    pub async fn find_all(con: &mut Connection) -> anyhow::Result<Vec<RedisDeviceSchema>> {
+        let keys: Vec<String> = con.keys("device:*").await?;
+        Ok(con.json_get(keys, ".").await?)
     }
-}
-/// Gets the device (and check if exists) from the main database.
-/// Then, it converts the value to redis value, as in schema defined in services::app_db module.
-pub async fn register_device(ctx: &AppContext, device_id: i32) -> anyhow::Result<()> {
-    let dev = RedisDeviceSchema::fetch_from_sql(ctx, device_id)
-        .await
-        .inspect_err(|e| tracing::info!("{e}"))?;
-    tracing::debug!("attempting to insert device_id {device_id}");
-    let dev = serde_json::to_string(&dev).inspect_err(|e| tracing::debug!("{e}"))?;
-    let mut conn = ctx
-        .app_db
-        .get()
-        .await
-        .inspect_err(|e| tracing::debug!("{e}"))?;
-    tracing::debug!("inserting device:\n{dev}");
-    // create a value
-    cmd("JSON.SET")
-        .arg(format!("device:{device_id}"))
-        .arg("$")
-        .arg(dev)
-        .query_async::<()>(&mut conn)
-        .await
-        .inspect_err(|e| tracing::debug!("{e}"))?;
 
-    tracing::info!(event = "device_register", device_id = device_id.to_string());
-    Ok(())
-}
+    pub async fn get(con: &mut Connection, device_id: CoreDBId) -> anyhow::Result<Self> {
+        Ok(con.json_get(format!("device:{device_id}"), ".").await?)
+    }
+    /// Gets the device (and check if exists) from the main database.
+    /// Then, it converts the value to redis value, as in schema defined in services::app_db module.
+    pub async fn register_device(ctx: &AppContext, device_id: i32) -> anyhow::Result<()> {
+        let dev = RedisDeviceSchema::fetch_from_sql(ctx, device_id)
+            .await
+            .inspect_err(|e| tracing::info!("{e}"))?;
+        tracing::debug!("attempting to insert device_id {device_id}");
+        let dev = serde_json::to_string(&dev).inspect_err(|e| tracing::debug!("{e}"))?;
+        let mut conn = ctx
+            .app_db
+            .get()
+            .await
+            .inspect_err(|e| tracing::debug!("{e}"))?;
+        tracing::debug!("inserting device:\n{dev}");
+        // create a value
+        cmd("JSON.SET")
+            .arg(format!("device:{device_id}"))
+            .arg("$")
+            .arg(dev)
+            .query_async::<()>(&mut conn)
+            .await
+            .inspect_err(|e| tracing::debug!("{e}"))?;
 
-pub async fn remove_device(ctx: &AppContext, device_id: i32) -> anyhow::Result<()> {
-    tracing::debug!("attempting to remove device_id {device_id}");
-    let mut conn = ctx.app_db.get().await?;
+        tracing::info!(event = "device_register", device_id = device_id.to_string());
+        Ok(())
+    }
+    pub async fn remove_device(ctx: &AppContext, device_id: CoreDBId) -> anyhow::Result<()> {
+        tracing::debug!("attempting to remove device_id {device_id}");
+        let mut conn = ctx.app_db.get().await?;
 
-    cmd("JSON.DEL")
-        .arg(format!("device:{device_id}"))
-        .arg("$")
-        .exec_async(&mut conn)
-        .await
-        .inspect_err(|e| tracing::debug!("error deleting device: {e}"))?;
+        cmd("JSON.DEL")
+            .arg(format!("device:{device_id}"))
+            .arg("$")
+            .exec_async(&mut conn)
+            .await
+            .inspect_err(|e| tracing::debug!("error deleting device: {e}"))?;
 
-    tracing::info!(event = "device_dropped", device_id = device_id.to_string());
+        tracing::info!(event = "device_dropped", device_id = device_id.to_string());
 
-    Ok(())
-}
+        Ok(())
+    }
 
-pub async fn remove_all_connections(ctx: &AppContext) -> anyhow::Result<usize> {
-    let guard = ctx.devices.lock().await;
-    let connections: Vec<String> = guard.all_devices().iter().map(|n| n.to_string()).collect();
-    let mut conn = ctx.app_db.get().await?;
-    let res = conn.del::<_, usize>(connections).await?;
-    Ok(res)
+    pub async fn remove_all_connections(ctx: &AppContext) -> anyhow::Result<usize> {
+        let guard = ctx.devices.lock().await;
+        let connections: Vec<String> = guard.all_devices().iter().map(|n| n.to_string()).collect();
+        let mut conn = ctx.app_db.get().await?;
+        let res = conn.del::<_, usize>(connections).await?;
+        Ok(res)
+    }
+
+    pub async fn set_device_busy(
+        ctx: &'static AppContext,
+        device_id: CoreDBId,
+        value: bool,
+    ) -> anyhow::Result<()> {
+        let mut conn = ctx.app_db.get().await?;
+        Ok(conn
+            .json_set::<'_, &str, &str, bool, ()>(&format!("device:{device_id}"), ".busy", &value)
+            .await?)
+    }
 }

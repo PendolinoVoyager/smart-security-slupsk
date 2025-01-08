@@ -23,5 +23,5 @@ pub async fn hello_handler(
          "config": ctx.config,
      } );
 
-    JSONAppResponse::pack(body, StatusCode::OK)
+    JSONAppResponse::pack(ctx, body, StatusCode::OK)
 }

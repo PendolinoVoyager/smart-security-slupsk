@@ -3,12 +3,11 @@ name = "streaming-server"
 version = "0.1.0"
 edition = "2024"
 description = "Simple streaming server and manager for device-to-browser-client connections."
-
-[profile.release]
 # lto = "fat"
 
 [dependencies]
 anyhow = "1.0.95"
+base64 = "0.22.1"
 chrono = "0.4.39"
 deadpool = "0.12.1"
 deadpool-redis = { version = "0.18.0", features = ["serde", "tokio"] }

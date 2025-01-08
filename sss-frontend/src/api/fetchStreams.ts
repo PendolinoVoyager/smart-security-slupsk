@@ -4,7 +4,7 @@ import { fetchSafe, HttpError } from "../http/fetch";
 const STREAMING_SERVER_URL = "http://127.0.0.1:8000/";
 type StreamsResponse = {
   status: string;
-  payload: string | StreamsResponseDevice[];
+  payload: string | { count: number; available: StreamsResponseDevice[] };
 };
 
 type StreamsResponseDevice = {
@@ -29,7 +29,10 @@ const fetchStreams = async function (): Promise<
   if (res.status == "failure") {
     return new Error(res.payload as string);
   }
-  return res.payload as StreamsResponseDevice[];
+  return (
+    ((res.payload as { count: number; available: StreamsResponseDevice[] })
+      .available as StreamsResponseDevice[]) ?? []
+  );
 };
 
 export default fetchStreams;
