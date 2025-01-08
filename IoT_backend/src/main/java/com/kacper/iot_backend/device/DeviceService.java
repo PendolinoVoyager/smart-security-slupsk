@@ -8,6 +8,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.logging.Logger;
 
 @Service
 public class DeviceService
@@ -15,6 +16,7 @@ public class DeviceService
     private final DeviceRepository deviceRepository;
     private final UserService userService;
     private final DeviceListResponseMapper deviceListResponseMapper;
+    private final static Logger logger = Logger.getLogger(DeviceService.class.getName());
 
     public DeviceService(
             DeviceRepository deviceRepository,
@@ -41,10 +43,13 @@ public class DeviceService
 
     }
 
-    public User getUserByDevice(Integer deviceId) {
-        Device device = deviceRepository.findById(deviceId)
+    public User getUserByDeviceUuIdOrThrow(String deviceUuid) {
+        logger.info("\n\ndeviceUuid: " + deviceUuid + "\n\n");
+        Device device = deviceRepository.findByUuid(deviceUuid)
                 .orElseThrow(() -> new ResourceNotFoundException("Device not found"));
 
+        logger.info("\n\ndevice: " + device + "\n\n");
         return device.getUser();
     }
+
 }

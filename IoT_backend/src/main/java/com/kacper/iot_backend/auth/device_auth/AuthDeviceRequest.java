@@ -1,8 +1,8 @@
 package com.kacper.iot_backend.auth.device_auth;
 
 public record AuthDeviceRequest(
-        Integer deviceId
-        // emial
-        // haslo
+        String deviceUuid,
+        String email,
+        String password
 ) {
 }

@@ -66,10 +66,12 @@ public class JWTService
                 .compact();
     }
 
-    public String generatePermanentDeviceToken(String email) {
+    // Strange method but it is used in the project xD
+    public String generatePermanentDeviceToken(String email, String deviceUuid) {
         return Jwts.builder()
-                .setSubject(email) // zamienic na id + update claim z user mail
+                .setSubject(deviceUuid)
                 .claim("isDevice", true)
+                .claim("userEmail", email)
                 .setIssuedAt(new Date(System.currentTimeMillis()))
                 .signWith(privateKey)
                 .compact();

@@ -5,20 +5,23 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.logging.Logger;
+
 @RestController
 @RequestMapping("/api/v1/auth")
 public class AuthDeviceController
 {
     private final AuthDeviceService authDeviceService;
+    private final static Logger logger = Logger.getLogger(AuthDeviceController.class.getName());
 
     public AuthDeviceController(AuthDeviceService authDeviceService) {
         this.authDeviceService = authDeviceService;
     }
 
-    // jwt user -> filter -> jwt device -> filter -> device controller
-    // authenticated with jwt user
+
     @PostMapping("/device")
     public AuthDeviceResponse authDevice(@RequestBody AuthDeviceRequest authDeviceRequest) {
+        logger.info("\n\nReviced request in controller to authenticate device: " + authDeviceRequest + "\n\n");
         return authDeviceService.authenticateDevice(authDeviceRequest);
     }
 
