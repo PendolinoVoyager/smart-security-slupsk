@@ -4,10 +4,19 @@ import { Paper } from "@mui/material";
 import mpegts from "mpegts.js";
 
 interface VideoFeedProps {
+  /** WebSocket url to connect to.
+   */
   url: string;
+  /** Control playing/not playing state.
+   */
   play: boolean;
-  onError?: (e: Error) => void;
+  /** OnError / stream end callback
+   */
+  onError?: (e: Error | null) => void;
 }
+/**
+ * Component for displaying raw MPEG video feed.
+ */
 const VideoFeed: React.FC<VideoFeedProps> = ({
   url,
   play = false,
@@ -26,7 +35,8 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
               type: "m2ts",
               isLive: true,
               url,
-            }
+            },
+            {}
             // This is a lie! It doesn't work, JS doesn't allow any headers
             // {
             //   headers: { "Authorization": "Userino :)" },
@@ -35,6 +45,10 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
           player.current.attachMediaElement(videoElement);
           player.current.load();
           player.current.play();
+
+          player.current.on(mpegts.Events.LOADING_COMPLETE, () => {
+            onError(null);
+          });
           player.current.on("error", (e) => {
             onError(e);
           });

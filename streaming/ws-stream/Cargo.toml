@@ -8,10 +8,12 @@ lto = "fat"
 
 
 [dependencies]
+alsa = "0.9.1"
 anyhow = "1.0.93"
 byte-slice-cast = "1.2.2"
 clap = { version = "4.5.21", features = ["derive"] }
 crossbeam-queue = "0.3.12"
+futures = "0.3.31"
 getifaddrs = "0.1.5"
 gstreamer = "0.23.3"
 gstreamer-app = "0.23.3"
@@ -20,6 +22,8 @@ gstreamer-video = "0.23.3"
 libc = "0.2.169"
 serde = { version = "1.0.215", features = ["derive"] }
 serde_json = "1.0.133"
+tokio = { version = "1.42.0", features = ["full"] }
+tokio-tungstenite = "0.26.1"
+tokio-util = "0.7.13"
 tracing = "0.1.41"
 tracing-subscriber = "0.3.18"
-tungstenite = "0.24.0"

@@ -12,6 +12,7 @@ import ActivationAccountPage from "./components/pages/activationAccountPage.tsx"
 import ResetPassword from "./components/pages/resetPasswordPage.tsx";
 import DevicePage from "./components/pages/devicePage.tsx";
 import DeviceDetails from "./components/pages/deviceDetails.tsx";
+import { FlashProvider } from "./store/flashStore.tsx";
 import AddDevicePage from "./components/pages/addDevicePage.tsx";
 
 const router = createBrowserRouter([
@@ -30,16 +31,17 @@ const router = createBrowserRouter([
       },
       {
         path: "/reset-password",
-        element: <ResetPassword />
+        element: <ResetPassword />,
       },
       {
         path: "/devices",
-        element: <DevicePage />
+        element: <DevicePage />,
       },
       {
         path: "/devices/:id",
-        element: <DeviceDetails />
+        element: <DeviceDetails />,
       },
+
       {
         path: "/devices/add",
         element: <AddDevicePage />
@@ -58,8 +60,10 @@ const App: FC = function () {
     <AuthProvider>
       <QueryClientProvider client={queryClient}>
         <ThemeProvider theme={theme}>
-          <CssBaseline />
-          <RouterProvider router={router} />
+          <FlashProvider>
+            <CssBaseline />
+            <RouterProvider router={router} />
+          </FlashProvider>
         </ThemeProvider>
       </QueryClientProvider>
     </AuthProvider>

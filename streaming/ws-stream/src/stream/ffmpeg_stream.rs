@@ -1,28 +1,31 @@
+#![allow(unused)]
+
 //! This module is responsible for providing an API for a MP4 stream.
 //! It might use ffmpeg but that may change in the future.
 
 use std::io::Read;
 use std::process::{Child, ChildStdout, Stdio};
 
-use crate::stream::{StreamState, VideoStream};
+use super::audio::get_audio_backend;
+use crate::config::Config;
+use crate::stream::{StreamReadError, StreamState, VideoStream};
 
 /// Wrapper for a mp4 stream
 pub struct FfmpegMpegtsStream {
     /// Video device currently used. Defaults to "/dev/video0"
     pub video_dev: String,
     /// Audio device currently used
-    pub audio_dev: Option<String>,
+    pub audio: bool,
     child: Option<Child>,
     stdout: Option<ChildStdout>,
 }
 
-// General implementation
 impl FfmpegMpegtsStream {
-    pub fn new(video_dev: Option<String>, audio_dev: Option<String>) -> Self {
+    pub fn new(config: &Config) -> Self {
         Self {
             child: None,
-            video_dev: video_dev.unwrap_or("/dev/video0".into()),
-            audio_dev,
+            video_dev: "/dev/video0".into(),
+            audio: !config.no_audio,
             stdout: None,
         }
     }
@@ -40,30 +43,24 @@ impl FfmpegMpegtsStream {
     }
     fn spawn_ffmpeg_command(&self) -> Child {
         let mut command = std::process::Command::new("ffmpeg");
-        if let Some(audio_dev) = &self.audio_dev {
-            command
-                .arg("-f")
-                .arg("pulse")
-                .arg("-i")
-                .arg(audio_dev)
-                .arg("-c:a")
-                .arg("libopus")
-                .arg("-ac")
-                .arg("1");
-        }
 
-        if let Some(audio_dev) = &self.audio_dev {
-            command
-                .arg("-fflags")
-                .arg("nobuffer")
-                .arg("-f")
-                .arg("pulse")
-                .arg("-i")
-                .arg(audio_dev)
-                .arg("-c:a")
-                .arg("libopus")
-                .arg("-ac")
-                .arg("1");
+        if self.audio {
+            match get_audio_backend() {
+                Some(backend) => {
+                    command
+                        .arg("-f")
+                        .arg(backend.as_ffmpeg_str())
+                        .arg("-i")
+                        .arg("default")
+                        .arg("-c:a")
+                        .arg("libopus")
+                        .arg("-ac")
+                        .arg("1");
+                }
+                None => {
+                    tracing::warn!("No audio backend present for the ffmpeg pipeline")
+                }
+            }
         }
 
         command
@@ -117,21 +114,15 @@ impl Drop for FfmpegMpegtsStream {
 }
 
 impl VideoStream for FfmpegMpegtsStream {
-    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+    fn read(&mut self, buf: &mut [u8]) -> Result<usize, StreamReadError> {
         if self.child.is_none() {
-            return Err(std::io::Error::new(
-                std::io::ErrorKind::BrokenPipe,
-                "Stream not initiialized.",
-            ));
+            return Err(StreamReadError::Paused);
         }
         if let Some(stdout) = &mut self.stdout {
             let amount = stdout.read(buf)?;
             Ok(amount)
         } else {
-            Err(std::io::Error::new(
-                std::io::ErrorKind::BrokenPipe,
-                "stdout not present",
-            ))
+            Err(StreamReadError::PipelineBroken)
         }
     }
     fn start(&mut self) {

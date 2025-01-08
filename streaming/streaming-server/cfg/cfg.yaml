@@ -1,0 +1,34 @@
+# development | production
+env: "development"
+
+development:
+  # trace | debug | off | on
+  # trace will log almost everything, including request headers etc.
+  # debug will log info for development
+  # off will turn off logging completely
+  # on will log only important events
+  log: "debug"
+  db_uri: "postgresql://root:12345678@localhost:5432/iot_db"
+  redis_db_uri: "redis://localhost:6379"
+ 
+  http:
+    addr: "127.0.0.1"
+    port: 8000
+
+  ws:
+    addr: "127.0.0.1"
+    port: 8080
+
+production:
+  log: "verbose"
+  db_uri: "sql db uri string"
+  redis_db_uri: "dupa"
+
+
+  http:
+    addr: "127.0.0.1"
+    port: 8000
+
+  ws:
+    addr: "127.0.0.1"
+    port: 8080
