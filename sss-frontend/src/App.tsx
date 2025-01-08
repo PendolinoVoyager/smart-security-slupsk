@@ -13,6 +13,7 @@ import ResetPassword from "./components/pages/resetPasswordPage.tsx";
 import DevicePage from "./components/pages/devicePage.tsx";
 import DeviceDetails from "./components/pages/deviceDetails.tsx";
 import { FlashProvider } from "./store/flashStore.tsx";
+import AddDevicePage from "./components/pages/addDevicePage.tsx";
 
 const router = createBrowserRouter([
   {
@@ -40,6 +41,12 @@ const router = createBrowserRouter([
         path: "/devices/:id",
         element: <DeviceDetails />,
       },
+
+      {
+        path: "/devices/add",
+        element: <AddDevicePage />
+      }
+
     ],
   },
 ]);

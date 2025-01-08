@@ -12,6 +12,17 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
 
+  testdb:
+    image: postgres:latest
+    environment:
+      POSTGRES_DB: test_db
+      POSTGRES_USER: testuser
+      POSTGRES_PASSWORD: testpass
+    ports:
+      - "5433:5432"
+    volumes:
+      - testdata:/var/lib/postgresql/data
+
   rabbitmq:
     image: rabbitmq:3-management
     container_name: rabbitmq
@@ -24,3 +35,4 @@ services:
 
 volumes:
   pgdata:
+  testdata:

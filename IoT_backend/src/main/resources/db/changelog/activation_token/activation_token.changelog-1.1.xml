@@ -5,11 +5,7 @@
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
 
-    <changeSet id="1" author="Kacper Karabinowski">
-        <createTable tableName="devices">
-            <column name="id" type="int" autoIncrement="true">
-                <constraints primaryKey="true" nullable="false" />
-            </column>
-        </createTable>
+    <changeSet id="activation_token_001" author="Kacper Karabinowski">
+        <addAutoIncrement tableName="activation_tokens" columnName="id" columnDataType="int"/>
     </changeSet>
 </databaseChangeLog>
