@@ -28,8 +28,4 @@ public class DeviceController
         return deviceService.getUserDevices(userDetails);
     }
 
-    @GetMapping("/onlyDeviceRole")
-    public String onlyDeviceRole() {
-        return "You have access to this endpoint because you have the DEVICE role";
-    }
 }

@@ -15,13 +15,14 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.logging.Logger;
 
 @Component
 public class JWTAuthFilter extends OncePerRequestFilter
 {
     private final JWTService jwtService;
-    private final JWTAuthDeviceFilter jwtAuthDeviceFilter;
     private final CustomUserDetailsService customUserDetailsService;
+    private final static Logger logger = Logger.getLogger(JWTAuthFilter.class.getName());
 
     /**
      * @param jwtService               service for jwt tokens
@@ -29,11 +30,9 @@ public class JWTAuthFilter extends OncePerRequestFilter
      */
     public JWTAuthFilter(
             JWTService jwtService,
-            JWTAuthDeviceFilter jwtAuthDeviceFilter,
             CustomUserDetailsService customUserDetailsService
             ) {
         this.jwtService = jwtService;
-        this.jwtAuthDeviceFilter = jwtAuthDeviceFilter;
         this.customUserDetailsService = customUserDetailsService;
     }
 
@@ -54,15 +53,13 @@ public class JWTAuthFilter extends OncePerRequestFilter
 
         jwtToken = authHeader.substring(7);
 
-        if (jwtService.isDeviceToken(jwtToken)) {
-            jwtAuthDeviceFilter.doFilter(request, response, filterChain);
-            return;
-        }
-
         userEmail = jwtService.extractUsername(jwtToken);
 
+        logger.info("\n\n[JWTAuthFilter] userEmail: " + userEmail + "\n\n");
         if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             UserDetails userDetails = customUserDetailsService.loadUserByUsername(userEmail);
+
+            logger.info("\n\n[JWTAuthFilter] pierwszy if pokonany\n\n");
 
             if (jwtService.isTokenValid(jwtToken, userDetails)) {
                 SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
@@ -74,6 +71,8 @@ public class JWTAuthFilter extends OncePerRequestFilter
                 token.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 securityContext.setAuthentication(token);
                 SecurityContextHolder.setContext(securityContext);
+
+                logger.info("\n\n[JWTAuthFilter] drugi if pokonany\n\n");
             }
         }
         filterChain.doFilter(request, response);
