@@ -22,11 +22,30 @@
         <insert tableName="devices">
             <column name="id" value="100" />
             <column name="device_name" value="Default Device" />
-            <column name="address" value= "Default Address" />
+            <column name="address" value="Default Address" />
             <column name="uuid" value="Default_UUID" />
             <column name="user_id" value="100" />
         </insert>
     </changeSet>
 
+    <changeSet id="fixtures_002" author="Kacper Karabinowski">
+        <insert tableName="activation_tokens">
+            <column name="id" value="200" />
+            <column name="activation_token" value="activation-token-123" />
+            <column name="created_at" value="2024-01-01 00:00:00" />
+            <column name="user_id" value="100" />
+        </insert>
+    </changeSet>
+
+    <changeSet id="fixtures_003" author="Kacper Karabinowski">
+        <insert tableName="reset_password_tokens">
+            <column name="id" value="300" />
+            <column name="reset_password_token" value="reset-password-token-123" />
+            <column name="created_at" value="2024-01-01 01:00:00" />
+            <column name="expired_at" value="2024-01-01 02:00:00" />
+            <column name="attempts" value="0" />
+            <column name="user_id" value="100" />
+        </insert>
+    </changeSet>
 
 </databaseChangeLog>

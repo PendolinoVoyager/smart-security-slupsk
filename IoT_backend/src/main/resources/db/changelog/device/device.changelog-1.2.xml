@@ -4,10 +4,10 @@
                    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
                    https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
 
-    <changeSet id="device_002" author="admin">
+    <changeSet id="device_002" author="Kacper Karabinowski">
         <addColumn tableName="devices">
             <column name="uuid" type="varchar(255)">
-                <constraints nullable="false" />
+                <constraints nullable="false" unique="true"/>
             </column>
         </addColumn>
     </changeSet>

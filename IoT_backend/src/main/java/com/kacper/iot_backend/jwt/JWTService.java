@@ -66,6 +66,17 @@ public class JWTService
                 .compact();
     }
 
+    // Strange method but it is used in the project xD
+    public String generatePermanentDeviceToken(String email, String deviceUuid) {
+        return Jwts.builder()
+                .setSubject(email)
+                .claim("isDevice", true)
+                .claim("deviceUuid", deviceUuid)
+                .setIssuedAt(new Date(System.currentTimeMillis()))
+                .signWith(privateKey)
+                .compact();
+    }
+
     /**
      * @param claims claims
      * @param userDetails user details
@@ -92,6 +103,14 @@ public class JWTService
         return claimsTFunction.apply(claims);
     }
 
+    public Claims extractAllClaims(String token) {
+        return Jwts.parserBuilder()
+                .setSigningKey(privateKey)
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
+    }
+
     /**
      * @param token token
      * @return extracted username from token
@@ -105,7 +124,15 @@ public class JWTService
      * @return extracted expiration date from token
      */
     public boolean isTokenExpired(String token) {
-        return extractClaim(token, Claims::getExpiration).before(new Date());
+        Claims claims = extractAllClaims(token);
+
+        // Device token is now permanent so... you know... I had to add this
+        Boolean isDeviceToken = claims.get("isDevice", Boolean.class);
+        if (Boolean.TRUE.equals(isDeviceToken)) {
+            return false;
+        }
+
+        return claims.getExpiration().before(new Date());
     }
 
     /**
