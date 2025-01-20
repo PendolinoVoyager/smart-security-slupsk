@@ -93,6 +93,14 @@ pub fn verify_user(token: &str) -> anyhow::Result<UserJWTClaims> {
 pub fn parse_authorization_header(auth_header_value: &str) -> Option<&str> {
     auth_header_value.strip_prefix("Bearer ")
 }
+
+/// Extract raw JWT token string from the request
+pub fn extract_token<T>(req: &hyper::Request<T>) -> Option<&str> {
+    req.headers()
+        .get(hyper::header::AUTHORIZATION)
+        .and_then(|hv| hv.to_str().ok())
+        .and_then(|raw_header| crate::services::jwt::parse_authorization_header(raw_header))
+}
 #[cfg(test)]
 mod tests {
 
@@ -101,7 +109,7 @@ mod tests {
     const TEST_TOKEN: &str = "eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJhZG1pbkBleGFtcGxlLmNvbSIsImlhdCI6MTczNjM0MDkzMSwiZXhwIjoxNzM3MjA0OTMxfQ.mpKdw5IwOQKIHbWAWKpgQ9eIVmdJdVMxgzGpiyNqqkKBBj7ZcbuwbydSaNLwEcG0LacYF_POt-IE2P5N9WFQUhC_w3TkPA75peZZCsjAV5HB5E7Ef_0_aMfsY1qQtECJR3A2A6i7eLhLWmB-iWMwVNcsN7rbEYA3E4XlIHTEgicqE3bccUTyzHgRkVWburmIbgKut9PrVuCOd6w7i9MDIa5EbtpM-FZVqr3s-I40dCtQKDbu-tzNcHYYLGsxra7QI3VLtXM6WVUTsTLQMiIPXQte2HrPMz46uh5VpBa1O-qcCLQX18oIdywpVwiAAbQ7mPfFePMJDuuYTZa31aaBBw";
 
     /// Data:
-    ///  { iat: 1736160504, exp: 1737024504, sub: "admin@example.com" }
+    ///  { iat: 1736340931, exp: 1737204931, sub: "admin@example.com" }
     const TEST_PUB_KEY: &[u8] = b"-----BEGIN PUBLIC KEY-----
 MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA5H1dTX+toN8mi+Ooo2jq
 ZWZ6Moww8W66Iw42+vr7yx5TMgSQVur1zMD+0pUIYTTlZM1hn556uYK//6z5rtIy
@@ -129,7 +137,7 @@ OQIDAQAB
     fn test_token_expiry() {
         super::_init(TEST_PUB_KEY).unwrap();
 
-        // let claims = super::verify_user(TEST_TOKEN).unwrap();
-        // assert!(!claims.is_expired())
+        let claims = super::verify_user(TEST_TOKEN).unwrap();
+        assert!(!claims.is_expired())
     }
 }

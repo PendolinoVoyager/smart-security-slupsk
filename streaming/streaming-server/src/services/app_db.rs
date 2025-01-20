@@ -38,7 +38,6 @@ pub struct RedisDeviceSchema {
     pub device_name: String,
     pub user_id: i32,
     pub server_addr: SocketAddr,
-    pub busy: bool,
 }
 impl FromRedisValue for RedisDeviceSchema {
     fn from_redis_value(v: &redis::Value) -> redis::RedisResult<Self> {
@@ -74,7 +73,6 @@ impl RedisDeviceSchema {
             device_name: row.try_get("device_name")?,
             user_id: row.try_get("user_id")?,
             server_addr: ctx.config.ws.address,
-            busy: false,
         })
     }
     pub async fn find_by_user(
@@ -168,16 +166,5 @@ impl RedisDeviceSchema {
         let mut conn = ctx.app_db.get().await?;
         let res = conn.del::<_, usize>(connections).await?;
         Ok(res)
-    }
-
-    pub async fn set_device_busy(
-        ctx: &'static AppContext,
-        device_id: CoreDBId,
-        value: bool,
-    ) -> anyhow::Result<()> {
-        let mut conn = ctx.app_db.get().await?;
-        Ok(conn
-            .json_set::<'_, &str, &str, bool, ()>(&format!("device:{device_id}"), ".busy", &value)
-            .await?)
     }
 }

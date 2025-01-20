@@ -4,6 +4,8 @@ use std::str::FromStr;
 use crate::core::context::AppContext;
 use crate::services::core_db::CoreDBId;
 use crate::services::device_store::Device;
+use crate::services::jwt::UserJWTClaims;
+use crate::ws::handlers::close_unauthorized;
 use futures_util::SinkExt;
 use tokio::net::TcpStream;
 use tokio_tungstenite::WebSocketStream;
@@ -11,7 +13,7 @@ use tokio_tungstenite::tungstenite::protocol::CloseFrame;
 
 #[derive(Debug)]
 struct StreamRequestParams {
-    //   token: String,
+    token: String,
     device_id: CoreDBId,
 }
 impl FromStr for StreamRequestParams {
@@ -22,10 +24,10 @@ impl FromStr for StreamRequestParams {
             .collect();
 
         Ok(Self {
-            //         token: params
-            //           .get("token")
-            //          .ok_or(anyhow::Error::msg("missing jwt token"))?
-            //        .to_owned(),
+            token: params
+                .get("token")
+                .ok_or(anyhow::Error::msg("missing jwt token"))?
+                .to_owned(),
             device_id: params
                 .get("device_id")
                 .ok_or(anyhow::Error::msg("missing device_id"))?
@@ -41,22 +43,13 @@ pub async fn stream_handler(
     mut socket: WebSocketStream<TcpStream>,
     ctx: &'static AppContext,
 ) {
-    let params = match StreamRequestParams::from_str(req.uri().query().unwrap_or_default()) {
+    let (_claims, params) = match check_user_authorized(ctx, req, &mut socket).await {
         Err(e) => {
-            tracing::warn!(event = "invalid_stream_request", err = e.to_string());
-            let _ = socket
-                .close(Some(CloseFrame {
-                    code: tokio_tungstenite::tungstenite::protocol::frame::coding::CloseCode::Bad(
-                        1,
-                    ),
-                    reason: e.to_string().into(),
-                }))
-                .await;
+            tracing::warn!(event = "stream_auth_fail", err = e.to_string());
             return;
         }
-        Ok(p) => p,
+        Ok(v) => v,
     };
-
     let device = match ctx.get_device(params.device_id).await {
         Ok(d) => d,
         Err(e) => {
@@ -72,7 +65,6 @@ pub async fn stream_handler(
             return;
         }
     };
-
     let peer_addr = match socket.get_ref().peer_addr() {
         Ok(a) => a,
         Err(e) => {
@@ -110,7 +102,6 @@ async fn stream_until_err(
     socket: &mut WebSocketStream<TcpStream>,
     mut device: Device,
 ) -> anyhow::Result<()> {
-    device.command_sender.send("START".into()).await?;
     while let Some(stream_packet) = device.stream_receiver.recv().await {
         if let Err(e) = socket.send(stream_packet).await {
             tracing::debug!("stream ended: {e}");
@@ -118,7 +109,49 @@ async fn stream_until_err(
         }
     }
 
-    device.command_sender.send("STOP".into()).await?;
     ctx.return_device(device).await?;
     Ok(())
+}
+
+/// Helper function to check if the user is authorized to the stream.
+/// Closes the socket if errors.
+/// `returns` - Ok() if authorized, Err() if failed to authorize for any reason
+async fn check_user_authorized(
+    ctx: &'static AppContext,
+    req: hyper::Request<()>,
+    socket: &mut WebSocketStream<TcpStream>,
+) -> anyhow::Result<(UserJWTClaims, StreamRequestParams)> {
+    let params = match StreamRequestParams::from_str(req.uri().query().unwrap_or_default()) {
+        Err(e) => {
+            close_unauthorized(socket, e.to_string().into()).await;
+            return Err(e);
+        }
+        Ok(p) => p,
+    };
+
+    let Ok(claims) = crate::services::jwt::verify_user(&params.token) else {
+        close_unauthorized(socket, "invalid jwt token".into()).await;
+        return Err(anyhow::Error::msg("invalid jwt token"));
+    };
+    if claims.is_expired() {
+        close_unauthorized(socket, "token expired".into()).await;
+        return Err(anyhow::Error::msg("expired token"));
+    }
+    let user_id = crate::services::core_db::find_user_id(ctx, &claims.sub)
+        .await?
+        .unwrap_or(-1);
+
+    if let Ok(dev) = crate::services::app_db::RedisDeviceSchema::get(
+        &mut ctx.app_db.get().await?,
+        params.device_id,
+    )
+    .await
+    {
+        if dev.user_id == user_id {
+            return Ok((claims, params));
+        } else {
+            return Err(anyhow::Error::msg("user does not own the device"));
+        }
+    }
+    Err(anyhow::Error::msg("failed to verify ownership"))
 }

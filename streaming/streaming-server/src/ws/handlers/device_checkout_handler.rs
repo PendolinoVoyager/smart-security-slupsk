@@ -1,28 +1,45 @@
 use std::collections::HashMap;
+use std::str::FromStr;
 use std::sync::Arc;
 
 use crate::core::context::AppContext;
-use crate::services::core_db::CoreDBId;
+use crate::ws::handlers::close_unauthorized;
 use crate::ws::ws_task::WebSocketTask;
 use tokio::net::TcpStream;
 use tokio_tungstenite::WebSocketStream;
 use tokio_tungstenite::tungstenite::Message;
 
+#[derive(Debug)]
+struct DeviceCheckoutParams {
+    token: String,
+}
+impl FromStr for DeviceCheckoutParams {
+    type Err = anyhow::Error;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let params: HashMap<String, String> = url::form_urlencoded::parse(s.as_bytes())
+            .into_owned()
+            .collect();
+
+        Ok(Self {
+            token: params
+                .get("token")
+                .ok_or(anyhow::Error::msg("missing token"))?
+                .to_string(),
+        })
+    }
+}
+
 pub async fn device_checkout_handler(
     req: hyper::Request<()>,
-    socket: WebSocketStream<TcpStream>,
+    mut socket: WebSocketStream<TcpStream>,
     ctx: &'static AppContext,
 ) {
-    let device_id = match get_device_id(req) {
-        Some(d) => d,
-        None => {
-            tracing::warn!(
-                event = "invalid_device_register",
-                "invalid request for device_checkout"
-            );
-            return;
-        }
+    let Ok(token) = DeviceCheckoutParams::from_str(req.uri().query().unwrap_or_default()) else {
+        close_unauthorized(&mut socket, "missing token in query params".into()).await;
+        return;
     };
+    // get this from token's claims
+    let device_id = 100;
 
     let (mut task, command_sender) = WebSocketTask::new(socket);
     // this is a channel for raw stream data
@@ -37,7 +54,6 @@ pub async fn device_checkout_handler(
         Ok(())
     });
     task.on_message({
-        let stream_sender = Arc::clone(&stream_sender);
         move |msg| {
             let stream_sender = Arc::clone(&stream_sender);
             async move {
@@ -53,20 +69,4 @@ pub async fn device_checkout_handler(
     });
     let res = task.run().await;
     tracing::debug!("device tasked resolved with: {:?}", res);
-}
-
-fn get_device_id(req: hyper::Request<()>) -> Option<CoreDBId> {
-    let params: HashMap<String, String> = req
-        .uri()
-        .query()
-        .map(|v| {
-            url::form_urlencoded::parse(v.as_bytes())
-                .into_owned()
-                .collect()
-        })
-        .unwrap_or_default();
-
-    params
-        .get("device_id")
-        .and_then(|id_str| id_str.parse::<CoreDBId>().ok())
 }

@@ -1,7 +1,7 @@
 pub mod audio;
-pub mod ffmpeg_stream;
-pub mod gstreamer_stream;
+pub mod libcamera_ha_stream;
 pub mod stream_factory;
+pub mod v4l2_stream;
 
 /// Trait for different kind of streams
 /// It's unclear at this stage what the source of the video stream is, so a bit of abstraction is needed.

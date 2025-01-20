@@ -1,10 +1,10 @@
-use super::ffmpeg_stream::FfmpegMpegtsStream;
-use super::gstreamer_stream::GStreamerLibcameraStream;
-use crate::stream::VideoStream;
+use super::libcamera_ha_stream::GStreamerLibcameraStream;
+use super::VideoStream;
+use crate::stream::v4l2_stream::GstreamerV4L2Stream;
 
 // all elements implement VideoStream
 pub enum StreamKind {
-    FfmpegMpegtsStream(FfmpegMpegtsStream),
+    V4L2GstreamerStream(GstreamerV4L2Stream),
     GStreamerLibcameraStream(GStreamerLibcameraStream),
 }
 
@@ -12,40 +12,40 @@ pub enum StreamKind {
 impl VideoStream for StreamKind {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, crate::stream::StreamReadError> {
         match self {
-            StreamKind::FfmpegMpegtsStream(s) => s.read(buf),
+            StreamKind::V4L2GstreamerStream(s) => s.read(buf),
             StreamKind::GStreamerLibcameraStream(s) => s.read(buf),
         }
     }
 
     fn start(&mut self) {
         match self {
-            StreamKind::FfmpegMpegtsStream(s) => s.start(),
+            StreamKind::V4L2GstreamerStream(s) => s.start(),
             StreamKind::GStreamerLibcameraStream(s) => s.start(),
         }
     }
 
     fn stop(&mut self) {
         match self {
-            StreamKind::FfmpegMpegtsStream(s) => s.stop(),
+            StreamKind::V4L2GstreamerStream(s) => s.stop(),
             StreamKind::GStreamerLibcameraStream(s) => s.stop(),
         }
     }
 
     fn stream_state(&self) -> crate::stream::StreamState {
         match self {
-            StreamKind::FfmpegMpegtsStream(s) => s.stream_state(),
+            StreamKind::V4L2GstreamerStream(s) => s.stream_state(),
             StreamKind::GStreamerLibcameraStream(s) => s.stream_state(),
         }
     }
 }
 pub fn create_stream(config: &crate::config::Config) -> anyhow::Result<StreamKind> {
     match config.streamkind.as_str() {
-        "gstreamer" => Ok(StreamKind::GStreamerLibcameraStream(
+        "libcamera" => Ok(StreamKind::GStreamerLibcameraStream(
             GStreamerLibcameraStream::init(config)?,
         )),
-        "ffmpeg" => Ok(StreamKind::FfmpegMpegtsStream(FfmpegMpegtsStream::new(
+        "v4l2" => Ok(StreamKind::V4L2GstreamerStream(GstreamerV4L2Stream::init(
             config,
-        ))),
+        )?)),
         s => Err(anyhow::Error::msg(format!("Unknown stream type {s}"))),
     }
 }

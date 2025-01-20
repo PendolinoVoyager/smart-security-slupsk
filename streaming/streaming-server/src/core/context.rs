@@ -93,32 +93,16 @@ impl AppContext {
         let store_fut = self.devices.lock();
         let redis_fut = crate::services::app_db::RedisDeviceSchema::get(&mut conn, device_id);
         let (mut store, redis_result) = tokio::join!(store_fut, redis_fut);
-        let redis_result = redis_result?;
-        if redis_result.busy {
-            return Err(anyhow::Error::msg("device is busy"));
-        }
+        let _redis_result = redis_result?;
+
         match store.get_device(device_id) {
-            Some(d) => {
-                if let Err(e) = crate::services::app_db::RedisDeviceSchema::set_device_busy(
-                    self, device_id, true,
-                )
-                .await
-                {
-                    store.return_device(d);
-                    return Err(e);
-                }
-                Ok(d)
-            }
+            Some(d) => Ok(d),
             None => panic!("fatal synchronization error:\n{device_id} is missing but is in redis"),
         }
     }
     pub async fn return_device(&'static self, device: Device) -> anyhow::Result<()> {
-        let store_fut = self.devices.lock();
-        let redis_fut =
-            crate::services::app_db::RedisDeviceSchema::set_device_busy(self, device.id, true);
-        let (mut store, redis_result) = tokio::join!(store_fut, redis_fut);
+        let mut store = self.devices.lock().await;
         store.return_device(device);
-        redis_result?;
         Ok(())
     }
 

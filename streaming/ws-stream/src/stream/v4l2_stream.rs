@@ -1,7 +1,9 @@
 #![allow(static_mut_refs)]
 
-use std::os::fd::IntoRawFd;
-use std::process::Child;
+//! This module contains testing purpose ffmpeg stream that will work on desktops with no libcamera.
+
+use std::net::UdpSocket;
+/// Wrapper for a mp4 stream
 use std::sync::OnceLock;
 
 use anyhow::Result;
@@ -18,6 +20,7 @@ const QUEUE_CAPACITY: usize = 512;
 
 /// Internal queue for gstreamer stream. Don't touch it, or nullptr dereferencing will happen somewhere.
 static mut QUEUE: OnceLock<ArrayQueue<QueueDataType>> = OnceLock::new();
+static mut UDP_SOCKET: OnceLock<std::net::UdpSocket> = OnceLock::new();
 
 /// Callback for writing to the queue
 fn callback(sink: &AppSink) -> Result<FlowSuccess, FlowError> {
@@ -31,52 +34,45 @@ fn callback(sink: &AppSink) -> Result<FlowSuccess, FlowError> {
     // if the queue push failed (queue full), just ignore it and force.
     // There will be a jump in the video, but it will be more real time than waiting for it
     unsafe {
+        let socket = UDP_SOCKET.get_mut().unwrap();
+        // not to worry, it's non-blocking
+        let _ = socket.send_to(&map, crate::config::MACHINE_VISION_PROCESS_ADDR);
         let queue = QUEUE.get_mut().unwrap();
-
         queue.force_push(map.to_vec());
     }
     Ok(FlowSuccess::Ok)
 }
-/// Initialize the gstreamer based queue. If it's not initialized, you'll get a null pointer somewhere (or Option unwrap);
-fn init_queue() {
+/// Initialize the gstreamer based queue and UDP socket for IPC. If it's not initialized, you'll get a null pointer somewhere (or Option unwrap);
+fn init_statics() {
     unsafe {
         QUEUE.get_or_init(|| ArrayQueue::new(QUEUE_CAPACITY));
+        UDP_SOCKET.get_or_init(|| {
+            let  sock = UdpSocket::bind("127.0.0.1:0")
+        .expect("Cannot bind a random ass UDP socket. Either you don't have a loopback interface, ports available or bad permissions. Either way, congratulations!");
+         sock.set_nonblocking(true).expect("Cannot set UDP socket to nonblocking");
+         sock
+    });
     }
 }
 
-pub struct GStreamerLibcameraStream {
+pub struct GstreamerV4L2Stream {
     pipeline: Pipeline,
-    libcamera_process: Child,
 }
 
-impl GStreamerLibcameraStream {
+impl GstreamerV4L2Stream {
     /// Create and initialize a gstreamer stream.
     pub fn init(config: &crate::config::Config) -> Result<Self> {
-        init_queue();
+        init_statics();
         gstreamer::init()?;
 
-        let mut child = spawn_libcamera_process()?;
-
-        let fd = match child.stdout.take() {
-            Some(stdout) => Ok(stdout.into_raw_fd()),
-            None => Err(std::io::Error::new(
-                std::io::ErrorKind::BrokenPipe,
-                "libcamera process stdout not present, cannot pipe",
-            )),
-        }?;
-
-        tracing::info!("Created libcamera subprocess! stdout: {fd}");
-        let pipeline = make_gst_pipeline::get_rpi_zero2w_pipeline(fd, config, callback)?;
+        let pipeline = make_gst_pipeline::get_vl42_src_gstreamer_pipeline(config, callback)?;
         tracing::info!("Gstreamer pipeline set up, ready for streaming");
 
-        Ok(Self {
-            pipeline,
-            libcamera_process: child,
-        })
+        Ok(Self { pipeline })
     }
 }
 
-impl crate::stream::VideoStream for GStreamerLibcameraStream {
+impl crate::stream::VideoStream for GstreamerV4L2Stream {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, StreamReadError> {
         unsafe {
             let data = QUEUE
@@ -100,7 +96,6 @@ impl crate::stream::VideoStream for GStreamerLibcameraStream {
 
     fn stop(&mut self) {
         let _ = self.pipeline.set_state(gstreamer::State::Paused);
-        let _ = self.libcamera_process.kill();
     }
 
     fn stream_state(&self) -> crate::stream::StreamState {
@@ -112,28 +107,6 @@ impl crate::stream::VideoStream for GStreamerLibcameraStream {
             gstreamer::State::Playing => crate::stream::StreamState::Running,
         }
     }
-}
-
-/// Spawn the libcamera process. Necessary to do so, as it basically guarantees hardware acceleration.
-fn spawn_libcamera_process() -> std::io::Result<std::process::Child> {
-    let mut command = std::process::Command::new("libcamera-vid");
-    command.args([
-        "--width",
-        "640",
-        "--height",
-        "480",
-        "--framerate",
-        "24",
-        "--inline",
-        "-t",
-        "0s",
-    ]);
-    command.arg("-o");
-    command.arg("-");
-    command.stdout(std::process::Stdio::piped());
-    command.stdin(std::process::Stdio::null());
-    command.stderr(std::process::Stdio::piped());
-    command.spawn()
 }
 
 pub(super) mod make_gst_pipeline {
@@ -170,11 +143,9 @@ pub(super) mod make_gst_pipeline {
     /// Spawn a gstreamer pipeline with the corresponding callback with data.
     /// Requires libcamera process to work, as it's the easiest way to get hardware accelerated video.
     ///
-    /// - `fd` - file descriptor of the libcamera process's stdout (or any file that outputs raw h264 stream)
     /// - `config` - app wide config
     /// - `callback` - a function to call when a new sample is pulled
-    pub fn get_rpi_zero2w_pipeline<F>(
-        fd: i32,
+    pub fn get_vl42_src_gstreamer_pipeline<F>(
         config: &crate::config::Config,
         callback: F,
     ) -> anyhow::Result<Pipeline>
@@ -184,19 +155,21 @@ pub(super) mod make_gst_pipeline {
         let mut elements = Elements::default();
         let pipeline = gstreamer::Pipeline::default();
 
-        let videosrc = gstreamer::ElementFactory::make("fdsrc")
-            .property("fd", fd)
-            .property("timeout", 5000_u64)
-            .build()?;
-        let parse = gstreamer::ElementFactory::make("h264parse").build()?;
+        let videosrc = gstreamer::ElementFactory::make("v4l2src").build()?; //used to use fd src with h264 encoded stream
 
-        elements.video = vec![videosrc, parse];
+        let videoconvert = gstreamer::ElementFactory::make("videoconvert").build()?;
+        let x264enc = gstreamer::ElementFactory::make("x264enc").build()?;
+        let h264parse = gstreamer::ElementFactory::make("h264parse").build()?;
+
+        elements.video = vec![videosrc, videoconvert, x264enc, h264parse];
 
         if !config.no_audio {
             add_audio_elements(&mut elements)?;
         }
 
-        let mpegtsmux = gstreamer::ElementFactory::make("mpegtsmux").build()?;
+        let mpegtsmux = gstreamer::ElementFactory::make("mpegtsmux")
+            .property("m2ts-mode", true)
+            .build()?;
         elements.mux = Some(mpegtsmux);
 
         let appsink = gstreamer_app::AppSink::builder().build();

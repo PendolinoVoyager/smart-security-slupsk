@@ -79,5 +79,5 @@ async fn preauth_websocket(stream: &TcpStream, ctx: &'static AppContext) -> bool
 
     tracing::trace!("WS connection: {:?}", req.path);
 
-    crate::services::auth::websocket_handshake_handler(req, ctx).await
+    crate::services::ws_pre_auth::websocket_handshake_handler(req, ctx).await
 }

@@ -4,6 +4,7 @@ import VideoFeed from "./videoFeed";
 import { Box } from "@mui/material";
 import { useFlash } from "../../store/flashStore";
 import fetchStreams from "../../api/fetchStreams";
+import { getToken } from "../../authUtils";
 
 const VideoContainer: React.FC = () => {
   const [currentStream, setCurrentStream] = useState<string>("");
@@ -23,7 +24,10 @@ const VideoContainer: React.FC = () => {
       }
       const r = res.map((v) => {
         return {
-          url: "ws://" + v.server_addr + `/stream?device_id=${v.id}`,
+          url:
+            "ws://" +
+            v.server_addr +
+            `/stream?device_id=${v.id}&token=${getToken()}`,
           name: v.device_name,
         };
       });

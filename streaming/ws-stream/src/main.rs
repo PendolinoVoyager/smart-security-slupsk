@@ -5,7 +5,7 @@ mod config;
 mod stream;
 use clap::Parser;
 use config::Config;
-use futures::{SinkExt, StreamExt};
+use futures::SinkExt;
 use stream::stream_factory::{self, StreamKind};
 use stream::{StreamBuffer, VideoStream};
 use tokio::net::TcpStream;
@@ -44,11 +44,7 @@ async fn connect_ws(config: Config) -> anyhow::Result<()> {
 
     tracing::info!("WebSocket created");
     tracing::debug!("{res:?}");
-    if config.raw {
-        stream_until_disconnect(ws, config).await;
-    } else {
-        stream_to_streaming_server(ws, config).await?;
-    }
+    stream_until_disconnect(ws, config).await;
 
     Ok(())
 }
@@ -85,61 +81,6 @@ async fn stream_until_disconnect(mut ws: AppWebSocket, config: Config) {
     tracing::info!("Stream ended");
 }
 
-/// Stream while listening for START / STOP packets
-/// This should be nonblocking
-async fn stream_to_streaming_server(mut ws: AppWebSocket, config: Config) -> anyhow::Result<()> {
-    loop {
-        let res = match ws.next().await {
-            Some(v) => v?,
-            None => return Err(anyhow::Error::msg("socket connection broken")),
-        };
-        if res.into_text().is_ok_and(|msg| msg == "START") {
-            // stream until STOP received
-            tracing::info!("Starting streaming...");
-            let stream = initialize_stream(&config)?;
-
-            let (tx, mut rx) = tokio::sync::mpsc::channel::<Message>(size_of::<Message>() * 30);
-
-            let handle = spawn_blocking(move || {
-                let mut reader = Box::pin(StreamBuffer::new(1024, stream));
-                while let Ok(buf) = reader.read() {
-                    let buf = buf.to_vec();
-                    if tx.blocking_send(Message::Binary(buf.into())).is_err() {
-                        break;
-                    }
-                }
-            });
-            loop {
-                tokio::select! {
-                    msg = rx.recv() => {
-                        let msg = match msg {
-                            Some(m) => m,
-                            None => break
-                        };
-                        if ws.send(msg).await.is_err() {
-                            tracing::warn!("Cannot send packet, connection broken!");
-                            break;
-                        }
-                    },
-                    msg = ws.next() => {
-                        let msg = match msg {
-                            Some(m) => m?,
-                            None => break,
-                        };
-                        if msg.into_text()? == "STOP" {
-                            break;
-                        }
-                    }
-
-                }
-            }
-
-            tracing::info!("Stream ended");
-            handle.abort();
-        }
-    }
-}
-
 fn initialize_stream(config: &Config) -> anyhow::Result<StreamKind> {
     let mut stream =
         stream_factory::create_stream(config).inspect_err(|e| tracing::error!("{e}"))?;
@@ -147,3 +88,58 @@ fn initialize_stream(config: &Config) -> anyhow::Result<StreamKind> {
     stream.start();
     Ok(stream)
 }
+
+// /// Stream while listening for START / STOP packets
+// /// This should be nonblocking
+// async fn stream_to_streaming_server(mut ws: AppWebSocket, config: Config) -> anyhow::Result<()> {
+//     loop {
+//         let res = match ws.next().await {
+//             Some(v) => v?,
+//             None => return Err(anyhow::Error::msg("socket connection broken")),
+//         };
+//         if res.into_text().is_ok_and(|msg| msg == "START") {
+//             // stream until STOP received
+//             tracing::info!("Starting streaming...");
+//             let stream = initialize_stream(&config)?;
+
+//             let (tx, mut rx) = tokio::sync::mpsc::channel::<Message>(size_of::<Message>() * 30);
+
+//             let handle = spawn_blocking(move || {
+//                 let mut reader = Box::pin(StreamBuffer::new(1024, stream));
+//                 while let Ok(buf) = reader.read() {
+//                     let buf = buf.to_vec();
+//                     if tx.blocking_send(Message::Binary(buf.into())).is_err() {
+//                         break;
+//                     }
+//                 }
+//             });
+//             loop {
+//                 tokio::select! {
+//                     msg = rx.recv() => {
+//                         let msg = match msg {
+//                             Some(m) => m,
+//                             None => break
+//                         };
+//                         if ws.send(msg).await.is_err() {
+//                             tracing::warn!("Cannot send packet, connection broken!");
+//                             break;
+//                         }
+//                     },
+//                     msg = ws.next() => {
+//                         let msg = match msg {
+//                             Some(m) => m?,
+//                             None => break,
+//                         };
+//                         if msg.into_text()? == "STOP" {
+//                             break;
+//                         }
+//                     }
+
+//                 }
+//             }
+
+//             tracing::info!("Stream ended");
+//             handle.abort();
+//         }
+//     }
+// }

@@ -5,9 +5,8 @@ use crate::core::http::{AppRequest, AppResponse};
 use crate::http::JSONAppResponse;
 use crate::services::app_db::RedisDeviceSchema;
 use crate::services::core_db::find_user_id;
-use crate::services::jwt::verify_user;
+use crate::services::jwt::{extract_token, verify_user};
 use hyper::StatusCode;
-use hyper::header::AUTHORIZATION;
 use serde::Serialize;
 
 #[derive(Debug, Serialize)]
@@ -22,12 +21,7 @@ pub async fn streams_handler(
 ) -> anyhow::Result<AppResponse> {
     let mut conn = ctx.app_db.get().await?;
 
-    let Some(token) = req
-        .headers()
-        .get(AUTHORIZATION)
-        .and_then(|hv| hv.to_str().ok())
-        .and_then(|raw_header| crate::services::jwt::parse_authorization_header(raw_header))
-    else {
+    let Some(token) = extract_token(&req) else {
         return JSONAppResponse::pack(
             ctx,
             "bad token or missing Authorization header",
