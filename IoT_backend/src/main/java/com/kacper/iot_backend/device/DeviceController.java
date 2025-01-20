@@ -27,4 +27,5 @@ public class DeviceController
     ) {
         return deviceService.getUserDevices(userDetails);
     }
+
 }
