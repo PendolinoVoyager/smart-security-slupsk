@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                   https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="fixtures_004" author="Kacper Karabinowski">
+        <insert tableName="notifications">
+            <column name="id" value="400" />
+            <column name="notification_type" value="INFO" />
+            <column name="message" value="Default notification message." />
+            <column name="has_seen" valueBoolean="false" />
+            <column name="device_id" value="100" />
+        </insert>
+    </changeSet>
+
+</databaseChangeLog>

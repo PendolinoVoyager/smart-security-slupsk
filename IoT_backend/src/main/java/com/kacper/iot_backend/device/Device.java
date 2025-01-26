@@ -1,11 +1,14 @@
 package com.kacper.iot_backend.device;
 
+import com.kacper.iot_backend.notification.Notification;
 import com.kacper.iot_backend.user.User;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import java.util.List;
 
 @Entity
 @Data
@@ -43,4 +46,7 @@ public class Device
             nullable = false
     )
     private User user;
+
+    @OneToMany(mappedBy = "device", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Notification> notifications;
 }

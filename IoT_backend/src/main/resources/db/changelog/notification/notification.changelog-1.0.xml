@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                   https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="notification_000" author="Kacper Karabinowski">
+        <createTable tableName="notifications">
+
+            <column name="id" type="int" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false" />
+            </column>
+            <column name="notification_type" type="varchar(255)">
+                <constraints nullable="false" />
+            </column>
+            <column name="message" type="varchar(255)">
+                <constraints nullable="false" />
+            </column>
+            <column name="has_seen" type="boolean">
+                <constraints nullable="false" />
+            </column>
+            <column name="device_id" type="int">
+                <constraints nullable="false" />
+            </column>
+
+        </createTable>
+
+        <addForeignKeyConstraint baseTableName="notifications" baseColumnNames="device_id"
+                                 constraintName="fk_notifications_devices"
+                                 referencedTableName="devices" referencedColumnNames="id"/>
+
+    </changeSet>
+</databaseChangeLog>
