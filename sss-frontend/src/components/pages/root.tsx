@@ -1,7 +1,6 @@
 import { FC } from "react";
 import { Outlet } from "react-router-dom";
 import MainNav from "../nav/mainNav";
-import VideoContainer from "../streaming/videoContainer";
 import FlashMessages from "../flash/flashMessages";
 
 // import { Canvas } from "@react-three/fiber";
@@ -13,7 +12,6 @@ const Root: FC = function () {
       <FlashMessages />
       <MainNav />
 
-      <VideoContainer />
       <Outlet />
     </>
   );

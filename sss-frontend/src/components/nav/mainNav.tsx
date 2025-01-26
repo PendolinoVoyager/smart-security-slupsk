@@ -21,7 +21,7 @@ export default function MainNav() {
   const [isDrawerOpen, setDrawerOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
   const isSmallScreen = useMediaQuery((theme: Theme) =>
-      theme.breakpoints.down("md")
+    theme.breakpoints.down("md")
   );
 
   const handleLoginClick = (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -31,37 +31,137 @@ export default function MainNav() {
   const handleClosePopover = () => {
     setAnchorEl(null);
   };
-
+  // the actual nav items
+  // rest of the code handles how its rendered
   const renderNavItems = () => (
-      <>
+    <>
+      <ListItem>
+        <NavItem href={"/"}>Home</NavItem>
+      </ListItem>
+      {role === ROLE.ADMIN && (
         <ListItem>
-          <NavItem href={"/"}>Home</NavItem>
+          <NavItem href="/admin">Admin Panel</NavItem>
         </ListItem>
-        {role === ROLE.ADMIN && (
+      )}
+      {loggedIn && (
+        <>
+          <ListItem>
+            <NavItem href={"/devices"}>Devices</NavItem>
+          </ListItem>
+          <ListItem>
+            <NavItem href={"/notifications"}>Notifications</NavItem>
+          </ListItem>
+        </>
+      )}
+      {loggedIn ? (
+        <ListItem>
+          <Box display="flex" alignItems="center" gap={2}>
+            <span>{email}</span>
+            <NavItem href="#" onClick={logout}>
+              Logout
+            </NavItem>
+          </Box>
+        </ListItem>
+      ) : (
+        <ListItem>
+          <IconButton onClick={handleLoginClick}>
+            <Person fontSize="small" />
+          </IconButton>
+          <Popover
+            open={Boolean(anchorEl)}
+            anchorEl={anchorEl}
+            onClose={handleClosePopover}
+            anchorOrigin={{
+              vertical: "bottom",
+              horizontal: "right",
+            }}
+          >
+            <LoginForm onLoginSuccess={handleClosePopover} />
+          </Popover>
+        </ListItem>
+      )}
+    </>
+  );
+
+  return (
+    <Paper elevation={1} sx={{ marginTop: 0 }}>
+      {isSmallScreen ? (
+        <Box display={"flex"} alignItems={"center"}>
+          <IconButton
+            onClick={() => setDrawerOpen(!isDrawerOpen)}
+            sx={{ float: "left" }}
+          >
+            <Menu />
+          </IconButton>
+          <Drawer
+            anchor="left"
+            open={isDrawerOpen}
+            onClose={() => setDrawerOpen(false)}
+          >
+            <List>{renderNavItems()}</List>
+          </Drawer>
+        </Box>
+      ) : (
+        <Box
+          display="flex"
+          justifyContent="space-between"
+          alignItems="center"
+          padding="0 16px"
+        >
+          <List
+            sx={{
+              display: "flex",
+              flexDirection: "row",
+              padding: 0,
+              gap: 2,
+            }}
+          >
             <ListItem>
-              <NavItem href="/admin">Admin Panel</NavItem>
+              <NavItem href={"/"}>Home</NavItem>
             </ListItem>
-        )}
-        {loggedIn && (
-            <ListItem>
-              <NavItem href={"/devices"}>Devices</NavItem>
-            </ListItem>
-        )}
-        {loggedIn ? (
-            <ListItem>
-              <Box display="flex" alignItems="center" gap={2}>
-                <span>{email}</span>
-                <NavItem href="#" onClick={logout}>
-                  Logout
-                </NavItem>
-              </Box>
-            </ListItem>
-        ) : (
-            <ListItem>
-              <IconButton onClick={handleLoginClick}>
-                <Person fontSize="small" />
-              </IconButton>
-              <Popover
+            {role === ROLE.ADMIN && (
+              <ListItem>
+                <NavItem href="/admin">Admin Panel</NavItem>
+              </ListItem>
+            )}
+            {loggedIn && (
+              <>
+                <ListItem>
+                  <NavItem href={"/devices"}>Devices</NavItem>
+                </ListItem>
+                <ListItem>
+                  <NavItem href={"/notifications"}>Notifications</NavItem>
+                </ListItem>
+                <ListItem>
+                  <NavItem href={"/stream-preview"}>Watch live</NavItem>
+                </ListItem>
+              </>
+            )}
+          </List>
+
+          <List
+            sx={{
+              display: "flex",
+              flexDirection: "row",
+              padding: 0,
+              gap: 2,
+            }}
+          >
+            {loggedIn ? (
+              <ListItem>
+                <Box display="flex" alignItems="center" gap={2}>
+                  <span>{email}</span>
+                  <NavItem href="#" onClick={logout}>
+                    Logout
+                  </NavItem>
+                </Box>
+              </ListItem>
+            ) : (
+              <ListItem>
+                <IconButton onClick={handleLoginClick}>
+                  <Person fontSize="small" />
+                </IconButton>
+                <Popover
                   open={Boolean(anchorEl)}
                   anchorEl={anchorEl}
                   onClose={handleClosePopover}
@@ -69,100 +169,14 @@ export default function MainNav() {
                     vertical: "bottom",
                     horizontal: "right",
                   }}
-              >
-                <LoginForm onLoginSuccess={handleClosePopover} />
-              </Popover>
-            </ListItem>
-        )}
-      </>
-  );
-
-  return (
-      <Paper elevation={1} sx={{ marginTop: 0 }}>
-        {isSmallScreen ? (
-            <Box display={"flex"} alignItems={"center"}>
-              <IconButton
-                  onClick={() => setDrawerOpen(!isDrawerOpen)}
-                  sx={{ float: "left" }}
-              >
-                <Menu />
-              </IconButton>
-              <Drawer
-                  anchor="left"
-                  open={isDrawerOpen}
-                  onClose={() => setDrawerOpen(false)}
-              >
-                <List>{renderNavItems()}</List>
-              </Drawer>
-            </Box>
-        ) : (
-            <Box
-                display="flex"
-                justifyContent="space-between"
-                alignItems="center"
-                padding="0 16px"
-            >
-              <List
-                  sx={{
-                    display: "flex",
-                    flexDirection: "row",
-                    padding: 0,
-                    gap: 2,
-                  }}
-              >
-                <ListItem>
-                  <NavItem href={"/"}>Home</NavItem>
-                </ListItem>
-                {role === ROLE.ADMIN && (
-                    <ListItem>
-                      <NavItem href="/admin">Admin Panel</NavItem>
-                    </ListItem>
-                )}
-                {loggedIn && (
-                    <ListItem>
-                      <NavItem href={"/devices"}>Devices</NavItem>
-                    </ListItem>
-                )}
-              </List>
-
-              <List
-                  sx={{
-                    display: "flex",
-                    flexDirection: "row",
-                    padding: 0,
-                    gap: 2,
-                  }}
-              >
-                {loggedIn ? (
-                    <ListItem>
-                      <Box display="flex" alignItems="center" gap={2}>
-                        <span>{email}</span>
-                        <NavItem href="#" onClick={logout}>
-                          Logout
-                        </NavItem>
-                      </Box>
-                    </ListItem>
-                ) : (
-                    <ListItem>
-                      <IconButton onClick={handleLoginClick}>
-                        <Person fontSize="small" />
-                      </IconButton>
-                      <Popover
-                          open={Boolean(anchorEl)}
-                          anchorEl={anchorEl}
-                          onClose={handleClosePopover}
-                          anchorOrigin={{
-                            vertical: "bottom",
-                            horizontal: "right",
-                          }}
-                      >
-                        <LoginForm onLoginSuccess={handleClosePopover} />
-                      </Popover>
-                    </ListItem>
-                )}
-              </List>
-            </Box>
-        )}
-      </Paper>
+                >
+                  <LoginForm onLoginSuccess={handleClosePopover} />
+                </Popover>
+              </ListItem>
+            )}
+          </List>
+        </Box>
+      )}
+    </Paper>
   );
 }

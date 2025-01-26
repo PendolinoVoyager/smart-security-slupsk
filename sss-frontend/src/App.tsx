@@ -14,6 +14,8 @@ import DevicePage from "./components/pages/devicePage.tsx";
 import DeviceDetails from "./components/pages/deviceDetails.tsx";
 import { FlashProvider } from "./store/flashStore.tsx";
 import AddDevicePage from "./components/pages/addDevicePage.tsx";
+import NotificationsPage from "./components/pages/notificationsPage.tsx";
+import StreamPreviewPage from "./components/pages/previewStream.tsx";
 
 const router = createBrowserRouter([
   {
@@ -44,9 +46,16 @@ const router = createBrowserRouter([
 
       {
         path: "/devices/add",
-        element: <AddDevicePage />
-      }
-
+        element: <AddDevicePage />,
+      },
+      {
+        path: "/notifications",
+        element: <NotificationsPage />,
+      },
+      {
+        path: "/stream-preview",
+        element: <StreamPreviewPage />,
+      },
     ],
   },
 ]);
