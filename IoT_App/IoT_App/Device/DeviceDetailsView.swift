@@ -33,10 +33,8 @@ struct DeviceDetailsView: View {
                                 .foregroundColor(.white)
                                 .cornerRadius(10)
                         }
-
-                        Button(action: {
-                            // Placeholder for authenticate action
-                        }) {
+                        
+                        NavigationLink(destination: AuthenticateDeviceView(device: device)) {
                             Text("Authenticate")
                                 .font(.headline)
                                 .padding()
@@ -69,5 +67,5 @@ struct BlurView: UIViewRepresentable {
 }
 
 #Preview {
-    DeviceDetailsView(device: Device(name: "Raspberry Pi", type: "_http._tcp.", domain: "local"))
+    DeviceDetailsView(device: Device(name: "IoT_Device", type: "_http._tcp.", domain: "local"))
 }

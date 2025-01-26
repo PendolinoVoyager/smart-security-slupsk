@@ -31,9 +31,7 @@ struct HomeView: View {
                     .offset(x: 150, y: 200)
 
                 VStack(spacing: 30) {
-                    // Title and button section
                     VStack(spacing: 20) {
-                        // First row of buttons
                         HStack(spacing: 16) {
                             NavigationLink(destination: AlertsView()) {
                                 GridButtonView(title: "Alerts", color: Color.red.opacity(0.8))
@@ -44,7 +42,6 @@ struct HomeView: View {
                         }
                         .padding(.horizontal, 16)
 
-                        // Second row of buttons
                         HStack(spacing: 16) {
                             NavigationLink(destination: ConnectDeviceView()) {
                                 GridButtonView(title: "Connect Device", color: Color.blue.opacity(0.8))
@@ -58,7 +55,6 @@ struct HomeView: View {
 
                     Spacer()
 
-                    // Footer with optional description or other elements
                     VStack(spacing: 8) {
                         Text("Kacper Karabinowski | SSS Team")
                             .font(.footnote)
@@ -76,13 +72,12 @@ struct HomeView: View {
                     Menu {
                         Button(action: {
                             print("Wyloguj")
-                            appState.isLoggedIn = false
+                            AuthService.shared.logout(appState: appState)
                         }) {
                             Label("Log out", systemImage: "rectangle.portrait.and.arrow.right")
                         }
                         
                         Button(action: {
-                            // Navigate to profile logic
                             print("Profil")
                         }) {
                             Label("Profil", systemImage: "person.circle")
@@ -111,7 +106,7 @@ struct GridButtonView: View {
             .padding()
             .background(color)
             .cornerRadius(15)
-            .frame(height: 100) // Button height
+            .frame(height: 100)
             .shadow(color: .black.opacity(0.3), radius: 10, x: 0, y: 5)
     }
 }
