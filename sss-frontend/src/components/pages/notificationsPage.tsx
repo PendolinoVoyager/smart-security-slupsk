@@ -23,6 +23,7 @@ const NotificationsPage = function () {
       setNotifications(res);
     })();
   }, []);
+
   if (!isLoaded) {
     return <CircularProgress size={24} sx={{ color: "white" }} />;
   }

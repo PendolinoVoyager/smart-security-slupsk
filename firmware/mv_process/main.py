@@ -1,6 +1,7 @@
 import cv2
 import time
 from on_movement import on_movement
+import os
 
 # time when the last movement was processed 
 last_detected_movement = 0
@@ -11,15 +12,20 @@ def update_last_detected_movement():
     global last_detected_movement
     last_detected_movement = time.time()
 
+# initialize source
+videosrc = None
+if os.environ["MV_DEBUG"] == "1":
+    videosrc = 0
+else:
+    videosrc = "udp://127.0.0.1:10000"
+
+
 # Sum-of-contours threshold above which something suspicious might happen 
 THRESHOLD_ALERT = 10000
 THRESHOLD_TOO_SMALL = 300
-# Initialize the video capture and background subtractor
-cap = cv2.VideoCapture(0)  # Use 0 for the first webcam, or provide the video path
 
-frame_width = int(cap.get(3)) 
-frame_height = int(cap.get(4)) 
 
+cap = cv2.VideoCapture(videosrc)
 back_sub = cv2.createBackgroundSubtractorMOG2(detectShadows=False, history=5)
 
 
@@ -28,10 +34,9 @@ while True:
     if not ret:
         break
 
-    # Apply background subtraction
     fg_mask = back_sub.apply(frame)
 
-    # Optional: Clean up the mask with morphological operations
+    # Clean up the mask with morphological operations
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
     fg_mask = cv2.morphologyEx(fg_mask, cv2.MORPH_CLOSE, kernel)
     fg_mask = cv2.morphologyEx(fg_mask, cv2.MORPH_OPEN, kernel)
@@ -41,14 +46,12 @@ while True:
 
     changed_area = sum([cv2.contourArea(contour) for contour in contours])
     if changed_area > THRESHOLD_ALERT:
-        if time.time() - last_detected_movement < COOLDOWN_PERIOD:
+        if time.time() - last_detected_movement > COOLDOWN_PERIOD:
             update_last_detected_movement()
             on_movement()
         else:        
             update_last_detected_movement()
 
-
-    # Break on 'q' key
     if cv2.waitKey(30) & 0xFF == ord('q'):
         break
 
