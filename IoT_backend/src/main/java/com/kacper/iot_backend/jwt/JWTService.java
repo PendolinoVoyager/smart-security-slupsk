@@ -1,5 +1,6 @@
 package com.kacper.iot_backend.jwt;
 
+import com.kacper.iot_backend.exception.NotDeviceTokenException;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import org.springframework.beans.factory.annotation.Value;
@@ -133,6 +134,22 @@ public class JWTService
         }
 
         return claims.getExpiration().before(new Date());
+    }
+
+    public String extractDeviceUUID(String token) {
+        Claims claims = extractAllClaims(token);
+
+        Boolean isDevice = claims.get("isDevice", Boolean.class);
+        if (isDevice == null || !isDevice) {
+            throw new NotDeviceTokenException("Token is not a device token");
+        }
+
+        String deviceUuid = claims.get("deviceUuid", String.class);
+        if (deviceUuid == null) {
+            throw new NotDeviceTokenException("Device UUID is missing in the token");
+        }
+
+        return deviceUuid;
     }
 
     /**

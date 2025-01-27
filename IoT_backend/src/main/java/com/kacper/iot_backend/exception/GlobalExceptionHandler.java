@@ -64,4 +64,9 @@ public class GlobalExceptionHandler
     public ResponseEntity<String> handleDeviceOwnerMismatchException(DeviceOwnerMismatchException e) {
         return new ResponseEntity<>(e.getMessage(), HttpStatus.FORBIDDEN);
     }
+
+    @ExceptionHandler(NotDeviceTokenException.class)
+    public ResponseEntity<String> handleNotDeviceTokenException(NotDeviceTokenException e) {
+        return new ResponseEntity<>(e.getMessage(), HttpStatus.FORBIDDEN);
+    }
 }

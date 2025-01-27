@@ -16,6 +16,7 @@
     <include file="/db/changelog/device/device.changelog-1.1.xml" />
     <include file="/db/changelog/device/device.changelog-1.2.xml" />
     <include file="/db/changelog/fixtures/fixtures.changelog-1.0.xml" />
-    <include file="db/changelog/notification/notification.changelog-1.0.xml" />
-    <include file="db/changelog/fixtures/fixtures.changelog-1.1.xml" />
+    <include file="/db/changelog/notification/notification.changelog-1.0.xml" />
+    <include file="/db/changelog/notification/notification.changelog-1.1.xml" />
+    <include file="/db/changelog/fixtures/fixtures.changelog-1.1.xml" />
 </databaseChangeLog>

@@ -1,9 +1,10 @@
 package com.kacper.iot_backend.notification;
 
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import com.kacper.iot_backend.utils.DefaultResponse;
+import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -17,8 +18,19 @@ public class NotificationController
         this.notificationService = notificationService;
     }
 
-    @GetMapping("/{id}")
-    public List<NotificationResponse> getNotifications(@PathVariable Integer id) {
-        return notificationService.getNotifications(id);
+    @GetMapping("")
+    public NotificationPageResponse getNotifications(@AuthenticationPrincipal UserDetails userDetails, Pageable pageable) {
+        return notificationService.getNotifications(userDetails, pageable);
     }
+
+    @PostMapping("/")
+    public DefaultResponse addNotification(@RequestHeader("Authorization") String authorizationHeader, @RequestBody NotificationRequest notificationRequest) {
+        return notificationService.addNotification(authorizationHeader, notificationRequest);
+
+    }
+
+
+
+
+
 }

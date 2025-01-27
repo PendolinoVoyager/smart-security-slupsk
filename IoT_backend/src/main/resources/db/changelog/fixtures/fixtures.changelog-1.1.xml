@@ -11,6 +11,7 @@
             <column name="message" value="Default notification message." />
             <column name="has_seen" valueBoolean="false" />
             <column name="device_id" value="100" />
+            <column name="timestamp" value="2025-01-01T00:00:00Z" />
         </insert>
     </changeSet>
 
