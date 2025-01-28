@@ -1,10 +1,10 @@
 import React from "react";
 import { Card, CardContent, Typography, List } from "@mui/material";
-import { NotificationResponse } from "../../api/notificationsApi";
 import NotificationComponent from "./notification";
+import { NotificationResponseItem } from "../../api/notificationsApi";
 
 type NotificationListProps = {
-  notifications: NotificationResponse[];
+  notifications: NotificationResponseItem[];
 };
 
 const NotificationList: React.FC<NotificationListProps> = ({
@@ -18,7 +18,10 @@ const NotificationList: React.FC<NotificationListProps> = ({
         </Typography>
         <List>
           {notifications.map((notification) => (
-            <NotificationComponent notification={notification} />
+            <NotificationComponent
+              key={notification.id}
+              notification={notification}
+            />
           ))}
         </List>
       </CardContent>
