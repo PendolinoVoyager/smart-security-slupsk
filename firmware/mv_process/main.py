@@ -14,7 +14,7 @@ def update_last_detected_movement():
 
 # initialize source
 videosrc = None
-if os.environ["MV_DEBUG"] == "1":
+if os.environ.get("MV_DEBUG") == "1":
     videosrc = 0
 else:
     videosrc = "udp://127.0.0.1:10000"
@@ -25,7 +25,7 @@ THRESHOLD_ALERT = 10000
 THRESHOLD_TOO_SMALL = 300
 
 
-cap = cv2.VideoCapture(videosrc)
+cap = cv2.VideoCapture(videosrc, )
 back_sub = cv2.createBackgroundSubtractorMOG2(detectShadows=False, history=5)
 
 
