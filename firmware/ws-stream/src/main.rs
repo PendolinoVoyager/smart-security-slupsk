@@ -1,14 +1,17 @@
 #![feature(type_changing_struct_update)]
 #![feature(let_chains)]
 //! Binary utility to stream to a websocket.
+mod buffer;
 mod config;
+
 use std::time::Duration;
 
+use buffer::StreamBuffer;
 use clap::Parser;
 use config::Config;
-use futures::SinkExt;
+use futures::{SinkExt, Stream};
 
-use tokio::net::{TcpStream, UdpSocket};
+use tokio::net::TcpStream;
 use tokio_tungstenite::tungstenite::Message;
 use tokio_tungstenite::MaybeTlsStream;
 use tokio_util::bytes::Bytes;
@@ -54,38 +57,19 @@ async fn stream_until_disconnect(
     mut ws: tokio_tungstenite::WebSocketStream<MaybeTlsStream<TcpStream>>,
 ) {
     tracing::info!("Initializing stream");
-
-    let mut buf = [0u8; 188]; // Very important size!!!
-    let stream_socket = UdpSocket::bind(STREAM_SOURCE)
-        .await
+    let stream_socket = std::net::UdpSocket::bind(STREAM_SOURCE)
         .expect("Cannot bind to the socket with the stream.");
 
+    let _ = stream_socket.set_read_timeout(Some(STREAM_TIMEOUT));
     tracing::info!("Starting streaming...");
-    loop {
-        let recv_future = stream_socket.recv(&mut buf);
-        match tokio::time::timeout(STREAM_TIMEOUT, recv_future).await {
-            Err(time) => {
-                tracing::error!("Stream timeout encountered after {time}");
-                break;
-            }
-            Ok(Err(socket_err)) => {
-                tracing::error!("Error during streaming:\n{socket_err}");
-                break;
-            }
-            Ok(Ok(packet_len)) => {
-                if packet_len != 188 {
-                    tracing::warn!("Packet dropped! Not a valid MPEG-TS packet");
-                    continue;
-                }
-                tracing::info!("{packet_len}");
-                // tracing::info!("{}");
-                let msg = Message::Binary(Bytes::copy_from_slice(&buf[..packet_len]));
-                if let Err(e) = ws.send(msg).await {
-                    tracing::warn!("Cannot send packet, connection broken!");
-                    tracing::error!("{e}");
-                    break;
-                }
-            }
+    let mut buffer = StreamBuffer::new(192 * 10, stream_socket);
+    while let Ok(read) = buffer.read() {
+        tracing::info!("{}", read.len());
+        let msg = Message::Binary(Bytes::copy_from_slice(read));
+        if let Err(e) = ws.send(msg).await {
+            tracing::warn!("Cannot send packet, connection broken!");
+            tracing::error!("{e}");
+            break;
         }
     }
 
