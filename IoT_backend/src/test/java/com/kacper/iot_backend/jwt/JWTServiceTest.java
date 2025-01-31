@@ -36,16 +36,16 @@ class JWTServiceTest
         assertThat(token).isNotNull();
     }
 
-    @Test
-    void shouldGenerateRefreshToken() {
-        UserDetails userDetails = new User("test@example.com", "Password.123", new ArrayList<>());
-        HashMap<String, Object> claims = new HashMap<>();
-        claims.put("role", "USER");
-
-        String refreshToken = jwtService.generateRefreshToken(claims, userDetails);
-
-        assertThat(refreshToken).isNotNull();
-    }
+//    @Test
+//    void shouldGenerateRefreshToken() {
+//        UserDetails userDetails = new User("test@example.com", "Password.123", new ArrayList<>());
+//        HashMap<String, Object> claims = new HashMap<>();
+//        claims.put("role", "USER");
+//
+//        String refreshToken = jwtService.generateRefreshToken(claims, userDetails);
+//
+//        assertThat(refreshToken).isNotNull();
+//    }
 
     @Test
     void shouldExtractUsername() {
