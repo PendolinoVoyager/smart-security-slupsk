@@ -124,7 +124,7 @@ struct AuthenticateDeviceView: View {
             throw NSError(domain: "User email not found in UserDefaults", code: 0, userInfo: nil)
         }
 
-        guard let backendURL = URL(string: "http://192.168.0.9:8080/api/v1/auth/device") else {
+        guard let backendURL = URL(string: "http://192.168.0.7:8080/api/v1/auth/device") else {
             throw NSError(domain: "Invalid backend URL", code: 0, userInfo: nil)
         }
 
