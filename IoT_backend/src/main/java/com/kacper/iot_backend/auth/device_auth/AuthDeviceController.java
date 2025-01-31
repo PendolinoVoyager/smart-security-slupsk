@@ -23,7 +23,10 @@ public class AuthDeviceController
     }
 
     @PostMapping("/device/refresh")
-    public AuthDeviceAccessTokenResponse refreshDeviceToken(@RequestHeader("Authorization") String authorizationHeader, @RequestBody AuthDeviceRefreshRequest authDeviceRefreshRequest) {
+    public AuthDeviceAccessTokenResponse refreshDeviceToken(
+            @RequestHeader("Authorization") String authorizationHeader,
+            @RequestBody AuthDeviceRefreshRequest authDeviceRefreshRequest
+    ) {
         return authDeviceService.refreshDeviceToken(authorizationHeader, authDeviceRefreshRequest);
     }
 
