@@ -11,7 +11,6 @@ struct AuthenticateDeviceView: View {
     @State private var errorMessage: String?
     @State private var navigationPath = NavigationPath()
     
-    
     var body: some View {
         NavigationStack(path: $navigationPath) {
             ZStack {
@@ -59,7 +58,7 @@ struct AuthenticateDeviceView: View {
                 .padding()
             }
             .navigationTitle("Authenticate Device")
-            .onAppear{
+            .onAppear {
                 startAuthentication(device: device)
             }
             .navigationDestination(for: String.self) { destination in
@@ -101,10 +100,13 @@ struct AuthenticateDeviceView: View {
     private func authenticateWithPassword(device: Device) {
         Task {
             do {
-                let token = try await authenticateWithBackend()
+                let (token, refreshToken) = try await authenticateWithBackend()
                 statusMessage = "Backend OK"
+                
+                print(token)
+                print(refreshToken)
 
-                try await sendTokenToRaspberryPi(token: token, device: device)
+                try await sendTokenToRaspberryPi(token: token, refreshToken: refreshToken, device: device)
                 statusMessage = "RPI OK"
 
                 navigationPath.append("HomeView")
@@ -115,7 +117,7 @@ struct AuthenticateDeviceView: View {
         }
     }
 
-    private func authenticateWithBackend() async throws -> String {
+    private func authenticateWithBackend() async throws -> (String, String) {
         guard let uuid = uuid, !password.isEmpty else {
             throw NSError(domain: "UUID or password missing", code: 0, userInfo: nil)
         }
@@ -124,7 +126,7 @@ struct AuthenticateDeviceView: View {
             throw NSError(domain: "User email not found in UserDefaults", code: 0, userInfo: nil)
         }
 
-        guard let backendURL = URL(string: "http://192.168.0.7:8080/api/v1/auth/device") else {
+        guard let backendURL = URL(string: "http://192.168.0.4:8080/api/v1/auth/device") else {
             throw NSError(domain: "Invalid backend URL", code: 0, userInfo: nil)
         }
 
@@ -151,16 +153,17 @@ struct AuthenticateDeviceView: View {
             throw NSError(domain: "Failed to decode token from backend response", code: 0, userInfo: nil)
         }
 
-        return decodedResponse.token
+        return (decodedResponse.token, decodedResponse.refreshToken)
     }
 
-    private func sendTokenToRaspberryPi(token: String, device: Device) async throws {
+    private func sendTokenToRaspberryPi(token: String, refreshToken: String, device: Device) async throws {
         guard let url = URL(string: "http://\(device.name).local:5000/api/v1/token") else {
             throw NSError(domain: "Invalid Raspberry Pi URL", code: 0, userInfo: nil)
         }
 
         let payload: [String: String] = [
-            "token": token
+            "token": token,
+            "refreshToken": refreshToken
         ]
 
         let requestData = try JSONSerialization.data(withJSONObject: payload)
@@ -183,6 +186,7 @@ struct AuthenticateDeviceView: View {
 
     struct AuthDeviceResponse: Decodable {
         let token: String
+        let refreshToken: String
     }
 }
 
