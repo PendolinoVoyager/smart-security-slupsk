@@ -1,6 +1,7 @@
 package com.kacper.iot_backend.jwt;
 
 import com.kacper.iot_backend.exception.NotDeviceTokenException;
+import com.kacper.iot_backend.user.User;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import org.springframework.beans.factory.annotation.Value;
@@ -65,10 +66,11 @@ public class JWTService
                 .compact();
     }
 
-    public String generateDeviceAccessToken(String email, String deviceUuid) {
+    public String generateDeviceAccessToken(User deviceOwner, String deviceUuid) {
         return Jwts.builder()
-                .setSubject(email)
+                .setSubject(deviceOwner.getUsername())
                 .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
+                .claim("user_id", deviceOwner.getId())
                 .claim("isDevice", true)
                 .claim("deviceUuid", deviceUuid)
                 .setIssuedAt(new Date(System.currentTimeMillis()))

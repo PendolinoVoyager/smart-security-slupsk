@@ -52,7 +52,7 @@ public class AuthDeviceService
             throw new RuntimeException("Critical error during authentication");
         }
 
-        String deviceToken = jwtService.generateDeviceAccessToken(authDeviceRequest.email(), authDeviceRequest.deviceUuid());
+        String deviceToken = jwtService.generateDeviceAccessToken(deviceOwner, authDeviceRequest.deviceUuid());
         String deviceRefreshToken = jwtService.generateDeviceRefreshToken(deviceOwner);
 
         return AuthDeviceResponse.builder()
@@ -82,7 +82,7 @@ public class AuthDeviceService
             throw new InvalidTokenException("Invalid refresh token");
         }
 
-        String deviceToken = jwtService.generateDeviceAccessToken(deviceOwner.getEmail(), deviceUUID);
+        String deviceToken = jwtService.generateDeviceAccessToken(deviceOwner, deviceUUID);
 
         return AuthDeviceAccessTokenResponse.builder()
                 .refreshedAccessToken(deviceToken)
