@@ -6,7 +6,7 @@ final class AuthService {
     private init() {}
     
     func login(email: String, password: String, appState: AppState, completion: @escaping (Bool, String) -> Void) {
-        guard let url = URL(string: "http://192.168.0.9:8080/api/v1/auth/login") else {
+        guard let url = URL(string: "http://192.168.0.7:8080/api/v1/auth/login") else {
             completion(false, "Nieprawidłowy URL")
             return
         }

@@ -1,6 +1,7 @@
 package com.kacper.iot_backend.jwt;
 
 import com.kacper.iot_backend.exception.NotDeviceTokenException;
+import com.kacper.iot_backend.user.User;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import org.springframework.beans.factory.annotation.Value;
@@ -8,8 +9,6 @@ import org.springframework.core.io.Resource;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
-import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -21,7 +20,6 @@ import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.Base64;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.function.Function;
 import java.util.logging.Logger;
 
@@ -32,6 +30,7 @@ public class JWTService
 //    private final SecretKey secretKey;
     private final PrivateKey privateKey;
     private static final long EXPIRATION_TIME = 864000000;
+    private static final long REFRESH_TOKEN_EXPIRATION = 1000L * 60 * 60 * 24 * 7 * 2;
     private final static Logger logger = Logger.getLogger(JWTService.class.getName());
 
     /**
@@ -67,10 +66,11 @@ public class JWTService
                 .compact();
     }
 
-    // Strange method but it is used in the project xD
-    public String generatePermanentDeviceToken(String email, String deviceUuid) {
+    public String generateDeviceAccessToken(User deviceOwner, String deviceUuid) {
         return Jwts.builder()
-                .setSubject(email)
+                .setSubject(deviceOwner.getUsername())
+                .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
+                .claim("user_id", deviceOwner.getId())
                 .claim("isDevice", true)
                 .claim("deviceUuid", deviceUuid)
                 .setIssuedAt(new Date(System.currentTimeMillis()))
@@ -79,19 +79,36 @@ public class JWTService
     }
 
     /**
-     * @param claims claims
      * @param userDetails user details
      * @return generated refresh token with claims, subject, issuedAt, expiration and signed with secret key
      */
-    public String generateRefreshToken(HashMap<String, Object> claims, UserDetails userDetails) {
+    public String generateDeviceRefreshToken(UserDetails userDetails) {
         return Jwts.builder()
-                .setClaims(claims)
                 .setSubject(userDetails.getUsername())
                 .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
+                .setExpiration(new Date(System.currentTimeMillis() + REFRESH_TOKEN_EXPIRATION))
+                .claim("isRefresh", true)
                 .signWith(privateKey)
                 .compact();
     }
+
+    public boolean isRefreshTokenValid(String token) {
+        try {
+            Claims claims = extractAllClaims(token);
+
+            Boolean isRefreshToken = claims.get("isRefresh", Boolean.class);
+            if (isRefreshToken == null || !isRefreshToken) {
+                logger.info("\n\n isRefreshToken is null or false\n\n");
+                return false;
+            }
+
+            return !isTokenExpired(token);
+        } catch (Exception e) {
+            logger.info("\n\n isRefreshTokenValid exception\n\n");
+            return false;
+        }
+    }
+
 
     private <T> T extractClaim(String token, Function<Claims, T> claimsTFunction) {
         logger.info("\nExtracting claim from token: " + token);

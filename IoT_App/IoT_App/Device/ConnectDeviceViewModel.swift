@@ -2,7 +2,7 @@ import Foundation
 import Network
 
 class ConnectDeviceViewModel: ObservableObject {
-    @Published var devices: [Device] = [] // Lista urządzeń mDNS
+    @Published var devices: [Device] = []
 
     private var browser: NWBrowser?
 
@@ -11,12 +11,10 @@ class ConnectDeviceViewModel: ObservableObject {
     }
 
     func startBrowsing() {
-        // Poproś o uprawnienia do sieci lokalnej (opcjonalne, jeśli już dodane w Info.plist)
         requestLocalNetworkPermission()
 
-        // Konfiguracja przeglądarki mDNS
         let parameters = NWParameters()
-        parameters.includePeerToPeer = true // Dodaje obsługę komunikacji Peer-to-Peer
+        parameters.includePeerToPeer = true
 
         browser = NWBrowser(for: .bonjour(type: "_http._tcp.", domain: nil), using: parameters)
 
@@ -74,7 +72,6 @@ class ConnectDeviceViewModel: ObservableObject {
     }
 }
 
-// Model danych dla urządzenia mDNS
 struct Device: Identifiable, Hashable {
     let id = UUID()
     let name: String
