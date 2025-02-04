@@ -1,58 +1,67 @@
 import cv2
 import time
 from on_movement import on_movement
-import os
+from config import get_video_source
 
-# time when the last movement was processed 
+videosrc = get_video_source()
+
+# Time tracking
 last_detected_movement = 0
+start_time = time.time()
 
-COOLDOWN_PERIOD = 15  
+COOLDOWN_PERIOD = 5
+INITIAL_IGNORE_PERIOD = 5  # Ignore first few seconds
+FRAME_SKIP = 6  # Process every 6th frame (~5 FPS if source is 30 FPS)
+TARGET_WIDTH, TARGET_HEIGHT = 320, 240  # Reduce resolution
 
-def update_last_detected_movement():
-    global last_detected_movement
-    last_detected_movement = time.time()
-
-# initialize source
-videosrc = None
-if os.environ.get("MV_DEBUG") == "1":
-    videosrc = 0
-else:
-    videosrc = "udp://127.0.0.1:10000"
-
-
-# Sum-of-contours threshold above which something suspicious might happen 
-THRESHOLD_ALERT = 10000
+THRESHOLD_ALERT = 20000
 THRESHOLD_TOO_SMALL = 300
 
+cap = cv2.VideoCapture(videosrc)
+cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
 
-cap = cv2.VideoCapture(videosrc, )
 back_sub = cv2.createBackgroundSubtractorMOG2(detectShadows=False, history=5)
 
+if not cap.isOpened():
+    print("Cannot open camera")
+    exit()
+
+frame_count = 0
 
 while True:
     ret, frame = cap.read()
     if not ret:
         break
 
-    fg_mask = back_sub.apply(frame)
+    frame_count += 1
 
-    # Clean up the mask with morphological operations
+    # Skip frames to achieve ~5 FPS
+    if frame_count % FRAME_SKIP != 0:
+        continue
+
+    # Reduce resolution
+    frame = cv2.resize(frame, (TARGET_WIDTH, TARGET_HEIGHT))
+
+    fg_mask = back_sub.apply(frame)
+    
+    # Clean up the mask
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
     fg_mask = cv2.morphologyEx(fg_mask, cv2.MORPH_CLOSE, kernel)
     fg_mask = cv2.morphologyEx(fg_mask, cv2.MORPH_OPEN, kernel)
-
-    # Find contours of the detected foreground regions
+    
+    # Find contours of detected movement
     contours, _ = cv2.findContours(fg_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    changed_area = sum(cv2.contourArea(contour) for contour in contours)
 
-    changed_area = sum([cv2.contourArea(contour) for contour in contours])
-    if changed_area > THRESHOLD_ALERT:
-        if time.time() - last_detected_movement > COOLDOWN_PERIOD:
-            update_last_detected_movement()
-            on_movement()
-        else:        
-            update_last_detected_movement()
+    if time.time() - start_time < INITIAL_IGNORE_PERIOD:
+        continue
 
-    if cv2.waitKey(30) & 0xFF == ord('q'):
+    if changed_area > THRESHOLD_ALERT and time.time() - last_detected_movement > COOLDOWN_PERIOD:
+        last_detected_movement = time.time()
+        if on_movement() is None:
+            break
+
+    if cv2.waitKey(1) & 0xFF == ord('q'):  # Reduce delay in waitKey
         break
 
 cap.release()

@@ -15,4 +15,9 @@ pub(crate) struct Config {
     /// Do not log
     #[clap(long, action, default_value_t = false)]
     pub silent: bool,
+
+    /// Token override. If specified, it will use the provided device token.
+    /// Otherwise, will try to read from /etc/sss_firmware/token.txt
+    #[clap(long, short)]
+    pub token: Option<String>,
 }

@@ -1,5 +1,3 @@
-use std::io::Read;
-
 const STREAM_BUFFER_SIZE: usize = 1024 * 512; // 0.5MB just in case
 /// General purpose buffer for stream. Prevents from sending very small or large packets via WebSockets.
 /// ## Panics
@@ -29,7 +27,10 @@ impl StreamBuffer {
                 self.head += bytes_read;
                 Ok(bytes_read)
             }
-            Err(e) => Err(e.into()),
+            Err(e) => {
+                tracing::error!("Stream error: {e}");
+                Err(e.into())
+            }
         }
     }
 

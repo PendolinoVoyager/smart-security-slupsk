@@ -2,7 +2,7 @@ import { addCredentials, getToken } from "../authUtils";
 import { fetchSafe } from "../http/fetch";
 
 const ENDPOINT = "http://localhost:8080/api/v1/notification";
-const PAGE_SIZE = 3;
+const PAGE_SIZE = 15;
 
 export type NotificationResponse = {
   page: number;

@@ -2,16 +2,7 @@
 pre-build = [
     "dpkg --add-architecture $CROSS_DEB_ARCH",
     "apt-get update",
-    """apt-get install --assume-yes \
-        libglib2.0-dev:$CROSS_DEB_ARCH \
-        libgstreamer1.0-dev:$CROSS_DEB_ARCH \
-        libgstreamer-plugins-base1.0-dev:$CROSS_DEB_ARCH \
-        gstreamer1.0-plugins-base:$CROSS_DEB_ARCH \
-        gstreamer1.0-plugins-good:$CROSS_DEB_ARCH \
-        gstreamer1.0-plugins-bad:$CROSS_DEB_ARCH \
-        gstreamer1.0-plugins-ugly:$CROSS_DEB_ARCH \
-        gstreamer1.0-libav:$CROSS_DEB_ARCH \
-        libgstrtspserver-1.0-dev:$CROSS_DEB_ARCH \
-    """
-]
+    "apt-get upgrade --assume-yes",
+    "apt-get --assume-yes install libssl-dev:$CROSS_DEB_ARCH"
 
+]

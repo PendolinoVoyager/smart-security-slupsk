@@ -1,27 +1,45 @@
-# Rust Firmware Kickstart Binary Crate
+# Streaming Client 
+## Overview
 
-This crate provides a simple Rust-based binary to kickstart the firmware, handle video streaming to localhost UDP, and forward the stream to a remote server.
+The streaming client is a lightweight component responsible for connecting to a streaming server and forwarding media streams via whatever communication protocol is used at the moment. It acts as a bridge between a local video pipeline (GStreamer as of Jan. 2025) and the central streaming server.
+Features
 
----
+- No reconnections, any failure in pipeline will early return.
 
-## Features
+- stream ingestion from local pipeline (works on raw bytes)
 
-- **UDP Video Stream:** Pipes a video stream to `localhost` over UDP.
-- **Server Forwarding:** Streams the video feed to a remote server.
-- **Lightweight and Fast:** Built using Rust for optimal performance and low latency.
+- Diagnostic logging with adjustable verbosity
 
----
+- Binary data streaming with efficiency and simplicity in mind
 
-### Building the Crate
+## Prerequisites
 
-Clone the repository and build the crate with provided build.sh.
-The build tool requires Docker to run.
-You can deploy the firmware to local development device with deploy.sh.
+    Rust 1.70+ (with Cargo)
 
----
+    GStreamer 1.20+ with development libraries
 
-## Additional Notes
+    Tokio runtime
 
-- Ensure that the streaming server is ready to accept the video stream before starting the binary.
+    Access to device credentials (token) in the file or with manual override
 
----
+
+## Usage
+
+Firstly:    **Start video pipeline with a shell script provided in firmware module**.
+
+Then, run via command-line arguments, either manually or as an automated service:
+```bash
+./ws-stream --addr ws://server:port [--silent]
+```
+
+Error Handling
+
+The client simply shuts down when anything goes wrong. It isn't ideally by any means \
+but the binary can be simplified that way. The logic responsible for reconnection \
+can be outsourced to more convinient solutions..
+
+## Build process
+Build the binary via build.sh script provided. This will cross-compile to the product's architecture (ARM64 as for Jan 2025). \
+It requires docker to run. \
+If by some reason the cross-compilation fails, check Cross.toml. \
+You may add an additional step to install any dependencies needed for the build.

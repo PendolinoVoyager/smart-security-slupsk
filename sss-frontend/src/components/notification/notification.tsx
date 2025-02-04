@@ -31,7 +31,7 @@ const NotificationComponent: React.FC<NotificationComponentProps> = function ({
       </ListItemAvatar>
       <ListItemText
         primary={notification.type}
-        secondary={notification.message}
+        secondary={`${notification.message} - ${notification.timestamp}`}
       />
     </ListItem>
   );

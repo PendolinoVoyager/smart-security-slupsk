@@ -1,30 +1,39 @@
-# HTTP and WebSocket Server
+# Streaming Server
 
-## Overview
+## Purpose
 
-This project is a hybrid HTTP and WebSocket server designed to coordinate end devices with WebSocket clients for real-time video streaming. Built in Tokio runtime, aiming for highest performance. 
+Acts as a central gateway for:
 
-## Features TODO
-Major:
+- Edge Devices - Receive real-time media streams and manage sessions
 
-- **Unified Runtime**: Combines HTTP and WebSocket servers in a single Tokio runtime, sharing the same `AppContext`.
-- **Real-time Coordination**: Facilitates communication between WebSocket clients and end devices to establish video streams.
-- **Authentication**: Add client authentication for secure access.
+- Browser Clients - Distributes streams through WebSocket-backed web interfaces
 
-Minor:
-- **Stream Playback**: Saves the last video stream for retrospective playback.
-- **Metrics and Monitoring**: Include metrics for server performance and usage statistics.
+- System Services - Provides methods for stream getting media stream from the devic
 
-## Architecture
+Serves as the coordination layer between physical devices and web-based consumers while maintaining session state across the ecosystem.
 
-- **AppContext**: Centralized context shared across the HTTP and WebSocket servers to maintain state and configurations, database connections.
-- **HTTP Server**: Handles REST API requests for client interactions and administrative tasks (example: get list of devices you are authorized to view).
-- **WebSocket Server**: Manages bi-directional communication with clients for real-time streaming.
+## Key Features
 
+- Dual-Mode Server - Unified HTTP/WebSocket engine using Rust's async capabilities
 
-### HTTP Endpoints
+- Session Orchestration - Redis-backed device/client session tracking
 
-| Endpoint         | Method | Description                      |
-|------------------|--------|----------------------------------|
-| `/hello`         | GET    | Get some metrics                 |
+- Stream Bridging - Protocol translation between stream ingest and distribution
 
+- Auth Gateway - Centralized authentication for both devices and end-users
+
+- Scalable Core - Tokio-based architecture for high-concurrency workloads
+
+- Observability - Built-in metrics endpoints and logging integration (Loki and Graphana stack)
+
+## Architecture Overview
+
+mermaid
+Copy
+
+graph TD
+EdgeDevice -->|WebSocket| Server
+Browser -->|HTTP/WS| Server
+Server -->|Session Data| Redis[(Redis)]
+Server -->|API| BackendServices
+Server -->|Metrics| Monitoring

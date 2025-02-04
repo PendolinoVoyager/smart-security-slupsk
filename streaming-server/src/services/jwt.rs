@@ -41,6 +41,8 @@
 
 use chrono::Utc;
 use jsonwebtoken::DecodingKey;
+use serde_json::Value;
+use std::collections::HashMap;
 use std::ptr::null_mut;
 
 static mut DECODING_KEY: *mut DecodingKey = null_mut();
@@ -89,6 +91,16 @@ pub fn verify_user(token: &str) -> anyhow::Result<UserJWTClaims> {
         .claims)
     }
 }
+pub fn verify_device(token: &str) -> anyhow::Result<HashMap<String, Value>> {
+    unsafe {
+        Ok(jsonwebtoken::decode(
+            token,
+            DECODING_KEY.as_ref_unchecked(),
+            VALIDATION.as_ref_unchecked(),
+        )?
+        .claims)
+    }
+}
 /// Trim the bearer part sand return the token.
 pub fn parse_authorization_header(auth_header_value: &str) -> Option<&str> {
     auth_header_value.strip_prefix("Bearer ")
@@ -106,7 +118,8 @@ mod tests {
 
     /// Using RS256 for hashing
     /// Test token signed with the corresponding private key to the test pub key
-    const TEST_TOKEN: &str = "eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJhZG1pbkBleGFtcGxlLmNvbSIsImlhdCI6MTczNjM0MDkzMSwiZXhwIjoxNzM3MjA0OTMxfQ.mpKdw5IwOQKIHbWAWKpgQ9eIVmdJdVMxgzGpiyNqqkKBBj7ZcbuwbydSaNLwEcG0LacYF_POt-IE2P5N9WFQUhC_w3TkPA75peZZCsjAV5HB5E7Ef_0_aMfsY1qQtECJR3A2A6i7eLhLWmB-iWMwVNcsN7rbEYA3E4XlIHTEgicqE3bccUTyzHgRkVWburmIbgKut9PrVuCOd6w7i9MDIa5EbtpM-FZVqr3s-I40dCtQKDbu-tzNcHYYLGsxra7QI3VLtXM6WVUTsTLQMiIPXQte2HrPMz46uh5VpBa1O-qcCLQX18oIdywpVwiAAbQ7mPfFePMJDuuYTZa31aaBBw";
+    const TEST_TOKEN_USER: &str = "eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJhZG1pbkBleGFtcGxlLmNvbSIsImlhdCI6MTczNjM0MDkzMSwiZXhwIjoxNzM3MjA0OTMxfQ.mpKdw5IwOQKIHbWAWKpgQ9eIVmdJdVMxgzGpiyNqqkKBBj7ZcbuwbydSaNLwEcG0LacYF_POt-IE2P5N9WFQUhC_w3TkPA75peZZCsjAV5HB5E7Ef_0_aMfsY1qQtECJR3A2A6i7eLhLWmB-iWMwVNcsN7rbEYA3E4XlIHTEgicqE3bccUTyzHgRkVWburmIbgKut9PrVuCOd6w7i9MDIa5EbtpM-FZVqr3s-I40dCtQKDbu-tzNcHYYLGsxra7QI3VLtXM6WVUTsTLQMiIPXQte2HrPMz46uh5VpBa1O-qcCLQX18oIdywpVwiAAbQ7mPfFePMJDuuYTZa31aaBBw";
+    const TEST_TOKEN_DEVICE: &str = "eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJhZG1pbkBleGFtcGxlLmNvbSIsImlzRGV2aWNlIjp0cnVlLCJkZXZpY2VVdWlkIjoiRGVmYXVsdF9VVUlEIiwiaWF0IjoxNzM4MDAxOTI2fQ.vG6uiRnPWKnKZLi5mVLZNuFhKq8hUb1r0kqf-qjsazGyyvRdIMEM67yDYtdJ9gehUXtcuaObW6XO0AaiJPkz5Mjk_fdyRPOUvw-6FEjanV4r2jFLh79dSt2dFGcD0IOuEsS5j9WJvR9e_hUB7YbykpF17YgNvPnBwDsErT-P9NrOj9Hp8u3xIvlzs4RJ4ypwYi6rQleQwiXFwpS5qdXg1M8lZM6CJNSNdEzew1ab8Y25F3Ynd_VxoWjfj2kElinWh7H28NP8FJpibHqKo5CbYvSeLwR6tFP6scnGQR-zUZ063D3jA1fk5VLNHaYciaWTdCkHxZug7pxz6lvQFIemCA";
 
     /// Data:
     ///  { iat: 1736340931, exp: 1737204931, sub: "admin@example.com" }
@@ -127,7 +140,7 @@ OQIDAQAB
     #[test]
     fn test_token_verify_user() {
         super::_init(TEST_PUB_KEY).unwrap();
-        let res = super::verify_user(TEST_TOKEN).unwrap();
+        let res = super::verify_user(TEST_TOKEN_USER).unwrap();
 
         assert_eq!(res.exp, TEST_EXP);
         assert_eq!(res.iat, TEST_IAT);
@@ -137,7 +150,13 @@ OQIDAQAB
     fn test_token_expiry() {
         super::_init(TEST_PUB_KEY).unwrap();
 
-        let claims = super::verify_user(TEST_TOKEN).unwrap();
-        assert!(!claims.is_expired())
+        let claims = super::verify_user(TEST_TOKEN_USER).unwrap();
+        assert!(claims.is_expired())
+    }
+    #[test]
+    fn test_token_verify_device() {
+        super::_init(TEST_PUB_KEY).unwrap();
+        let res = super::verify_device(TEST_TOKEN_DEVICE).unwrap();
+        eprintln!("{res:#?}");
     }
 }

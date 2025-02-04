@@ -1,0 +1,12 @@
+[Unit]
+Description=Start Video Stream for the system
+
+[Service]
+ExecStart=/usr/local/lib/sss_firmware/init_stream_multicast.sh
+Restart=always
+User=sss_dev
+WorkingDirectory=/usr/local/lib/sss_firmware/
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

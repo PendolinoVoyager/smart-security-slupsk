@@ -1,0 +1,13 @@
+[Unit]
+Description= MV Service
+After=network-online.target stream-multicast.service
+Wants=network-online.target stream-multicast.service
+
+[Service]
+ExecStart=/usr/bin/python3 /home/sssdev/test_stream/py/main.py --server_addr 192.168.8.124:8080
+Restart=always
+User=sssdev
+WorkingDirectory=/home/sssdev/test_stream/py/
+
+[Install]
+WantedBy=multi-user.target

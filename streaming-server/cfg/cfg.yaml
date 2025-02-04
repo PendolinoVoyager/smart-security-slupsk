@@ -13,12 +13,12 @@ development:
  
   http:
     addr: "127.0.0.1"
-    port: 8000
+    port: 9000
     cors-allow-origin: "*"
 
   ws:
-    addr: "127.0.0.1"
-    port: 8080
+    addr: "192.168.8.124"
+    port: 9080
 
 production:
   log: "verbose"

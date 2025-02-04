@@ -1,7 +1,7 @@
 import { addCredentials } from "../authUtils";
 import { fetchSafe, HttpError } from "../http/fetch";
 
-const STREAMING_SERVER_URL = "http://127.0.0.1:8000/";
+const STREAMING_SERVER_URL = "http://127.0.0.1:9000/";
 type StreamsResponse = {
   status: string;
   payload: string | { count: number; available: StreamsResponseDevice[] };
