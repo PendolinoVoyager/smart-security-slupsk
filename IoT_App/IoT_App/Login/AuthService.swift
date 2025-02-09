@@ -6,8 +6,8 @@ final class AuthService {
     private init() {}
     
     func login(email: String, password: String, appState: AppState, completion: @escaping (Bool, String) -> Void) {
-        guard let url = URL(string: "http://192.168.0.7:8080/api/v1/auth/login") else {
-            completion(false, "Nieprawidłowy URL")
+        guard let url = URL(string: "http://192.168.0.4:8080/api/v1/auth/login") else {
+            completion(false, "Invalid request URL.")
             return
         }
         
@@ -23,21 +23,21 @@ final class AuthService {
         do {
             request.httpBody = try JSONSerialization.data(withJSONObject: body, options: [])
         } catch {
-            completion(false, "Nie udało się utworzyć ciała zapytania.")
+            completion(false, "Invalid request body.")
             return
         }
         
         let task = URLSession.shared.dataTask(with: request) { data, response, error in
             if let error = error {
                 DispatchQueue.main.async {
-                    completion(false, "Błąd sieci: \(error.localizedDescription)")
+                    completion(false, "Network error: \(error.localizedDescription)")
                 }
                 return
             }
             
             guard let data = data else {
                 DispatchQueue.main.async {
-                    completion(false, "Brak danych w odpowiedzi.")
+                    completion(false, "Invalid response.")
                 }
                 return
             }
@@ -45,27 +45,25 @@ final class AuthService {
             do {
                 if let json = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any],
                    let token = json["token"] as? String,
-                   let username = json["email"] as? String { // Odczytujemy nazwę użytkownika
+                   let username = json["email"] as? String {
                     
-                    // Zapis tokena w Keychain
                     KeychainHelper.shared.save(key: "authToken", value: token)
                     
-                    // Zapis nazwy użytkownika w UserDefaults
                     UserDefaults.standard.set(username, forKey: "username")
                     
                     DispatchQueue.main.async {
                         appState.isLoggedIn = true
-                        appState.username = username // Przechowujemy nazwę użytkownika w stanie
-                        completion(true, "Zalogowano pomyślnie!")
+                        appState.username = username
+                        completion(true, "Success!")
                     }
                 } else {
                     DispatchQueue.main.async {
-                        completion(false, "Niekompletna odpowiedź serwera.")
+                        completion(false, "Invalid response.")
                     }
                 }
             } catch {
                 DispatchQueue.main.async {
-                    completion(false, "Błąd parsowania odpowiedzi: \(error.localizedDescription)")
+                    completion(false, "Invalid data.")
                 }
             }
         }

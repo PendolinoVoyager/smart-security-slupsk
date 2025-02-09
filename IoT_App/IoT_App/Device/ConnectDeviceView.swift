@@ -19,7 +19,7 @@ struct ConnectDeviceView: View {
                 
                 VStack(spacing: 20) {
                     if viewModel.devices.isEmpty {
-                        Text("Szukam urządzeń...")
+                        Text("Looking for devices...")
                             .font(.headline)
                             .foregroundColor(.gray)
                     } else {
