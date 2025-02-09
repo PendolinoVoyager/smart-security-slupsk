@@ -1,170 +1,228 @@
 import ipaddress
 import time
-from contextlib import nullcontext
-
 import requests
-from scapy.layers.ntp import NTPInfoPeerList
 from zeroconf import Zeroconf, ServiceBrowser
-
 from mDNS import MDNSListener
 
 RESET = "\033[0m"
 GREEN = "\033[92m"
 RED = "\033[91m"
 WHITE = "\033[97m"
+YELLOW = "\033[93m"
 
-def backend_ip_set_up() -> str:
-    backend_ip: str = input(f"{WHITE}Enter Backend Server IP (f.e 192.168.0.10): {RESET}")
-    try:
-        ipaddress.ip_address(backend_ip)
-        print(f"{GREEN}[OK]{RESET} Backend IP: {backend_ip}")
-    except ValueError:
-        print(f"{RED}[ERROR]{RESET} Invalid IP address: {backend_ip}")
-        backend_ip = backend_ip_set_up()
 
-    return backend_ip
+def colored_print(color, message: str) ->None:
+    print(f"{color}{message}{RESET}")
+
+
+def get_backend_ip() -> str:
+    while True:
+        backend_ip = input(f"{WHITE}Enter Backend Server IP (e.g., 192.168.0.10): {RESET}")
+        try:
+            ipaddress.ip_address(backend_ip)
+            colored_print(GREEN, f"[OK] Backend IP: {backend_ip}")
+            return backend_ip
+        except ValueError:
+            colored_print(RED, f"[ERROR] Invalid IP address: {backend_ip}")
 
 
 def discover_devices(service_type="_http._tcp.local.", timeout=5):
     zeroconf = Zeroconf()
     listener = MDNSListener()
     ServiceBrowser(zeroconf, service_type, listener)
-
-    print(f"{WHITE}\n[INFO] Searching for mDNS devices...{RESET}")
+    colored_print(WHITE, "\n[INFO] Searching for mDNS devices...")
     time.sleep(timeout)
     zeroconf.close()
-
     return listener.get_devices()
 
 
-def is_device_available(device_list) -> bool:
-    return bool(device_list)
-
 def print_menu() -> None:
-    print(f"{WHITE}\nMain Menu:{RESET}")
-    print("[1] Search for devices")
-    print("[2] Devices list")
-    print("[3] Select device to configure")
-    print("[4] Switch WIFI")
-    print("[99] Exit")
+    menu_options = [
+        "\nMain Menu:",
+        "[1] Search for devices",
+        "[2] Devices list",
+        "[3] Select device to configure",
+        "[4] Switch WIFI",
+        "[5] Authenticate device",
+        "[99] Exit"
+    ]
+    colored_print(RESET, "\n".join(menu_options))
 
 
 def search_for_devices() -> list:
     devices = discover_devices()
-    if not devices:
-        print(f"{RED}[ERROR]{RESET} No mDNS devices found.")
-        return []
-    print(f"{GREEN}[OK!]{RESET} mDNS device found!")
+    if devices:
+        colored_print(GREEN, "[OK!] mDNS devices found!")
+    else:
+        colored_print(RED, "[ERROR] No mDNS devices found.")
     return devices
 
 
-def check_devices_list(devices: list) -> bool:
+def print_devices_list(devices) -> None:
     if not devices:
-        print(f"{RED}[ERROR]{RESET} No devices found.")
-        return False
-    return True
+        colored_print(RED, "[ERROR] No devices found.")
+        return
 
-
-def print_devices_list(devices: list) -> None:
     for idx, device in enumerate(devices):
         print(f"{idx}. {device['name']} - {device['addresses'][0]}")
 
 
-def check_selected_device(selected_device: str, devices: list) -> bool:
-    if int(selected_device) < 0 or int(selected_device) >= len(devices):
-        print(f"{RED}[ERROR]{RESET} Invalid device index.")
-        return False
-    return True
+def select_device(devices) -> int | None:
+    if not devices:
+        colored_print(RED, "[ERROR] No devices found.")
+        return None
+
+    print_devices_list(devices)
+    try:
+        selected_index = int(input("Enter device index: "))
+        if 0 <= selected_index < len(devices):
+            colored_print(GREEN, f"[OK] Selected device: {devices[selected_index]['name']}")
+            return selected_index
+        else:
+            colored_print(RED, "[ERROR] Invalid device index.")
+    except ValueError:
+        colored_print(RED, "[ERROR] Invalid input. Please enter a number.")
+    return None
+
+
+def switch_wifi(devices, selected_device) -> None:
+    if selected_device is None:
+        colored_print(RED, "[ERROR] No device selected. Please select a device first.")
+        return
+
+    device_ip = devices[selected_device]['addresses'][0]
+    url = f"http://{device_ip}:5000/api/v1/available-networks"
+
+    try:
+        response = requests.get(url, timeout=5)
+        response.raise_for_status()
+        networks = response.json().get("networks", [])
+
+        if not networks:
+            colored_print(RED, "[ERROR] No networks found.")
+            return
+
+        colored_print(GREEN, "[OK] Available networks:")
+        for idx, network in enumerate(networks):
+            print(f"[{idx}] {network.get('ssid', 'Unknown')} (Signal: {network.get('signal_strength', 'N/A')})")
+
+        try:
+            selected_network = int(input("\nSelect network by index: "))
+            if 0 <= selected_network < len(networks):
+                chosen_ssid = networks[selected_network]["ssid"]
+                colored_print(GREEN, f"[OK] You selected: {chosen_ssid}")
+                wifi_pass = input("Enter WIFI password: ")
+
+                config_url = f"http://{device_ip}:5000/api/v1/config"
+                data = {"ssid": chosen_ssid, "password": wifi_pass}
+                colored_print(WHITE, f"[INFO] Switching WIFI to {chosen_ssid}")
+
+                try:
+                    requests.post(config_url, json=data, timeout=5)
+                except requests.exceptions.ConnectionError:
+                    colored_print(RED, f"[ERROR] Could not connect to {device_ip}. Is the device online?")
+            else:
+                colored_print(RED, "[ERROR] Invalid selection. Please try again.")
+        except ValueError:
+            colored_print(RED, "[ERROR] Invalid input. Please enter a number.")
+    except requests.exceptions.RequestException as e:
+        colored_print(RED, f"[ERROR] Network error: {e}")
+
+
+def authenticate_device(devices, selected_device, backend_ip) -> None:
+    if selected_device is None:
+        colored_print(RED, "[ERROR] No device selected. Please select a device first.")
+        return
+
+    device_ip = devices[selected_device]['addresses'][0]
+    url = f"http://{device_ip}:5000/api/v1/uuid"
+    response = requests.get(url, timeout=5)
+    response.raise_for_status()
+    device_uuid = response.json().get("uuid")
+
+    if not device_uuid:
+        colored_print(RED, "[ERROR] Could not get device UUID.")
+        return
+
+    colored_print(GREEN, f"[OK] Device UUID: {device_uuid}")
+
+    colored_print(YELLOW, "\n[WARNING] Device must belong to an account.")
+    email = input("Enter account email: ")
+    password = input("Enter account password: ")
+
+    auth_url = f"http://{backend_ip}:8080/api/v1/auth/device"
+    data = {
+        "deviceUuid": device_uuid,
+        "email": email,
+        "password": password
+    }
+
+    try:
+        colored_print(WHITE, f"[INFO] Request has been sent to backend.")
+        response = requests.post(auth_url, json=data, timeout=5)
+        response.raise_for_status()
+    except requests.exceptions.RequestException as e:
+        colored_print(RED, f"[ERROR] Network error: {e}")
+
+    is_ok = response.status_code == 200 and response.json().get("token") is not None and response.json().get(
+        "refreshToken") is not None
+
+    if is_ok:
+        colored_print(GREEN, "[OK] Fetched tokens.")
+    else:
+        colored_print(RED, "[ERROR] Device authentication failed.")
+        return
+
+    rpi_token_url = f"http://{device_ip}:5000/api/v1/token"
+    rpi_data = {
+        "token": response.json().get("token"),
+        "refreshToken": response.json().get("refreshToken")
+        }
+    try:
+        response = requests.post(rpi_token_url, json=rpi_data, timeout=5)
+        colored_print(GREEN, "[OK] Tokens sent to device.")
+
+        if response.status_code == 200:
+            colored_print(GREEN, "[OK] Device authenticated successfully!!!!!!.")
+
+
+    except requests.exceptions.RequestException as e:
+        colored_print(RED, f"[ERROR] Network error: {e}")
+
+
+
+
 
 def main() -> None:
-    print(f"{WHITE}\nRPI QUICK CONFIGURATION{RESET}")
-
-    backend_ip: str = backend_ip_set_up()
-    devices: list = []
-    selected_device: str = ""
+    colored_print(WHITE, "\nRPI QUICK CONFIGURATION")
+    backend_ip = get_backend_ip()
+    devices = []
+    selected_device = None
 
     while True:
         print_menu()
-        choice: str = input("Choose an option: ")
+        choice = input("Choose an option: ")
 
         match choice:
             case "1":
                 devices = search_for_devices()
-
             case "2":
-                print(f"{WHITE}\n[INFO] Devices list:{RESET}")
-                if not check_devices_list(devices):
-                    continue
+                colored_print(WHITE, "\n[INFO] Devices list:")
                 print_devices_list(devices)
-
             case "3":
-                print(f"{WHITE}\n[INFO] Configure device:{RESET}")
-                if not check_devices_list(devices):
-                    continue
-                print(f"{WHITE}[INFO]{RESET} Choose device to configure:")
-                print_devices_list(devices)
-                selected_device = input("Enter device index: ")
-                if not check_selected_device(selected_device, devices):
-                    continue
-                print(f"{GREEN}[OK]{RESET} Selected device: {devices[int(selected_device)]['name']}")
-
+                colored_print(WHITE, "\n[INFO] Configure device:")
+                selected_device = select_device(devices)
             case "4":
-                print(f"{WHITE}\n[INFO] Switch WIFI:{RESET}")
-                if not selected_device:
-                    print(f"{RED}[ERROR]{RESET} No device selected. Please select a device first.")
-                    continue
-
-                try:
-                    device_ip = devices[int(selected_device)]['addresses'][0]
-                    url = f"http://{device_ip}:5000/api/v1/available-networks"
-                    response = requests.get(url, timeout=5)
-                    response.raise_for_status()
-
-                    networks = response.json().get("networks", [])
-
-                    if not networks:
-                        print(f"{RED}[ERROR]{RESET} No networks found.")
-                        continue
-
-                    print(f"{GREEN}[OK]{RESET} Available networks:\n")
-
-                    for idx, network in enumerate(networks):
-                        ssid = network.get("ssid", "Unknown")
-                        signal = network.get("signal_strength", "N/A")
-                        print(f"{WHITE}[{idx}] {ssid} (Signal: {signal}){RESET}")
-
-                    selected_network: str = input("\nSelect network by index: ")
-
-                    if not selected_network.isdigit() or int(selected_network) < 0 or int(selected_network) >= len(
-                            networks):
-                        print(f"{RED}[ERROR]{RESET} Invalid selection. Please try again.")
-                        continue
-
-                    chosen_ssid = networks[int(selected_network)]["ssid"]
-                    print(f"{GREEN}[OK]{RESET} You selected: {chosen_ssid}")
-                    wifi_pass: str = input("Enter WIFI password: ")
-                    url: str = f"http://{device_ip}:5000/api/v1/config"
-                    data: dict[str, str] = {"ssid": chosen_ssid, "password": wifi_pass}
-                    print(f"{WHITE}[INFO]{RESET} Switch your WIFI to {chosen_ssid}")
-                    try:
-                        requests.post(url, json=data, timeout=5)
-                    except requests.exceptions.ConnectionError:
-                        print(f"{RED}[ERROR]{RESET} Could not connect to {device_ip}. Is the device online?")
-                        continue
-
-                except requests.exceptions.ConnectionError:
-                    print(f"{RED}[ERROR]{RESET} Could not connect to {devices[int(selected_device)]['addresses'][0]}. Is the device online?")
-                except requests.exceptions.Timeout:
-                    print(f"{RED}[ERROR]{RESET} Connection timed out.")
-                except requests.exceptions.HTTPError as e:
-                    print(f"{RED}[ERROR]{RESET} HTTP Error: {e}")
-
+                colored_print(WHITE, "\n[INFO] Switch WIFI:")
+                switch_wifi(devices, selected_device)
+            case "5":
+                colored_print(WHITE, "\n[INFO] Authenticate Device:")
+                authenticate_device(devices, selected_device, backend_ip)
             case "99":
-                print(f"{GREEN}[INFO]{RESET} Exiting...")
+                colored_print(GREEN, "[INFO] Exiting...")
                 break
-
             case _:
-                print(f"{RED}[ERROR]{RESET} Invalid choice. Try again.\n")
+                colored_print(RED, "[ERROR] Invalid choice. Try again.\n")
 
 
 if __name__ == '__main__':
