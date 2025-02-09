@@ -1,7 +1,9 @@
 import ipaddress
 import time
+from contextlib import nullcontext
 
 import requests
+from scapy.layers.ntp import NTPInfoPeerList
 from zeroconf import Zeroconf, ServiceBrowser
 
 from mDNS import MDNSListener
@@ -35,7 +37,44 @@ def discover_devices(service_type="_http._tcp.local.", timeout=5):
     return listener.get_devices()
 
 
+def is_device_available(device_list) -> bool:
+    return bool(device_list)
 
+def print_menu() -> None:
+    print(f"{WHITE}\nMain Menu:{RESET}")
+    print("[1] Search for devices")
+    print("[2] Devices list")
+    print("[3] Select device to configure")
+    print("[4] Switch WIFI")
+    print("[99] Exit")
+
+
+def search_for_devices() -> list:
+    devices = discover_devices()
+    if not devices:
+        print(f"{RED}[ERROR]{RESET} No mDNS devices found.")
+        return []
+    print(f"{GREEN}[OK!]{RESET} mDNS device found!")
+    return devices
+
+
+def check_devices_list(devices: list) -> bool:
+    if not devices:
+        print(f"{RED}[ERROR]{RESET} No devices found.")
+        return False
+    return True
+
+
+def print_devices_list(devices: list) -> None:
+    for idx, device in enumerate(devices):
+        print(f"{idx}. {device['name']} - {device['addresses'][0]}")
+
+
+def check_selected_device(selected_device: str, devices: list) -> bool:
+    if int(selected_device) < 0 or int(selected_device) >= len(devices):
+        print(f"{RED}[ERROR]{RESET} Invalid device index.")
+        return False
+    return True
 
 def main() -> None:
     print(f"{WHITE}\nRPI QUICK CONFIGURATION{RESET}")
@@ -45,47 +84,32 @@ def main() -> None:
     selected_device: str = ""
 
     while True:
-        print(f"{WHITE}\nMain Menu:{RESET}")
-        print("[1] Search for devices")
-        print("[2] Devices list")
-        print("[3] Select device to configure")
-        print("[4] Switch WIFI")
-        print("[99] Exit")
-
+        print_menu()
         choice: str = input("Choose an option: ")
 
         match choice:
             case "1":
-                devices = discover_devices()
-                if not devices:
-                    print(f"{RED}[ERROR]{RESET} No mDNS devices found.")
-                    continue
-                print(f"{GREEN}[OK!]{RESET} mDNS device found!")
+                devices = search_for_devices()
 
             case "2":
                 print(f"{WHITE}\n[INFO] Devices list:{RESET}")
-                if not devices:
-                    print(f"{WHITE}[INFO]{RESET} No devices found.")
+                if not check_devices_list(devices):
                     continue
-                for idx, device in enumerate(devices):
-                    print(f"{idx}. {device['name']} - {device['addresses'][0]}")
+                print_devices_list(devices)
 
             case "3":
                 print(f"{WHITE}\n[INFO] Configure device:{RESET}")
-                if not devices:
-                    print(f"{WHITE}[INFO]{RESET} No devices found.")
+                if not check_devices_list(devices):
                     continue
                 print(f"{WHITE}[INFO]{RESET} Choose device to configure:")
-                for idx, device in enumerate(devices):
-                    print(f"{idx}. {device['name']} - {device['addresses'][0]}")
+                print_devices_list(devices)
                 selected_device = input("Enter device index: ")
-                if int(selected_device) < 0 or int(selected_device) >= len(devices):
-                    print(f"{RED}[ERROR]{RESET} Invalid device index.")
+                if not check_selected_device(selected_device, devices):
                     continue
                 print(f"{GREEN}[OK]{RESET} Selected device: {devices[int(selected_device)]['name']}")
+
             case "4":
                 print(f"{WHITE}\n[INFO] Switch WIFI:{RESET}")
-
                 if not selected_device:
                     print(f"{RED}[ERROR]{RESET} No device selected. Please select a device first.")
                     continue
