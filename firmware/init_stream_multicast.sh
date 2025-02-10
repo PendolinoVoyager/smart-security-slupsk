@@ -15,6 +15,8 @@ MPEGTS_PORT="10001"
 # It's only here so the test script can work with v4l2 for development purposes
 if command -v libcamera-vid &> /dev/null; then
     echo "Using libcamera-vid..."
+    # it is what it is
+    pkill -9 libcamera
     
     libcamera-vid --width 1920 --height 1080 --framerate 18 --bitrate 1000000 --inline -n -t 0 -o - | \
     gst-launch-1.0 fdsrc fd=0 ! video/x-h264,stream-format=byte-stream ! h264parse ! tee name=t \

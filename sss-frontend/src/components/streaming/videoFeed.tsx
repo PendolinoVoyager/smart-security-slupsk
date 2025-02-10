@@ -36,11 +36,14 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
               isLive: true,
               url,
             },
-            {}
-            // This is a lie! It doesn't work, JS doesn't allow any headers
-            // {
-            //   headers: { "Authorization": "Userino :)" },
-            // }
+            {
+              // This is a lie! It doesn't work, JS doesn't allow any headers
+              // headers: { "Authorization": "Userino :)" },
+              isLive: true,
+              liveBufferLatencyChasing: true,
+              liveBufferLatencyMaxLatency: 2.0,
+              liveBufferLatencyMinRemain: 1.0,
+            }
           );
           player.current.attachMediaElement(videoElement);
           player.current.load();

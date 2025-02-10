@@ -1,5 +1,3 @@
-use core::panic;
-
 use crate::services::core_db::CoreDBId;
 use crate::services::device_store::Device;
 
@@ -93,11 +91,12 @@ impl AppContext {
         let store_fut = self.devices.lock();
         let redis_fut = crate::services::app_db::RedisDeviceSchema::get(&mut conn, device_id);
         let (mut store, redis_result) = tokio::join!(store_fut, redis_fut);
+        // make sure redis entry exists
         let _redis_result = redis_result?;
 
         match store.get_device(device_id) {
             Some(d) => Ok(d),
-            None => panic!("fatal synchronization error:\n{device_id} is missing but is in redis"),
+            None => Err(anyhow::Error::msg("cannot retrieve device at this time")),
         }
     }
     pub async fn return_device(&'static self, device: Device) -> anyhow::Result<()> {

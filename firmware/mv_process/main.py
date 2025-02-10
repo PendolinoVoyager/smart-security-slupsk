@@ -3,6 +3,13 @@ import time
 from on_movement import on_movement
 from config import get_video_source
 
+#check if we can stream: /etc/sss_firmware/token.txt should have something written
+with open("/etc/sss_firmware/token.txt", "r") as f:
+    token = f.read().strip()
+    if token == "":
+        print("No token found in /etc/sss_firmware/token.txt\ndevice not configured")
+        exit()
+
 videosrc = get_video_source()
 
 # Time tracking
