@@ -67,8 +67,7 @@ impl AppContext {
     pub async fn register_device(
         &'static self,
         device_id: crate::services::core_db::CoreDBId,
-        stream_receiver: tokio::sync::mpsc::Receiver<Message>,
-        command_sender: tokio::sync::mpsc::Sender<Message>,
+        stream_receiver: tokio::sync::broadcast::Sender<Message>,
     ) -> anyhow::Result<()> {
         let store_fut = self.devices.lock();
         let redis_fut =
@@ -77,7 +76,7 @@ impl AppContext {
 
         redis_result?;
 
-        let store_result = store.register_device(device_id, stream_receiver, command_sender);
+        let store_result = store.register_device(device_id, stream_receiver);
 
         if store_result.is_err() {
             crate::services::app_db::RedisDeviceSchema::remove_device(self, device_id).await?;
@@ -99,17 +98,12 @@ impl AppContext {
             None => Err(anyhow::Error::msg("cannot retrieve device at this time")),
         }
     }
-    pub async fn return_device(&'static self, device: Device) -> anyhow::Result<()> {
-        let mut store = self.devices.lock().await;
-        store.return_device(device);
-        Ok(())
-    }
 
     pub async fn remove_device(&'static self, device_id: CoreDBId) -> anyhow::Result<()> {
         let redis_fut = crate::services::app_db::RedisDeviceSchema::remove_device(self, device_id);
         let store_fut = self.devices.lock();
         let (mut store, redis_res) = tokio::join!(store_fut, redis_fut);
-        store.poison_or_remove(device_id);
+        store.remove_device(device_id);
         redis_res
     }
 }

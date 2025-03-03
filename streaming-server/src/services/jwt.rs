@@ -101,6 +101,7 @@ pub fn verify_user(token: &str) -> anyhow::Result<UserJWTClaims> {
         .claims)
     }
 }
+
 pub fn verify_device(token: &str) -> anyhow::Result<DeviceJWTClaims> {
     unsafe {
         Ok(jsonwebtoken::decode(
@@ -128,6 +129,7 @@ pub fn extract_token<T>(req: &hyper::Request<T>) -> Option<&str> {
 /// The tests are here for reference and to help in development.
 /// Just generate a new token and change the consts.
 #[cfg(test)]
+#[allow(unused)]
 mod tests {
 
     /// Using RS256 for hashing

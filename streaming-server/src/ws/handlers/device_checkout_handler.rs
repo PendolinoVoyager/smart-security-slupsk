@@ -9,10 +9,15 @@ use tokio::net::TcpStream;
 use tokio_tungstenite::WebSocketStream;
 use tokio_tungstenite::tungstenite::Message;
 
+/// FIXME: This is a temporary limit for the number of packets that can be stored in the stream.
+/// It's a random number defined in the context of the task.
+const TEMP_STREAM_PACKETS_LIMIT: usize = 30;
+
 #[derive(Debug)]
 struct DeviceCheckoutParams {
     token: String,
 }
+
 impl FromStr for DeviceCheckoutParams {
     type Err = anyhow::Error;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -34,30 +39,34 @@ pub async fn device_checkout_handler(
     mut socket: WebSocketStream<TcpStream>,
     ctx: &'static AppContext,
 ) {
-    let Ok(token) = DeviceCheckoutParams::from_str(req.uri().query().unwrap_or_default()) else {
+    let Ok(_token) = DeviceCheckoutParams::from_str(req.uri().query().unwrap_or_default()) else {
         close_unauthorized(&mut socket, "missing token in query params".into()).await;
         return;
     };
+
     // get this from token's claims
     let device_id = 100;
 
-    let (mut task, command_sender) = WebSocketTask::new(socket);
+    let (mut task, _ws_responder) = WebSocketTask::new(socket);
     // this is a channel for raw stream data
     let (stream_sender, stream_receiver) =
-        tokio::sync::mpsc::channel::<Message>(size_of::<Message>() * 100);
+        tokio::sync::broadcast::channel::<Message>(TEMP_STREAM_PACKETS_LIMIT);
+    let sender = stream_sender.clone();
     let stream_sender = Arc::new(stream_sender);
+
     task.on_init(|_| async move {
-        ctx.register_device(device_id, stream_receiver, command_sender)
+        ctx.register_device(device_id, sender)
             .await
             .inspect_err(|e| tracing::warn!(event = "device_register_fail", err = e.to_string()))?;
         crate::services::app_db::RedisDeviceSchema::register_device(ctx, device_id).await?;
         Ok(())
     });
+
     task.on_message({
         move |msg| {
             let stream_sender = Arc::clone(&stream_sender);
             async move {
-                stream_sender.send(msg).await?;
+                stream_sender.send(msg)?;
                 Ok(None)
             }
         }

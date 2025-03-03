@@ -73,9 +73,9 @@ fn stream_until_disconnect(mut ws: tungstenite::WebSocket<MaybeTlsStream<TcpStre
     tracing::info!("Initializing stream");
     let stream_socket = std::net::UdpSocket::bind(STREAM_SOURCE)
         .expect("Cannot bind to the socket with the stream.");
-
     let _ = stream_socket.set_read_timeout(Some(STREAM_TIMEOUT));
     tracing::info!("Starting streaming...");
+
     let mut buffer = StreamBuffer::new(192 * 10, stream_socket);
     while let Ok(read) = buffer.read() {
         // if you're developing on arm I'm sorry

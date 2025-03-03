@@ -24,7 +24,7 @@ if command -v libcamera-vid &> /dev/null; then
         t. ! queue ! mpegtsmux m2ts-mode=true ! udpsink host=$MPEGTS_HOST port=$MPEGTS_PORT sync=false ts-offset=-1
 else
     echo "libcamera-vid not found, using v4l2src as fallback..."
-    
+    pkill -9 gst-launch   
     gst-launch-1.0 v4l2src device=/dev/video0 ! videoconvert ! x264enc tune=zerolatency ! tee name=t \
         t. ! queue ! h264parse ! udpsink host=$LOCAL_MV_HOST port=$LOCAL_MV_PORT sync=false \
         t. ! queue ! h264parse ! mpegtsmux m2ts-mode=true ! udpsink host=$MPEGTS_HOST port=$MPEGTS_PORT sync=false

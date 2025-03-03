@@ -3,41 +3,29 @@
 //! Additionally, there is a sender responsible for commands.
 
 use std::collections::HashMap;
-use tokio::sync::mpsc::*;
+use tokio::sync::broadcast::*;
 use tokio_tungstenite::tungstenite::Message;
 
 use super::core_db::CoreDBId;
 /// Device registered in DeviceStore
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Device {
     pub id: CoreDBId,
-    pub stream_receiver: Receiver<Message>,
-    pub command_sender: Sender<Message>,
+    pub stream_receiver: Sender<Message>,
 }
 impl Device {
-    pub fn new(
-        id: CoreDBId,
-        stream_receiver: Receiver<Message>,
-        command_sender: Sender<Message>,
-    ) -> Self {
+    pub fn new(id: CoreDBId, stream_receiver: Sender<Message>) -> Self {
         Self {
             id,
             stream_receiver,
-            command_sender,
         }
     }
 }
 
-#[derive(Debug)]
-enum DeviceSlot {
-    Ready(Device),
-    Taken,
-    Poisoned,
-}
 type DeviceId = crate::services::core_db::CoreDBId;
 #[derive(Default, Debug)]
 pub struct DeviceStore {
-    devices: HashMap<DeviceId, DeviceSlot>,
+    devices: HashMap<DeviceId, Device>,
 }
 
 impl DeviceStore {
@@ -49,75 +37,31 @@ impl DeviceStore {
     pub fn register_device(
         &mut self,
         device: DeviceId,
-        stream_receiver: Receiver<Message>,
-        command_sender: Sender<Message>,
+        stream_receiver: Sender<Message>,
     ) -> anyhow::Result<()> {
         match self.devices.get(&device) {
             None => {
-                self.devices.insert(
-                    device,
-                    DeviceSlot::Ready(Device::new(device, stream_receiver, command_sender)),
-                );
+                self.devices
+                    .insert(device, Device::new(device, stream_receiver));
             }
-            Some(DeviceSlot::Ready(_) | DeviceSlot::Taken) => {
+            Some(Device { id, .. }) => {
                 return Err(anyhow::Error::msg(format!(
-                    "device store already contains {device}"
-                )));
-            }
-            Some(DeviceSlot::Poisoned) => {
-                return Err(anyhow::Error::msg(format!(
-                    "device {device} poisoned, remove slot first to acknowledge"
+                    "device store already contains {id}"
                 )));
             }
         }
         Ok(())
     }
-    pub fn return_device(&mut self, device: Device) {
-        tracing::debug!("{self:?}");
-        match self.devices.get(&device.id) {
-            Some(DeviceSlot::Taken) => {
-                self.devices.insert(device.id, DeviceSlot::Ready(device));
-            }
-            _ => {
-                tracing::warn!("attempted to reinsert device {}", device.id);
-            }
-        }
-    }
+
     pub fn remove_device(&mut self, device: DeviceId) {
         self.devices.remove(&device);
     }
     /// Get the device from the store.
     /// It will actually remove the device to prevent issues with borrowing.
     pub fn get_device(&mut self, device: DeviceId) -> Option<Device> {
-        match self.devices.remove(&device) {
-            Some(DeviceSlot::Ready(d)) => {
-                self.devices.insert(device, DeviceSlot::Taken);
-                Some(d)
-            }
-            Some(other) => {
-                self.devices.insert(device, other);
-                None
-            }
-            _ => None,
-        }
+        self.devices.get(&device).cloned()
     }
-    /// Poison the device slot to make the channels unusable and trying to insert them back error.
-    ///
-    /// Works only if the device is taken. Otherwise, it's meaningless to do so and will do nothing
-    pub fn poison(&mut self, device: DeviceId) {
-        if matches!(self.devices.get(&device), Some(DeviceSlot::Taken)) {
-            self.devices.insert(device, DeviceSlot::Poisoned);
-        }
-    }
-    /// Poison the device if borrowed, remove if it's ok to.
-    pub fn poison_or_remove(&mut self, device: DeviceId) {
-        match self.devices.remove(&device) {
-            Some(DeviceSlot::Taken) => {
-                self.poison(device);
-            }
-            _ => self.remove_device(device),
-        }
-    }
+
     pub fn all_devices(&self) -> Vec<DeviceId> {
         self.devices.keys().cloned().collect()
     }

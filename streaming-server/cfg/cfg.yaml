@@ -10,21 +10,20 @@ development:
   log: "debug"
   db_uri: "postgresql://root:12345678@localhost:5432/iot_db"
   redis_db_uri: "redis://localhost:6379"
- 
+
   http:
     addr: "127.0.0.1"
     port: 9000
     cors-allow-origin: "*"
 
   ws:
-    addr: "192.168.8.124"
+    addr: "127.0.0.1"
     port: 9080
 
 production:
   log: "verbose"
   db_uri: "sql db uri string"
-  redis_db_uri: "dupa"
-
+  redis_db_uri: "CHANGE ME"
 
   http:
     addr: "127.0.0.1"

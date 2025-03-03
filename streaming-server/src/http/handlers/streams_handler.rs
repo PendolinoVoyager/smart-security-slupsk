@@ -33,9 +33,7 @@ pub async fn streams_handler(
     else {
         return JSONAppResponse::pack(ctx, "bad token", StatusCode::FORBIDDEN);
     };
-    if claims.is_expired() {
-        return JSONAppResponse::pack(ctx, "expired token", StatusCode::FORBIDDEN);
-    };
+
     tracing::debug!("stream request from: {}", claims.sub);
     let Some(user_id) = find_user_id(ctx, &claims.sub).await? else {
         return JSONAppResponse::pack(

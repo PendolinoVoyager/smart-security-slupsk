@@ -69,10 +69,7 @@ pub async fn stream_handler(
         Ok(a) => a,
         Err(e) => {
             tracing::debug!("host ended connection before stream: {e}");
-            let _ = ctx
-                .return_device(device)
-                .await
-                .inspect_err(|e| tracing::warn!(event = "device_sync_fail", err = e.to_string()));
+
             return;
         }
     };
@@ -98,18 +95,19 @@ pub async fn stream_handler(
 }
 
 async fn stream_until_err(
-    ctx: &'static AppContext,
+    _ctx: &'static AppContext,
     socket: &mut WebSocketStream<TcpStream>,
-    mut device: Device,
+    device: Device,
 ) -> anyhow::Result<()> {
-    while let Some(stream_packet) = device.stream_receiver.recv().await {
-        if let Err(e) = socket.send(stream_packet).await {
+    let mut receiver = device.stream_receiver.subscribe();
+    drop(device);
+    while let Ok(msg) = receiver.recv().await {
+        if let Err(e) = socket.send(msg).await {
             tracing::debug!("stream ended: {e}");
             break;
         }
     }
 
-    ctx.return_device(device).await?;
     Ok(())
 }
 
@@ -133,10 +131,7 @@ async fn check_user_authorized(
         close_unauthorized(socket, "invalid jwt token".into()).await;
         return Err(anyhow::Error::msg("invalid jwt token"));
     };
-    if claims.is_expired() {
-        close_unauthorized(socket, "token expired".into()).await;
-        return Err(anyhow::Error::msg("expired token"));
-    }
+
     let user_id = crate::services::core_db::find_user_id(ctx, &claims.sub)
         .await?
         .unwrap_or(-1);
