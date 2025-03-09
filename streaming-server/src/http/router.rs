@@ -35,6 +35,7 @@ pub async fn route(req: AppRequest, ctx: &'static AppContext) -> AppResponse {
         "/hello" => route!("hello", hello_handler, req, ctx),
         "/benchmark" => route!("benchmark", bench_handler, req, ctx),
         "/streams" => route!("streams", streams_handler, req, ctx),
+        "/openapi.yaml" => route!("openapi", openapi_handler, req, ctx),
         _ => {
             tracing::info!(event = "route_accessed", "404");
             NOT_FOUND_RESPONSE.clone()

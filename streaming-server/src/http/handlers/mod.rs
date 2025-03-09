@@ -6,3 +6,5 @@ pub use bench_handler::bench_handler;
 pub use cors_options_handler::cors_options_handler;
 pub use hello_handler::hello_handler;
 pub use streams_handler::streams_handler;
+mod openapi_handler;
+pub use openapi_handler::openapi_handler;

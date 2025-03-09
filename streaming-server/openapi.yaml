@@ -1,0 +1,119 @@
+openapi: 3.0.3
+info:
+  title: Streaming Server API
+  description: API documentation for the Rust-based streaming server.
+  version: 1.0.0
+servers:
+  - url: http://localhost:9000
+    description: Local development server
+
+
+components:
+  securitySchemes:
+    bearerAuth: # arbitrary name for the security scheme
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+#apply the security scheme globally
+security:
+  - bearerAuth: [] # use the same name as above
+paths:
+  /hello:
+    get:
+      summary: Get system and device information
+      description: Returns details about the server, including OS type, hostname, and the number of connected devices.
+      responses:
+        "200":
+          description: Server information retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  payload:
+                    type: object
+                    properties:
+                      hostname:
+                        type: string
+                        example: "my-server"
+                      operating_system:
+                        type: string
+                        example: "Linux"
+                      os_release:
+                        type: string
+                        example: "5.15.0-84-generic"
+                      connected_devices:
+                        type: integer
+                        example: 3
+                      config:
+                        type: object
+                        additionalProperties: true  # Allows config to be any JSON object
+  /streams:
+    get:
+      summary: Get a list of devices ready for streaming
+      description: Returns a list of all active streams on the server. They are available for authenticated users only. Authorization is via the 'Authorization' header with a valid JWT token OR if a flag on the server is set to allow ID's instead of tokens, then substitute token with id in the header.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: List of active streams retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  payload:
+                    type: object
+                    properties:
+                      count:
+                        type: integer
+                        example: 3
+                      available:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: integer
+                              example: 100
+                            device_name:
+                              type: string
+                              example: "Default Device"
+                            user_id:
+                              type: interger
+                              example: 1
+                            server_addr:
+                              type: string
+                              example: "192.168.8.1:9080"
+        "403":
+          description: Bad token or expired token provided in 'Authorization' header.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "error"
+                  payload:
+                    type: string
+                    example: "bad token"
+        "401":
+          description: Unauthorized access. No token provided.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "error"
+                  payload:
+                    type: string
+                    example: "missing Authorization: Bearer <token> heade"

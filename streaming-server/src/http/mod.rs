@@ -1,4 +1,6 @@
-use hyper::header::{ACCESS_CONTROL_ALLOW_ORIGIN, CONTENT_LENGTH, CONTENT_TYPE};
+use hyper::header::{
+    ACCESS_CONTROL_ALLOW_ORIGIN, CONNECTION, CONTENT_LENGTH, CONTENT_TYPE, HeaderValue,
+};
 /// This module handles basic response format.
 use hyper::{Response, StatusCode};
 use serde::{Deserialize, Serialize};
@@ -9,6 +11,20 @@ use crate::core::http::AppResponse;
 
 pub mod handlers;
 pub mod router;
+
+/// Add common headers to the response.
+/// Includes CORS headers.
+pub fn add_common_headers(res: &mut AppResponse, ctx: &'static AppContext) {
+    let headers = res.headers_mut();
+    headers.insert(
+        ACCESS_CONTROL_ALLOW_ORIGIN,
+        ctx.config.http.allow_origin.parse().unwrap(),
+    );
+    headers.insert(
+        CONNECTION,
+        HeaderValue::from_str("close").expect("connection close header failed to create"),
+    );
+}
 
 /// The one and only JSON API response format for the app. All responses should be packed with it, so the API is consistent.
 /// The format looks as follows for now:
@@ -44,6 +60,7 @@ impl<T: Serialize> JSONAppResponse<T> {
             .header(CONTENT_TYPE, "application/json")
             .status(status)
             .header(CONTENT_LENGTH, body.len())
+            .header(CONNECTION, "close")
             .header(ACCESS_CONTROL_ALLOW_ORIGIN, &ctx.config.http.allow_origin)
             .body(body.into())
             .map_err(|e| {
@@ -54,26 +71,30 @@ impl<T: Serialize> JSONAppResponse<T> {
 }
 
 lazy_static::lazy_static! {
+    static ref MSG_404: String = {
+        json!({"status": "failure", "payload": "resource not found"}).to_string()
+    };
+    static ref MSG_500: String = {
+        json!({"status": "failure", "payload": "internal_server_error"}).to_string()
+    };
+
     // 500 Internal Server Error
     pub static ref INTERNAL_SERVER_ERROR_RESPONSE: AppResponse = {
-        const ERR_MSG: &str = "internal server error";
           Response::builder()
          .header(CONTENT_TYPE, "application/json")
          .status(StatusCode::INTERNAL_SERVER_ERROR)
-         .header(CONTENT_LENGTH, ERR_MSG.len())
+         .header(CONTENT_LENGTH, MSG_500.len())
          .header(ACCESS_CONTROL_ALLOW_ORIGIN, "*")
-         .body(json!({"status": "failure", "payload": ERR_MSG}).to_string().into()).unwrap()
+         .body(MSG_500.clone().into()).unwrap()
     };
 
     // 404 Not Found
     pub static ref NOT_FOUND_RESPONSE: AppResponse = {
-            const ERR_MSG: &str = "resource not found";
-              Response::builder()
-             .header(CONTENT_TYPE, "application/json")
-             .status(StatusCode::INTERNAL_SERVER_ERROR)
-             .header(CONTENT_LENGTH, ERR_MSG.len())
-             .header(ACCESS_CONTROL_ALLOW_ORIGIN, "*")
-             .body(json!({"status": "failure", "payload": ERR_MSG}).to_string().into()).unwrap()
-
+        Response::builder()
+        .header(CONTENT_TYPE, "application/json")
+        .status(StatusCode::INTERNAL_SERVER_ERROR)
+        .header(CONTENT_LENGTH, MSG_404.len())
+        .header(ACCESS_CONTROL_ALLOW_ORIGIN, "*")
+        .body(MSG_404.clone().into()).unwrap()
     };
 }

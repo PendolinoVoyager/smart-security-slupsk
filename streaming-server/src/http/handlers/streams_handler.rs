@@ -24,7 +24,7 @@ pub async fn streams_handler(
     let Some(token) = extract_token(&req) else {
         return JSONAppResponse::pack(
             ctx,
-            "bad token or missing Authorization header",
+            "missing Authorization: Bearer <token> header",
             StatusCode::UNAUTHORIZED,
         );
     };
