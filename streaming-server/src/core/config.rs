@@ -54,6 +54,7 @@ pub struct AppConfig {
     pub ws: WsConfig,
     pub log: String,
     pub app_db_uri: String,
+    pub tokens_are_ids: bool,
 }
 
 impl AppConfig {
@@ -135,6 +136,8 @@ impl AppConfig {
             .ok_or_else(|| anyhow::Error::msg("Missing or invalid log level"))?
             .to_string();
 
+        let tokens_are_ids = yaml["tokens_are_ids"].as_bool().unwrap_or(false);
+
         Ok(Self {
             env,
             db_uri,
@@ -142,6 +145,7 @@ impl AppConfig {
             http,
             ws,
             app_db_uri,
+            tokens_are_ids,
         })
     }
 }

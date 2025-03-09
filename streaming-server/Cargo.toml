@@ -8,7 +8,7 @@ description = "Simple streaming server and manager for device-to-browser-client 
 [dependencies]
 anyhow = "1.0.95"
 base64 = "0.22.1"
-chrono = "0.4.39"
+chrono = { version = "0.4.39", features = ["serde"] }
 deadpool = "0.12.1"
 deadpool-redis = { version = "0.18.0", features = ["serde", "tokio"] }
 futures-util = "0.3.31"
@@ -21,7 +21,7 @@ lazy_static = "1.5.0"
 redis = { version = "0.27.6", features = ["json", "tokio-comp"] }
 serde = { version = "1.0.216", features = ["derive"] }
 serde_json = "1.0.134"
-sqlx = { version = "0.8.2", features = ["postgres", "runtime-tokio"] }
+sqlx = { version = "0.8.2", features = ["chrono", "postgres", "runtime-tokio"] }
 sys-info = "0.9.1"
 tokio = { version = "1.42.0", features = ["full"] }
 tokio-tungstenite = "0.26.1"

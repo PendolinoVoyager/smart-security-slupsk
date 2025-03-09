@@ -11,6 +11,10 @@ development:
   db_uri: "postgresql://root:12345678@localhost:5432/iot_db"
   redis_db_uri: "redis://localhost:6379"
 
+  # Whenever a token is expected normally, now it will be treated as an id
+  # Useful for development
+  tokens_are_ids: true
+
   http:
     addr: "127.0.0.1"
     port: 9000

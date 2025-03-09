@@ -127,14 +127,15 @@ async fn check_user_authorized(
         Ok(p) => p,
     };
 
-    let Ok(claims) = crate::services::jwt::verify_user(&params.token) else {
+    let Ok(claims) = crate::services::jwt::verify_user(ctx, &params.token).await else {
         close_unauthorized(socket, "invalid jwt token".into()).await;
         return Err(anyhow::Error::msg("invalid jwt token"));
     };
 
-    let user_id = crate::services::core_db::find_user_id(ctx, &claims.sub)
-        .await?
-        .unwrap_or(-1);
+    let Ok(user) = crate::services::core_db::User::find_by_email(ctx, &claims.sub).await else {
+        close_unauthorized(socket, "no such user".into()).await;
+        return Err(anyhow::Error::msg("no such user"));
+    };
 
     if let Ok(dev) = crate::services::app_db::RedisDeviceSchema::get(
         &mut ctx.app_db.get().await?,
@@ -142,7 +143,7 @@ async fn check_user_authorized(
     )
     .await
     {
-        if dev.user_id == user_id {
+        if dev.user_id == user.id {
             return Ok((claims, params));
         } else {
             return Err(anyhow::Error::msg("user does not own the device"));

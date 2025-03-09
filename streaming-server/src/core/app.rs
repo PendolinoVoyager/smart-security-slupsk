@@ -44,7 +44,7 @@ async fn start_servers(ctx: &'static mut AppContext) -> anyhow::Result<()> {
         "Successfully setup WebSocket listener on {}",
         ctx.config.ws.address
     );
-    crate::services::jwt::init()?;
+    crate::services::jwt::init(&ctx.config)?;
     let http_handle = tokio::spawn(super::http::handle_http(http_listener, ctx));
     let ws_handle = tokio::spawn(super::ws::handle_ws(ws_listener, ctx));
 

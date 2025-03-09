@@ -39,26 +39,32 @@ pub async fn device_checkout_handler(
     mut socket: WebSocketStream<TcpStream>,
     ctx: &'static AppContext,
 ) {
-    let Ok(_token) = DeviceCheckoutParams::from_str(req.uri().query().unwrap_or_default()) else {
+    let Ok(params) = DeviceCheckoutParams::from_str(req.uri().query().unwrap_or_default()) else {
         close_unauthorized(&mut socket, "missing token in query params".into()).await;
         return;
     };
 
     // get this from token's claims
-    let device_id = 100;
+    let claims = match crate::services::jwt::verify_device(ctx, &params.token).await {
+        Ok(claims) => claims,
+        Err(e) => {
+            close_unauthorized(&mut socket, e.to_string().into()).await;
+            return;
+        }
+    };
 
     let (mut task, _ws_responder) = WebSocketTask::new(socket);
     // this is a channel for raw stream data
-    let (stream_sender, stream_receiver) =
+    let (stream_sender, _stream_receiver) =
         tokio::sync::broadcast::channel::<Message>(TEMP_STREAM_PACKETS_LIMIT);
     let sender = stream_sender.clone();
     let stream_sender = Arc::new(stream_sender);
 
     task.on_init(|_| async move {
-        ctx.register_device(device_id, sender)
+        ctx.register_device(claims.device_id, sender)
             .await
             .inspect_err(|e| tracing::warn!(event = "device_register_fail", err = e.to_string()))?;
-        crate::services::app_db::RedisDeviceSchema::register_device(ctx, device_id).await?;
+        crate::services::app_db::RedisDeviceSchema::register_device(ctx, claims.device_id).await?;
         Ok(())
     });
 
@@ -73,7 +79,7 @@ pub async fn device_checkout_handler(
     });
 
     task.on_cleanup(|_| async move {
-        ctx.remove_device(device_id).await?;
+        ctx.remove_device(claims.device_id).await?;
         Ok(())
     });
     let res = task.run().await;

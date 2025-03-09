@@ -4,7 +4,7 @@ use crate::core::context::AppContext;
 use crate::core::http::{AppRequest, AppResponse};
 use crate::http::JSONAppResponse;
 use crate::services::app_db::RedisDeviceSchema;
-use crate::services::core_db::find_user_id;
+use crate::services::core_db::User;
 use crate::services::jwt::{extract_token, verify_user};
 use hyper::StatusCode;
 use serde::Serialize;
@@ -28,21 +28,22 @@ pub async fn streams_handler(
             StatusCode::UNAUTHORIZED,
         );
     };
-    let Ok(claims) =
-        verify_user(token).inspect_err(|e| tracing::debug!("failed token verification: {e}"))
+    let Ok(claims) = verify_user(ctx, token)
+        .await
+        .inspect_err(|e| tracing::debug!("failed token verification: {e}"))
     else {
         return JSONAppResponse::pack(ctx, "bad token", StatusCode::FORBIDDEN);
     };
 
     tracing::debug!("stream request from: {}", claims.sub);
-    let Some(user_id) = find_user_id(ctx, &claims.sub).await? else {
+    let Ok(User { id, .. }) = User::find_by_email(ctx, &claims.sub).await else {
         return JSONAppResponse::pack(
             ctx,
             format!("no such user exists: {}", claims.sub),
             StatusCode::BAD_REQUEST,
         );
     };
-    let devices = RedisDeviceSchema::find_by_user(&mut conn, user_id).await?;
+    let devices = RedisDeviceSchema::find_by_user(&mut conn, id).await?;
 
     let payload = StreamsResponse {
         count: devices.len(),
