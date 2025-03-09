@@ -1,5 +1,6 @@
 package com.kacper.iot_backend.auth.device_auth;
 
+import com.kacper.iot_backend.device.Device;
 import com.kacper.iot_backend.device.DeviceService;
 import com.kacper.iot_backend.exception.DeviceOwnerMismatchException;
 import com.kacper.iot_backend.exception.InvalidTokenException;
@@ -36,10 +37,10 @@ public class AuthDeviceService
     }
 
     public AuthDeviceResponse authenticateDevice(AuthDeviceRequest authDeviceRequest) {
-        User deviceOwner = deviceService.getUserByDeviceUuIdOrThrow(authDeviceRequest.deviceUuid());
+        Device device = deviceService.getByUuid(authDeviceRequest.deviceUuid());
+        User deviceOwner = device.getUser();
         User requestingUser = userService.getUserOrThrow(authDeviceRequest.email());
         checkOwnerOrThrow(deviceOwner, requestingUser);
-
         try {
             authenticationManager
                     .authenticate(
@@ -52,7 +53,7 @@ public class AuthDeviceService
             throw new RuntimeException("Critical error during authentication");
         }
 
-        String deviceToken = jwtService.generateDeviceAccessToken(deviceOwner, authDeviceRequest.deviceUuid());
+        String deviceToken = jwtService.generateDeviceAccessToken(deviceOwner, device);
         String deviceRefreshToken = jwtService.generateDeviceRefreshToken(deviceOwner);
 
         return AuthDeviceResponse.builder()
@@ -74,15 +75,15 @@ public class AuthDeviceService
     public AuthDeviceAccessTokenResponse refreshDeviceToken(String authorizationHeader, AuthDeviceRefreshRequest authDeviceRefreshRequest) {
         logger.info("\n\n ref_token: " + authDeviceRefreshRequest.refreshToken() + "\n\n");
         String deviceUUID = jwtService.extractDeviceUUID(authorizationHeader.substring(7));
-        User deviceOwner = deviceService.getUserByDeviceUuIdOrThrow(deviceUUID);
-
+        Device device = deviceService.getByUuid(deviceUUID);
+        User deviceOwner = device.getUser();
         boolean isRefreshTokenValid = jwtService.isRefreshTokenValid(authDeviceRefreshRequest.refreshToken());
 
         if (!isRefreshTokenValid) {
             throw new InvalidTokenException("Invalid refresh token");
         }
 
-        String deviceToken = jwtService.generateDeviceAccessToken(deviceOwner, deviceUUID);
+        String deviceToken = jwtService.generateDeviceAccessToken(deviceOwner, device);
 
         return AuthDeviceAccessTokenResponse.builder()
                 .refreshedAccessToken(deviceToken)

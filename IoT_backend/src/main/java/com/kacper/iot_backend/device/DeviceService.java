@@ -51,5 +51,19 @@ public class DeviceService
         logger.info("\n\ndevice: " + device + "\n\n");
         return device.getUser();
     }
+    /**
+     * Przepraszam cie za to Kacper, ale duplikuje kod, bo mam go zamiar użyć w jednym miejscu.
+     * getUserByDeviceUuidOrThrow wg. mnie powinno zwracać całe device, bo i tak już je mamy.
+     * Ta metoda poniżej robi to co tamto, ale zamiast return device.getUser() ma return device.
+     * @param deviceUuid
+     * @return
+     */
+    public Device getByUuid(String deviceUuid) {
+        logger.info("\n\ndeviceUuid: " + deviceUuid + "\n\n");
+        Device device = deviceRepository.findByUuid(deviceUuid)
+                .orElseThrow(() -> new ResourceNotFoundException("Device not found"));
 
+        logger.info("\n\ndevice: " + device + "\n\n");
+        return device;
+    }
 }
