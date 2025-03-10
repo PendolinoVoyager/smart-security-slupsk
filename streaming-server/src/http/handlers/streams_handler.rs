@@ -14,7 +14,8 @@ pub struct StreamsResponse {
     count: usize,
     available: Vec<RedisDeviceSchema>,
 }
-
+/// Fetch available devices from the Redis database and return them as a JSON response.
+/// Takes token from the request header, verifies it, and then fetches the associated devices.
 pub async fn streams_handler(
     req: AppRequest,
     ctx: &'static AppContext,

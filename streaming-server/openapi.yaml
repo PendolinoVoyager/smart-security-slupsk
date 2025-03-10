@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Streaming Server API
-  description: API documentation for the Rust-based streaming server.
+  description: API documentation for the Rust-based streaming server. Don't forget to set the Authorization header with a valid JWT token OR device ID if the server is running in 'tokens-are-actually-just-ids' mode.
   version: 1.0.0
 servers:
   - url: http://localhost:9000
@@ -13,6 +13,7 @@ components:
     bearerAuth: # arbitrary name for the security scheme
       type: http
       scheme: bearer
+      description:  JWT OR device ID if the server is running in 'tokens-are-actually-just-ids' mode for either device or user authentication.
       bearerFormat: JWT
 #apply the security scheme globally
 security:
