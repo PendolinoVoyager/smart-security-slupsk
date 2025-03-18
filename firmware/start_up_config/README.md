@@ -19,7 +19,7 @@ And then put this config in file:
 
 ```
 [Unit]
-Description=Power LED Indicator
+Description=State_Manager
 After=multi-user.target
 
 [Service]
