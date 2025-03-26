@@ -42,6 +42,6 @@ tmux send-keys "cd streaming-server && cargo run --release" C-m
 
 tmux select-pane -t 3
 
-tmux send-keys "cd firmware && python3 debug_stream_controller.py STREAMING_SERVER_ADDR --id 100" C-m 
+tmux send-keys "cd firmware && python3 debug_stream_controller.py $STREAMING_SERVER_ADDR --token 100" C-m 
 
 tmux attach -t $SESSION_NAME
