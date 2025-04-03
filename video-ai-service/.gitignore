@@ -1,0 +1,4 @@
+yolov8n.pt
+*.pt
+__pycache__
+
