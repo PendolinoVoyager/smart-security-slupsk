@@ -1,7 +1,7 @@
 import { addCredentials } from "../authUtils.ts";
 import { fetchSafe, HttpError } from "../http/fetch.ts";
 
-const API_URL = "http://localhost:8080";
+const API_URL = "http://192.168.10.47:8080";
 
 export async function fetchDevices(): Promise<{ id: string, address: string, deviceName: string, uuid: string }[] | undefined> {
     try {
