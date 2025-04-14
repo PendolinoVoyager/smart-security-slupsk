@@ -1,6 +1,6 @@
 import { fetchSafe, HttpError } from "../http/fetch.ts";
 
-const AUTH_PROVIDER_URL = "http://localhost:8080";
+const AUTH_PROVIDER_URL = "http://192.168.10.47:8080";
 const ACTIVATE_ACCOUNT_URL = `${AUTH_PROVIDER_URL}/api/v1/activation-token/verify`;
 
 export async function requestActivationAccount(
