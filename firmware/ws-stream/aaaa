@@ -1,0 +1,42 @@
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile.aarch64-unknown-linux-gnu-custom
+#1 transferring dockerfile: 247B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for ghcr.io/cross-rs/aarch64-unknown-linux-gnu:main
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [1/2] FROM ghcr.io/cross-rs/aarch64-unknown-linux-gnu:main
+#4 DONE 0.0s
+
+#5 [2/2] RUN eval "dpkg --add-architecture $CROSS_DEB_ARCH
+apt-get update
+apt-get upgrade --assume-yes
+apt-get --assume-yes install libssl-dev:$CROSS_DEB_ARCH libc6-dev:$CROSS_DEB_ARCH"
+#5 CACHED
+
+#6 exporting to image
+#6 exporting layers done
+#6 writing image sha256:0342c3489d9e4e4c78a94078b488b2c3a8b040223c8a1cc158169a3df23922d9 done
+#6 naming to localhost/cross-rs/cross-custom-ws-stream:aarch64-unknown-linux-gnu-bf316-pre-build done
+#6 DONE 0.0s
+   Compiling stable_deref_trait v1.2.0
+   Compiling writeable v0.5.5
+   Compiling litemap v0.7.5
+   Compiling icu_locid_transform_data v1.5.1
+   Compiling cfg-if v1.0.0
+   Compiling libc v0.2.171
+error: failed to run custom build command for `icu_locid_transform_data v1.5.1`
+
+Caused by:
+  process didn't exit successfully: `/target/release/build/icu_locid_transform_data-06daa4270007fe84/build-script-build` (exit status: 1)
+  --- stderr
+  /target/release/build/icu_locid_transform_data-06daa4270007fe84/build-script-build: /lib/x86_64-linux-gnu/libc.so.6: version `GLIBC_2.32' not found (required by /target/release/build/icu_locid_transform_data-06daa4270007fe84/build-script-build)
+  /target/release/build/icu_locid_transform_data-06daa4270007fe84/build-script-build: /lib/x86_64-linux-gnu/libc.so.6: version `GLIBC_2.33' not found (required by /target/release/build/icu_locid_transform_data-06daa4270007fe84/build-script-build)
+  /target/release/build/icu_locid_transform_data-06daa4270007fe84/build-script-build: /lib/x86_64-linux-gnu/libc.so.6: version `GLIBC_2.34' not found (required by /target/release/build/icu_locid_transform_data-06daa4270007fe84/build-script-build)
+warning: build failed, waiting for other jobs to finish...

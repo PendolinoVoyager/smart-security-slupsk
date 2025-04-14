@@ -15,9 +15,9 @@ pub async fn handle_http(listener: tokio::net::TcpListener, ctx: &'static AppCon
         // sync io adapter
         tokio::spawn(async move {
             let io = hyper_util::rt::TokioIo::new(tcp_stream);
-
+            
             let conn = hyper::server::conn::http1::Builder::new()
-                .half_close(false)
+                .half_close(false).
                 .serve_connection(io, service_fn(async |req| _handle_http(req, ctx).await));
 
             tracing::info!(event = "http_request", from = sock_addr.to_string());

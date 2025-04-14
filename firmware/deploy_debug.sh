@@ -7,7 +7,7 @@ read REMOTE_HOST
 
 # the list of files and their destinations
 FILES_TO_COPY=(
-    "./ws-stream/target/aarch64-unknown-linux-gnu/release/ws-stream /usr/local/bin/"
+    "./ws-stream/target/aarch64-unknown-linux-gnu/release/ws-stream ~"
     "./init_stream_multicast.sh /usr/local/lib/sss_firmware"
     "/path/to/local/config.yaml /etc/sss_firmware/"
     "/path/to/local/systemd.service /etc/systemd/system/"
