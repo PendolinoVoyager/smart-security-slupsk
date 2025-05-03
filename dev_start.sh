@@ -30,11 +30,11 @@ tmux select-pane -t 2
 tmux split-window -v  
 
 tmux select-pane -t 0
-tmux send-keys "cd IoT_backend && mvn clean install && mvn spring-boot:run" C-m  
+tmux send-keys "cd IoT_backend && mvn spring-boot:run" C-m  
 
 tmux select-pane -t 1
 
-tmux send-keys "cd sss-frontend && npm run dev" C-m 
+tmux send-keys "cd web-frontend && npm run dev" C-m 
 
 tmux select-pane -t 2
 

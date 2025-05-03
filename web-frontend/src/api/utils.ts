@@ -16,7 +16,10 @@ export async function fetchSafe<T>(
     const res = await fetch(url, options);
     if (!res.ok) {
       const msg = await res.text();
-      return new HttpError(msg || res.statusText, res.status);
+      return new HttpError(
+        msg || res.statusText || "UNKNOWN ERROR",
+        res.status ?? 500
+      );
     }
 
     if (res.status === 204) return undefined as T; // No content

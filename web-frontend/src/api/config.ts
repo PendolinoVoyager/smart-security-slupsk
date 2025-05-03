@@ -9,6 +9,10 @@ export const ENDPOINTS = {
     ACTIVATE: `${AUTH_PROVIDER_URL}/api/v1/auth/activation-token/verify`,
     RESET: `${AUTH_PROVIDER_URL}/api/v1/auth/reset-password`,
   },
+  DEVICES: {
+    LIST: `${BACKEND_PROVIDER_URL}/api/v1/device/`,
+    DETAILS: `${BACKEND_PROVIDER_URL}/api/v1/device/`,
+  },
   STREAMING: {
     /**
      * Fetch all available streams from streaming server.

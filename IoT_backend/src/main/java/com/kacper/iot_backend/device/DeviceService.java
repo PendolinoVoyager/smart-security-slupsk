@@ -58,12 +58,12 @@ public class DeviceService
      * @param deviceUuid
      * @return
      */
-    public Device getByUuid(String deviceUuid) {
+    public DevicesListResponse getByUuid(String deviceUuid) {
         logger.info("\n\ndeviceUuid: " + deviceUuid + "\n\n");
         Device device = deviceRepository.findByUuid(deviceUuid)
                 .orElseThrow(() -> new ResourceNotFoundException("Device not found"));
 
         logger.info("\n\ndevice: " + device + "\n\n");
-        return device;
+        return new DevicesListResponse(device.getId(), device.getAddress(), device.getDeviceName(), device.getUuid()) ; // this is a record
     }
 }
