@@ -36,3 +36,24 @@ export const getStreams = async function (
       .available as StreamsResponseDevice[]) ?? []
   );
 };
+
+export const getStreamAvailability = async function (
+  token: string,
+  deviceId: number
+): Promise<StreamsResponseDevice | Error> {
+  const res = await fetchSafe<StreamsResponse>(
+    ENDPOINTS.STREAMING.GET_STREAM_AVAILABILITY + `?device_id=${deviceId}`,
+    addCredentials({}, token)
+  );
+  if (res instanceof HttpError) {
+    return res;
+  }
+  if (res.status == "failure") {
+    return new Error(res.payload as string);
+  }
+  if (typeof res.payload !== "string" && res.payload.count === 1) {
+    return res.payload.available[0];
+  } else {
+    return new HttpError("device not ready", 404);
+  }
+};

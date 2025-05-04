@@ -3,7 +3,7 @@ import { fetchSafe, HttpError } from "./utils";
 import { ENDPOINTS } from "./config";
 
 export type DeviceEntitySimple = {
-  id: string;
+  id: number;
   address: string;
   deviceName: string;
   uuid: string;
@@ -26,8 +26,8 @@ export async function fetchDevices(
 export async function fetchDeviceByUuid(
   token: string,
   uuid: string
-): Promise<DeviceEntitySimple[] | HttpError> {
-  const response = await fetchSafe<DeviceEntitySimple[]>(
+): Promise<DeviceEntitySimple | HttpError> {
+  const response = await fetchSafe<DeviceEntitySimple>(
     ENDPOINTS.DEVICES.DETAILS + uuid,
     addCredentials({}, token)
   );

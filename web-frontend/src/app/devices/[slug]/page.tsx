@@ -1,4 +1,5 @@
 import { fetchDeviceByUuid } from "@/api/device";
+import DeviceDashboard from "@/components/device/dashboard/dashboard";
 import { getAuthData } from "@/lib/auth/server";
 import { Params } from "next/dist/server/request/params";
 import { redirect } from "next/navigation";
@@ -26,5 +27,5 @@ export default async function DevicePage({
   if (device instanceof Error) {
     throw device;
   }
-  return <p>Post: {device.toString()}</p>;
+  return <DeviceDashboard device={device} />;
 }
