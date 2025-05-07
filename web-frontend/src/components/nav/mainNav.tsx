@@ -44,14 +44,6 @@ export default function Navbar({ isLoggedIn }: { isLoggedIn: boolean }) {
                 </NavigationMenuLink>
               </NavigationMenuItem>
               <NavigationMenuItem>
-                <NavigationMenuLink
-                  className="px-4 py-2 hover:bg-accent hover:text-accent-foreground rounded-md"
-                  href="/preview-stream"
-                >
-                  !DEBUG PREVIEW!
-                </NavigationMenuLink>
-              </NavigationMenuItem>
-              <NavigationMenuItem>
                 <form action={logoutAction}>
                   <Button
                     type="submit"

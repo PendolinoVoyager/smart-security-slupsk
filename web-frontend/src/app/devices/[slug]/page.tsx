@@ -20,12 +20,12 @@ export default async function DevicePage({
   }
   const { slug } = await params;
   // if (!isUuidV4(slug)) {
-  //   throw new Error("Invalid device UUID");
+  //   throw new Error("Invalid device UUID"); // test device doesn't have a valid so...
   // }
   const device = await fetchDeviceByUuid(auth.token, slug as string);
-  console.log(device);
   if (device instanceof Error) {
     throw device;
   }
+
   return <DeviceDashboard device={device} />;
 }

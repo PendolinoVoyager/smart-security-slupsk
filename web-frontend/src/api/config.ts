@@ -13,6 +13,9 @@ export const ENDPOINTS = {
     LIST: `${BACKEND_PROVIDER_URL}/api/v1/device/`,
     DETAILS: `${BACKEND_PROVIDER_URL}/api/v1/device/`,
   },
+  NOTIFICATIONS: {
+    BY_DEVICE_PAGINATED: `${BACKEND_PROVIDER_URL}/api/v1/notification`,
+  },
   STREAMING: {
     /**
      * Fetch all available streams from streaming server.

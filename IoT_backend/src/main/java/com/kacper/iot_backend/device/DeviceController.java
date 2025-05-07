@@ -34,7 +34,8 @@ public class DeviceController
     @GetMapping("/{uuid}")
     public DevicesListResponse getUserDeviceByUuid(@AuthenticationPrincipal UserDetails userDetails,
         @PathVariable String uuid) {
-        return deviceService.getByUuid(uuid);
+        Device device = deviceService.getByUuid(uuid);
+        return new DevicesListResponse(device.getId(), "lol xd", device.getDeviceName(), device.getUuid());
     }
 
 }
