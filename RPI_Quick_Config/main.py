@@ -44,6 +44,7 @@ def print_menu() -> None:
         "[3] Select device to configure",
         "[4] Switch WIFI",
         "[5] Authenticate device",
+        "[6] Security testing",
         "[99] Exit"
     ]
     colored_print(RESET, "\n".join(menu_options))
@@ -189,7 +190,60 @@ def authenticate_device(devices, selected_device, backend_ip) -> None:
     except requests.exceptions.RequestException as e:
         colored_print(RED, f"[ERROR] Network error: {e}")
 
+def test_security() -> None:
+    colored_print(YELLOW, "\n[SECURITY TEST 1] Discovering already configured mDNS devices")
 
+    devices = discover_devices()
+    if not devices:
+        colored_print(RED, "[ERROR] No mDNS devices found.")
+        return
+
+    for device in devices:
+        device_ip = device['addresses'][0]
+        try:
+            response = requests.get(f"http://{device_ip}:5000/api/v1/uuid", timeout=3)
+            if response.status_code == 200:
+                colored_print(GREEN, f"[OK] Device {device['name']} is responsive to /uuid – might be configured.")
+            else:
+                colored_print(YELLOW, f"[INFO] Device {device['name']} returned status {response.status_code}.")
+        except Exception as e:
+            colored_print(RED, f"[ERROR] No response from {device['name']} ({device_ip}): {e}")
+
+    colored_print(YELLOW, "\n[SECURITY TEST 2] Attempting to re-authenticate an already configured device")
+    colored_print(WHITE, "[INFO] Skipped – requires valid token and backend in test mode.")
+
+    colored_print(YELLOW, "\n[SECURITY TEST 3] Sending malformed Wi-Fi configuration data")
+    for device in devices:
+        device_ip = device['addresses'][0]
+        try:
+            url = f"http://{device_ip}:5000/api/v1/config"
+            bad_payloads = [
+                {"ssid": "", "password": "12345678"},
+                {"ssid": "ValidSSID", "password": ""},
+                {"ssid": "ValidSSID", "password": "p" * 1000}
+            ]
+            for payload in bad_payloads:
+                response = requests.post(url, json=payload, timeout=3)
+                if response.status_code >= 400:
+                    colored_print(GREEN, f"[OK] Device {device['name']} correctly rejected bad input.")
+                else:
+                    colored_print(RED, f"[ALERT] Device {device['name']} accepted malformed input!")
+        except Exception as e:
+            colored_print(RED, f"[ERROR] Error while sending malformed config: {e}")
+
+    colored_print(YELLOW, "\n[SECURITY TEST 4] DoS test – sending multiple requests in rapid succession")
+    for device in devices:
+        device_ip = device['addresses'][0]
+        url = f"http://{device_ip}:5000/api/v1/uuid"
+        try:
+            for _ in range(10):  # small burst
+                requests.get(url, timeout=1)
+            colored_print(GREEN, f"[OK] Device {device['name']} handled the request burst.")
+        except Exception as e:
+            colored_print(RED, f"[ERROR] Device {device['name']} did not respond during DoS test: {e}")
+
+    colored_print(YELLOW, "\n[SECURITY TEST 5] Checking if /token allows overwriting existing tokens")
+    colored_print(WHITE, "[INFO] Skipped – requires access to valid tokens and backend support.")
 
 
 
@@ -218,6 +272,9 @@ def main() -> None:
             case "5":
                 colored_print(WHITE, "\n[INFO] Authenticate Device:")
                 authenticate_device(devices, selected_device, backend_ip)
+            case "6":
+                colored_print(WHITE, "\n[INFO] Security testing:")
+                test_security()
             case "99":
                 colored_print(GREEN, "[INFO] Exiting...")
                 break
