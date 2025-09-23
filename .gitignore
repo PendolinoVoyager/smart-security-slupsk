@@ -91,3 +91,5 @@ coverage/
 
 # Ignore IDE-specific files
 .vscode/
+
+release/.DS_Store
