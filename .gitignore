@@ -1,95 +1,120 @@
-# macOS
 .DS_Store
-.AppleDouble
-.LSOverride
+IoT_App/.DS_Store
+IoT_backend/.DS_Store
+IoT_backend/src/.DS_Store
+IoT_backend/src/main/.DS_Store
+IoT_backend/src/main/java/.DS_Store
+IoT_backend/src/main/java/com/.DS_Store
+IoT_backend/src/main/java/com/kacper/.DS_Store
+IoT_backend/src/main/java/com/kacper/iot_backend/.DS_Store
+IoT_backend/src/main/resources/.DS_Store
+certs/.DS_Store
+firmware/start_up_config/.DS_Store
+mqtt-broker/.DS_Store
+release/.DS_Store
 
-# Node.js
-node_modules/
+# IDEs / editors
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# logi
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
 
-# Python
-__pycache__/
-*.py[cod]
-*.pyo
-*.pyd
-.Python
-env/
-venv/
-ENV/
-*.egg-info/
-dist/
-build/
-
-# Rust
-target/
-Cargo.lock
-
-# Java
-*.class
-*.jar
-*.war
-*.ear
-*.iml
-*.ipr
-*.iws
-target/
-out/
-
-# Kotlin
-*.class
-*.jar
-*.war
-*.ear
-*.iml
-*.ipr
-*.iws
-build/
-
-# Maven
-target/
-*.log
-
-# Gradle
-.gradle/
-build/
-!gradle-wrapper.jar
-
-# IntelliJ IDEA
-.idea/
-*.iml
-*.ipr
-*.iws
-
-# WebStorm
-.idea/
-*.iml
-*.ipr
-*.iws
-
-# Logs
-*.log
-*.trace
-
-# Miscellaneous
-*.swp
-*.swo
-*.bak
+# pliki tymczasowe
 *.tmp
-*.orig
-*.rej
-*.~*
+*.temp
+*.bak
+*.swp
 
-# Ignore coverage reports
-coverage/
-*.lcov
-.nyc_output/
+# -----------------
+# Frontend (React / TypeScript)
+# -----------------
+sss-frontend/
+sss-frontend/node_modules/
+sss-frontend/.env
+sss-frontend/.env.local
+sss-frontend/.env.development.local
+sss-frontend/.env.test.local
+sss-frontend/.env.production.local
 
-# Ignore compiled TypeScript files
-*.tsbuildinfo
+# Build / output
+sss-frontend/dist/
+sss-frontend/build/
+sss-frontend/.cache/
+sss-frontend/coverage/
 
-# Ignore IDE-specific files
-.vscode/
+# TS build cache
+sss-frontend/**/*.tsbuildinfo
 
-release/.DS_Store
+# Dependency directories if używasz innych package managerów
+sss-frontend/.pnpm/
+sss-frontend/.yarn/
+sss-frontend/*.lock
+
+# -----------------
+# Backend (Java / IoT_backend etc.)
+# -----------------
+IoT_backend/
+IoT_backend/target/
+IoT_backend/*.class
+IoT_backend/*.jar
+IoT_backend/.classpath
+IoT_backend/.project
+IoT_backend/.settings/
+
+# pliki konfiguracyjne/sensytywne
+IoT_backend/.env
+IoT_backend/secrets/
+IoT_backend/certs/
+
+# -----------------
+# MQTT / Broker / inne
+# -----------------
+mqtt-broker/
+mqtt_project/
+
+# Jeśli mają folder `node_modules`
+mqtt_project/node_modules/
+
+# -----------------
+# Certyfikaty / klucze
+# -----------------
+certs/
+private.key
+*.pem
+*.crt
+
+# -----------------
+# Skrypty, bazy, debug
+# -----------------
+dev_db.sh
+*.sql
+*.sqlite
+
+# -----------------
+# Docker
+# -----------------
+Dockerfile
+docker-compose*.yml
+*.docker-compose.override.yml
+
+# jeśli budujesz obrazy locally i masz warstwę outputu
+docker/*
+
+# -----------------
+# Inne
+# -----------------
+# Pliki builda frontend i artefakty zipów (jeśli trzymasz je w repo)
+artifacts/
+*.zip
+*.tar.gz
+*.tgz
+
+# Mapy źródeł — jeżeli generujesz, ale nie chcesz trzymać publicznie
+sss-frontend/*.map
+
