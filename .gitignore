@@ -1,0 +1,93 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+ENV/
+*.egg-info/
+dist/
+build/
+
+# Rust
+target/
+Cargo.lock
+
+# Java
+*.class
+*.jar
+*.war
+*.ear
+*.iml
+*.ipr
+*.iws
+target/
+out/
+
+# Kotlin
+*.class
+*.jar
+*.war
+*.ear
+*.iml
+*.ipr
+*.iws
+build/
+
+# Maven
+target/
+*.log
+
+# Gradle
+.gradle/
+build/
+!gradle-wrapper.jar
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# WebStorm
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Logs
+*.log
+*.trace
+
+# Miscellaneous
+*.swp
+*.swo
+*.bak
+*.tmp
+*.orig
+*.rej
+*.~*
+
+# Ignore coverage reports
+coverage/
+*.lcov
+.nyc_output/
+
+# Ignore compiled TypeScript files
+*.tsbuildinfo
+
+# Ignore IDE-specific files
+.vscode/
