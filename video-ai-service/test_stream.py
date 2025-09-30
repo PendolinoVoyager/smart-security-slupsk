@@ -2,10 +2,10 @@ import cv2
 import time
 from ultralytics import YOLO
 from get_capture import get_capture
-
-model = YOLO("yolov8n.pt")  # Download and load pre-trained model
-# cap = get_capture() 
-cap = cv2.VideoCapture(0)
+from add_notif import send_notification
+model = YOLO("yolo11n.pt")  # Download and load pre-trained model
+cap = get_capture() 
+# cap = cv2.VideoCapture(0)
 
 last_detection_time = 0  # Track last detection timestamp
 detection_interval = 1   # Detect once per second
@@ -47,7 +47,7 @@ while cap.isOpened():
             cv2.putText(frame, f"NEW:{label}", (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
             print(f"New object detected: {label}")
             if conf > MIN_CONFIDENCE and ((x2 - x1) * (y2 - y1) > MIN_AREA):
-                print("placeholder: send notification")
+                send_notification("There's " + label)
         else:
             # Draw the box with a different color for previously detected objects
             cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 0), 2)

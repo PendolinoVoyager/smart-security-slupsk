@@ -1,4 +1,4 @@
 yolov8n.pt
 *.pt
+__pycache__/*
 __pycache__
-
