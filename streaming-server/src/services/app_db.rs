@@ -115,8 +115,10 @@ impl RedisDeviceSchema {
         Ok(con.json_get(keys, ".").await?)
     }
 
-    pub async fn get(con: &mut Connection, device_id: CoreDBId) -> anyhow::Result<Self> {
-        Ok(con.json_get(format!("device:{device_id}"), ".").await?)
+    pub async fn get_device(con: &mut Connection, device_id: CoreDBId) -> anyhow::Result<Self> {
+        con.json_get(format!("device:{device_id}"), ".")
+            .await
+            .map_err(|_| anyhow::Error::msg("device not found"))
     }
     /// Gets the device (and check if exists) from the main database.
     /// Then, it converts the value to redis value, as in schema defined in services::app_db module.

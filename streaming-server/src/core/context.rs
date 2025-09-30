@@ -88,7 +88,8 @@ impl AppContext {
     pub async fn get_device(&'static self, device_id: CoreDBId) -> anyhow::Result<Device> {
         let mut conn = self.app_db.get().await?;
         let store_fut = self.devices.lock();
-        let redis_fut = crate::services::app_db::RedisDeviceSchema::get(&mut conn, device_id);
+        let redis_fut =
+            crate::services::app_db::RedisDeviceSchema::get_device(&mut conn, device_id);
         let (mut store, redis_result) = tokio::join!(store_fut, redis_fut);
         // make sure redis entry exists
         let _redis_result = redis_result?;

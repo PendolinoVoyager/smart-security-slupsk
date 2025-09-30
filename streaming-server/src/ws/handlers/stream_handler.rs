@@ -137,7 +137,7 @@ async fn check_user_authorized(
         return Err(anyhow::Error::msg("no such user"));
     };
 
-    if let Ok(dev) = crate::services::app_db::RedisDeviceSchema::get(
+    if let Ok(dev) = crate::services::app_db::RedisDeviceSchema::get_device(
         &mut ctx.app_db.get().await?,
         params.device_id,
     )

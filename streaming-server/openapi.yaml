@@ -101,7 +101,7 @@ paths:
                 properties:
                   status:
                     type: string
-                    example: "error"
+                    example: "failure"
                   payload:
                     type: string
                     example: "bad token"
@@ -114,7 +114,129 @@ paths:
                 properties:
                   status:
                     type: string
-                    example: "error"
+                    example: "falure"
                   payload:
                     type: string
                     example: "missing Authorization: Bearer <token> heade"
+  /streams/availability:
+    get:
+      summary: Check if a device is available for streaming. Use query parameters to filter by device name or user ID.
+      description: Returns a list with ONE DEVICE. It is are available for authenticated users only. Authorization is via the 'Authorization' header with a valid JWT token OR if a flag on the server is set to allow ID's instead of tokens, then substitute token with id in the header.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: device_id
+          schema:
+            type: integer
+          required: true
+          description: Device ID to check availability for.
+      responses:
+        "200":
+          description: Device availability retrieved successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  payload:
+                    type: object
+                    properties:
+                      count:
+                        type: integer
+                        example: 1
+                      available:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: integer
+                              example: 100
+                            device_name:
+                              type: string
+                              example: "Default Device"
+                            user_id:
+                              type: interger
+                              example: 1
+                            server_addr:
+                              type: string
+                              example: "
+        "404":
+          description: Device not found.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "failure"
+                  payload:
+                    type: string
+                    example: "device not found: <details>"
+  /udp_stream_start:
+    get:
+      summary: Start a UDP stream to provided address. !NO AUTH IMPLEMENTED YET!
+      description: Starts a stream using raw UDP to the specified address. The device ID and address are required in the request body.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                device_id:
+                  type: integer
+                  example: 100
+                address:
+                  type: string
+                  example: "192.168.1.3:1234"
+      responses:
+        "200":
+          description: UDP stream started successfully. It will 
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  payload:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+                        example: "streaming to 192.168.1.3:1234"
+        "400":
+          description: Bad request. Invalid device ID or address.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "failure"
+                  payload:
+                    type: string
+                    example: "bad request: expected device_id and address"
+        "404":
+          description: Device not found.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "failure"
+                  payload:
+                    type: string
+                    example: "no device found with id: <id>"

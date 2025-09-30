@@ -35,6 +35,9 @@ pub async fn route(req: AppRequest, ctx: &'static AppContext) -> AppResponse {
         "/hello" => route!("hello", hello_handler, req, ctx),
         "/benchmark" => route!("benchmark", bench_handler, req, ctx),
         "/streams" => route!("streams", streams_handler, req, ctx),
+        "/streams/availability" => {
+            route!("availability", availability_handler, req, ctx)
+        }
         "/openapi.yaml" => route!("openapi", openapi_handler, req, ctx),
         "/udp_stream_start" => route!("udp_stream_start", udp_stream_start_handler, req, ctx),
         _ => {

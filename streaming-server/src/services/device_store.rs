@@ -57,7 +57,6 @@ impl DeviceStore {
         self.devices.remove(&device);
     }
     /// Get the device from the store.
-    /// It will actually remove the device to prevent issues with borrowing.
     pub fn get_device(&mut self, device: DeviceId) -> Option<Device> {
         self.devices.get(&device).cloned()
     }
