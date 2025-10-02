@@ -11,6 +11,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { Button } from "@/components/ui/button";
+import NotificationListPaginated from "../notification/notificationListPaginated";
 
 // Panel with device info and image
 function DeviceInfoPanel({ device }: { device: DeviceEntitySimple }) {
@@ -88,7 +89,7 @@ export default function DeviceDashboard({ device }: DeviceDashboardProps) {
       </div>
 
       {/* Notifications */}
-      <NotificationListLatest deviceUuid={device.uuid} />
+      <NotificationListPaginated deviceUuid={device.uuid} />
     </div>
   );
 }

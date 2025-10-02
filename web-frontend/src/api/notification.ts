@@ -13,7 +13,7 @@ export type Notification = {
   timestamp: string;
 };
 
-const PAGE_SIZE = 15;
+export const PAGE_SIZE = 15;
 
 export type NotificationResponse = {
   page: number;
