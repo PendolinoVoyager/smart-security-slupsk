@@ -24,7 +24,7 @@
     "lucide-react": "^0.488.0",
     "motion": "^12.7.4",
     "mpegts.js": "^1.8.0",
-    "next": "15.3.0",
+    "next": "^15.5.4",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
     "tailwind-merge": "^3.2.0",
