@@ -1,14 +1,10 @@
-import Image from "next/image";
+import HomePagePromo from "./homePagePromo";
+import { getAuthData } from "@/lib/auth/server";
 
-export default function Home() {
-  return (
-    <div className="space-y-4">
-      <h1 className="text-3xl font-bold">
-        Ladna strona glowna dla niezalogowanych
-      </h1>
-      <p className="text-gray-600">
-        A jak zalogowany to dashboard z domyslnym urzadzeniem / lista urzadzen
-      </p>
-    </div>
-  );
+export default async function Home() {
+  const loggedIn = !!(await getAuthData());
+
+  if (loggedIn) {
+    return <h1>Dashboard</h1>;
+  } else return <HomePagePromo />;
 }

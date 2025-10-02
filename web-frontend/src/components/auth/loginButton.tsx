@@ -48,7 +48,8 @@ export default function LoginButton(
           <PersonIcon /> Login
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="center" side="bottom" className="w-80">
+
+      <PopoverContent align="center" side="bottom" className="w-80" forceMount>
         <LoginBox />
       </PopoverContent>
     </Popover>

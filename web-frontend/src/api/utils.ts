@@ -17,7 +17,7 @@ export async function fetchSafe<T>(
     if (!res.ok) {
       const msg = await res.text();
       return new HttpError(
-        msg || res.statusText || "UNKNOWN ERROR",
+        msg || res.statusText || `Unknown error: code ${res.status}`,
         res.status ?? 500
       );
     }
