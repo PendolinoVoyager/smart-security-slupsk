@@ -1,4 +1,5 @@
 /* eslint-disable react-hooks/exhaustive-deps */
+"use client";
 import React, { useEffect, useRef } from "react";
 import mpegts from "mpegts.js";
 
