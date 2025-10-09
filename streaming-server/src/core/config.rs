@@ -76,7 +76,15 @@ impl AppConfig {
             .ok_or_else(|| anyhow::Error::msg("env string not found"))?;
         let env = Env::from_str(env)?;
 
-        Self::load_from_env(yaml, env)
+        let ret = Self::load_from_env(yaml, env);
+
+        match ret {
+            Ok(mut cfg) if std::env::var("STRSRV_ENV_ON").unwrap_or_default() == "1" => {
+                cfg.update_with_env_vars();
+                Ok(cfg)
+            }
+            _ => ret,
+        }
     }
 
     fn load_from_env(yaml: Yaml, env: Env) -> anyhow::Result<Self> {
@@ -92,6 +100,7 @@ impl AppConfig {
             .as_str()
             .ok_or_else(|| anyhow::Error::msg("Missing or invalid `db_uri`"))?
             .to_string();
+
         let app_db_uri = yaml["redis_db_uri"]
             .as_str()
             .ok_or_else(|| anyhow::Error::msg("Invalid redis uri string"))?
@@ -147,5 +156,77 @@ impl AppConfig {
             app_db_uri,
             tokens_are_ids,
         })
+    }
+    // Override self values with environment variables if they exist
+    fn update_with_env_vars(&mut self) {
+        use std::env::var_os;
+
+        if let Some(log) = var_os("STRSRV_LOG")
+            && let Some(log) = log.to_str()
+        {
+            self.log = log.to_string();
+        }
+
+        if let Some(env) = var_os("STRSRV_ENV")
+            && let Some(env) = env.to_str()
+            && let Ok(env) = Env::from_str(env)
+        {
+            self.env = env;
+        }
+
+        if let Some(tokens_are_ids) = var_os("STRSRV_TOKENS_ARE_IDS")
+            && let Some(tokens_are_ids) = tokens_are_ids.to_str()
+            && let Ok(tokens_are_ids) = tokens_are_ids.parse::<bool>()
+        {
+            self.tokens_are_ids = tokens_are_ids;
+        }
+
+        if let Some(db_uri) = var_os("STRSRV_DB_URI")
+            && let Some(db_uri) = db_uri.to_str()
+        {
+            self.db_uri = db_uri.to_string();
+        }
+
+        if let Some(app_db_uri) = var_os("STRSRV_REDIS_DB_URI")
+            && let Some(app_db_uri) = app_db_uri.to_str()
+        {
+            self.app_db_uri = app_db_uri.to_string();
+        }
+
+        if let Some(http_addr) = var_os("STRSRV_HTTP_ADDR")
+            && let Some(http_addr) = http_addr.to_str()
+        {
+            let port = self.http.address.port();
+            self.http.address = format!("{}:{}", http_addr, port)
+                .parse()
+                .unwrap_or(self.http.address);
+        }
+
+        if let Some(http_port) = var_os("STRSRV_HTTP_PORT")
+            && let Some(http_port) = http_port.to_str().and_then(|p| p.parse::<u16>().ok())
+        {
+            let addr = self.http.address.ip();
+            self.http.address = format!("{}:{}", addr, http_port)
+                .parse()
+                .unwrap_or(self.http.address);
+        }
+
+        if let Some(ws_addr) = var_os("STRSRV_WS_ADDR")
+            && let Some(ws_addr) = ws_addr.to_str()
+        {
+            let port = self.ws.address.port();
+            self.ws.address = format!("{}:{}", ws_addr, port)
+                .parse()
+                .unwrap_or(self.ws.address);
+        }
+
+        if let Some(ws_port) = var_os("STRSRV_WS_PORT")
+            && let Some(ws_port) = ws_port.to_str().and_then(|p| p.parse::<u16>().ok())
+        {
+            let addr = self.ws.address.ip();
+            self.ws.address = format!("{}:{}", addr, ws_port)
+                .parse()
+                .unwrap_or(self.ws.address);
+        }
     }
 }

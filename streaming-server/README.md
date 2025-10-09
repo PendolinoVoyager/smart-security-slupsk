@@ -28,12 +28,21 @@ Serves as the coordination layer between physical devices and web-based consumer
 
 ## Architecture Overview
 
-mermaid
-Copy
+## Enviromental variables
 
-graph TD
-EdgeDevice -->|WebSocket| Server
-Browser -->|HTTP/WS| Server
-Server -->|Session Data| Redis[(Redis)]
-Server -->|API| BackendServices
-Server -->|Metrics| Monitoring
+Instead of using provided .cfg files, enviromental variables will take precedence if `STRSVR_ENV_ON` enviromental variable is set to `1`.
+
+List of variables that influence config:
+
+- STRSRV_ENV - env (production / development)
+- STRSRV_LOG - log
+- STRSRV_DB_URI - db_uri
+- STRSRV_REDIS_DB_URI - redis_db_uri
+- STRSRV_TOKENS_ARE_IDS - tokens_are_ids
+
+- STRSRV_HTTP_ADDR - http address to bind to
+- STRSRV_HTTP_PORT - http port to bind to
+- STRSRV_HTTP_CORS - cors-allow-origin
+
+- STRSRV_WS_ADDR - websocket address to bind to
+- STRSRV_WS_PORT - http port to bind to
