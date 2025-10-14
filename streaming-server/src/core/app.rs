@@ -9,6 +9,9 @@ pub async fn init_app() -> anyhow::Result<()> {
     super::logging::setup(&config)
         .await
         .expect("logger initialization failed");
+
+    tracing::debug!("Started app with config:\n{config:#?}");
+
     let ctx = AppContext::create(config)
         .await
         .expect("cannot create app context with current settings");
