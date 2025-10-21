@@ -16,7 +16,7 @@ STREAMING_SERVER_ADDR="ws://127.0.0.1:9080"
 cd IoT_backend
 docker compose up -d
 cd ../streaming-server
-docker compose up -d
+docker compose -f compose.dev.yaml up -d
 cd ..
 
 

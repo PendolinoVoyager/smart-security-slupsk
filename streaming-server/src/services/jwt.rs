@@ -1,3 +1,4 @@
+#![allow(static_mut_refs)]
 //! JWT Service Module
 //!
 //! This module provides functionality for handling JWT tokens, including initialization, verification, and custom user claims.
@@ -40,31 +41,33 @@
 //! - [`verify_user`]: Verifies the authenticity and validity of a given JWT token.
 
 use jsonwebtoken::DecodingKey;
-use std::ptr::null_mut;
 
 use crate::core::config::AppConfig;
 use crate::core::context::AppContext;
 
 use super::core_db::CoreDBId;
 
-static mut DECODING_KEY: *mut DecodingKey = null_mut();
-static mut VALIDATION: *mut jsonwebtoken::Validation = null_mut();
+static mut DECODING_KEY: Option<DecodingKey> = None;
+static mut VALIDATION: Option<jsonwebtoken::Validation> = None;
 static mut TOKENS_ARE_IDS: bool = false;
 static DEFAULT_PEM_KEY_PATH: &str = "./cfg/jwt_pub_key.pem";
+static JWT_PUB_KEY_ENV_VAR: &str = "STRSRV_JWT_PUB_KEY_PATH";
 
 /// Initialie the JWT service with default key from cfg/jwt_pub_key.pem
 pub fn init(config: &AppConfig) -> anyhow::Result<()> {
-    let key = std::fs::read(DEFAULT_PEM_KEY_PATH)?;
+    let key = std::fs::read(
+        std::env::var_os(JWT_PUB_KEY_ENV_VAR).unwrap_or(DEFAULT_PEM_KEY_PATH.into()),
+    )?;
     _init(config, &key)
 }
 fn _init(config: &AppConfig, key: &[u8]) -> anyhow::Result<()> {
     unsafe {
         TOKENS_ARE_IDS = config.tokens_are_ids;
 
-        DECODING_KEY = Box::leak(Box::new(DecodingKey::from_rsa_pem(key)?));
-        VALIDATION = Box::leak(Box::new(jsonwebtoken::Validation::new(
+        DECODING_KEY = Some(DecodingKey::from_rsa_pem(key)?);
+        VALIDATION = Some(jsonwebtoken::Validation::new(
             jsonwebtoken::Algorithm::RS256,
-        )));
+        ));
     }
     Ok(())
 }
@@ -132,8 +135,8 @@ pub async fn verify_user(ctx: &'static AppContext, token: &str) -> anyhow::Resul
             let Ok(id) = token.parse::<CoreDBId>() else {
                 return Ok(jsonwebtoken::decode(
                     token,
-                    DECODING_KEY.as_ref_unchecked(),
-                    VALIDATION.as_ref_unchecked(),
+                    DECODING_KEY.as_ref().unwrap(),
+                    VALIDATION.as_ref().unwrap(),
                 )?
                 .claims);
             };
@@ -142,8 +145,8 @@ pub async fn verify_user(ctx: &'static AppContext, token: &str) -> anyhow::Resul
 
         Ok(jsonwebtoken::decode(
             token,
-            DECODING_KEY.as_ref_unchecked(),
-            VALIDATION.as_ref_unchecked(),
+            DECODING_KEY.as_ref().unwrap(),
+            VALIDATION.as_ref().unwrap(),
         )?
         .claims)
     }
@@ -158,8 +161,8 @@ pub async fn verify_device(
             let Ok(id) = token.parse::<CoreDBId>() else {
                 return Ok(jsonwebtoken::decode(
                     token,
-                    DECODING_KEY.as_ref_unchecked(),
-                    VALIDATION.as_ref_unchecked(),
+                    DECODING_KEY.as_ref().unwrap(),
+                    VALIDATION.as_ref().unwrap(),
                 )?
                 .claims);
             };
@@ -168,8 +171,8 @@ pub async fn verify_device(
 
         Ok(jsonwebtoken::decode(
             token,
-            DECODING_KEY.as_ref_unchecked(),
-            VALIDATION.as_ref_unchecked(),
+            DECODING_KEY.as_ref().unwrap(),
+            VALIDATION.as_ref().unwrap(),
         )?
         .claims)
     }
