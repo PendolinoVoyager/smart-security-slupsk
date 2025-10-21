@@ -26,11 +26,11 @@ Serves as the coordination layer between physical devices and web-based consumer
 
 - Observability - Built-in metrics endpoints and logging integration (Loki and Graphana stack)
 
-## Architecture Overview
-
 ## Enviromental variables
 
-Instead of using provided .cfg files, enviromental variables will take precedence if `STRSVR_ENV_ON` enviromental variable is set to `1`.
+STRSRV_APP_CONFIG environmental variable overrides default `cfg/config.yaml' path.
+
+Instead of using provided config.yaml file, enviromental variables will take precedence if `STRSVR_ENV_ON` enviromental variable is set to `1`.
 
 List of variables that influence config:
 
