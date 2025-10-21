@@ -2,11 +2,12 @@ use crate::core::config::AppConfig;
 
 use super::context::AppContext;
 
-const DEFAULT_CONFIG_PATH: &str = "cfg/config.yaml";
+static DEFAULT_CONFIG_PATH: &str = "cfg/cfg.yaml";
+static ENV_VAR_CONFIG_PATH: &str = "STRSRV_APP_CONFIG";
 
 /// Entry point for the app.
 pub async fn init_app() -> anyhow::Result<()> {
-    let config_path = std::env::var("STRSRV_APP_CONFIG").unwrap_or(DEFAULT_CONFIG_PATH.to_string());
+    let config_path = std::env::var(ENV_VAR_CONFIG_PATH).unwrap_or(DEFAULT_CONFIG_PATH.to_string());
     let config = AppConfig::load_from_yaml(&config_path)
         .unwrap_or_else(|e| panic!("Cannot parse the config file: {e}"));
     super::logging::setup(&config)

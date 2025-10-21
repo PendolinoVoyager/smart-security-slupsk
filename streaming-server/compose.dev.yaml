@@ -40,38 +40,6 @@ services:
       - ./cfg/redis-entrypoint.sh:/usr/local/bin/entrypoint.sh 
     entrypoint: ["/usr/local/bin/entrypoint.sh"]
 
-  streaming-server:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: streaming-server
-    #For local development to access database etc. running on host machine
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    
-    depends_on:
-      - redis
-    environment:
-      - RUST_LOG=info
-      - STRSRV_LOKI_URL=http://loki:3100
-      # all env vars below depend on STRSRV_ENV_ON being set to 1. 
-      - STRSRV_ENV_ON=1
-      # Redis host will be resolved via service name (Docker DNS)
-      - STRSRV_REDIS_DB_URI=redis://redis:6379
-      - STRSRV_DB_URI=postgresql://root:12345678@host.docker.internal:5432/iot_db
-    volumes:
-      - ./cfg.yaml:/etc/my-rust-server/cfg.yaml:ro
-    # Make sure ports match those in cfg.yaml. I can't automate that yet.
-    ports:
-      - "9000:9000"
-      - "9080:9080"  
-    restart: unless-stopped
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-
 volumes:
   loki-data:
   grafana-data:

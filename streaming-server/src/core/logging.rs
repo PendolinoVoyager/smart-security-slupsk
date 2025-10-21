@@ -13,11 +13,15 @@ pub async fn setup(config: &AppConfig) -> Result<()> {
     if config.log == "off" {
         return Ok(());
     }
+    let loki_url = std::env::var_os("STRSRV_LOKI_URL")
+        .unwrap_or("http://127.0.0.1:3100".into())
+        .into_string()
+        .expect("Invalid STRSRV_LOKI_URL");
 
     let (loki_layer, loki_task) = tracing_loki::builder()
         .label("host", hostname()?)?
         .label("service", "sss-streaming-server")?
-        .build_url(Url::parse("http://127.0.0.1:3100").unwrap())?;
+        .build_url(Url::parse(&loki_url).unwrap())?;
 
     // Set log level based on configuration
     let level = match config.log.as_str() {
