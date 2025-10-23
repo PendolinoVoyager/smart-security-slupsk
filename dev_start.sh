@@ -15,8 +15,6 @@ STREAMING_SERVER_ADDR="ws://127.0.0.1:9080"
 # run all the containers beforehand to not complicate things
 cd IoT_backend
 docker compose up -d
-cd ../streaming-server
-docker compose -f compose.dev.yaml up -d
 cd ..
 
 
@@ -38,7 +36,7 @@ tmux send-keys "cd web-frontend && npm run dev" C-m
 
 tmux select-pane -t 2
 
-tmux send-keys "cd streaming-server && cargo run --release" C-m
+tmux send-keys "cd streaming-server && docker compose up" C-m
 
 tmux select-pane -t 3
 
