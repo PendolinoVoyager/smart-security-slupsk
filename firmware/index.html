@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>HLS Stream Viewer</title>
+    <!-- CSS  -->
+    <link href="https://vjs.zencdn.net/7.2.3/video-js.css" rel="stylesheet" />
+    <!-- JS code -->
+    <!-- If you'd like to support IE8 (for Video.js versions prior to v7) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/videojs-contrib-hls/5.14.1/videojs-contrib-hls.js"></script>
+    <script src="https://vjs.zencdn.net/7.2.3/video.js"></script>
+
+    <style>
+      body {
+        background: #111;
+        color: #eee;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        width: 100vw;
+        margin: 0;
+      }
+      video {
+        width: 80%;
+        max-width: 960px;
+        border: 3px solid #333;
+        border-radius: 12px;
+        background: black;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Local video preview</h1>
+    <video id="video" class="video-js vjs-default-skin" controls>
+      <source
+        type="application/x-mpegURL"
+        src="http://127.0.0.1:8080/stream/index.m3u8"
+      />
+    </video>
+    <div style="margin-top: 1rem">
+      This is your offline video feed from Smart Security team device
+      $!!DEVICE_NAME!!.
+    </div>
+
+    <script>
+      var player = videojs("video");
+      player.play();
+    </script>
+  </body>
+</html>

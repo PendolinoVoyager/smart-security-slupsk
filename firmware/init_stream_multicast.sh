@@ -1,31 +1,44 @@
 #!/bin/bash
 
-# This script should be run on startup.
-# It will initialize the MPEG-TS stream and multicast it to relevant services on the device.
-# This isn't optimal, but gets the job done and I/O cost isn't too big (for now!!!). 
+# This script starts video production and a simple http server for preview
+SERVER_DIR="/var/localstream/html"
+HLS_OUTPUT_DIR="$SERVER_DIR/stream"
+PLAYLIST_NAME="index.m3u8"
 
-LOCAL_MV_HOST="127.0.0.1"
-LOCAL_MV_PORT="10000"
-
-# The host responsible for sending the stream to a streaming server
 MPEGTS_HOST="127.0.0.1"
 MPEGTS_PORT="10001"
 
-# Check if libcamera-vid is installed
-# It's only here so the test script can work with v4l2 for development purposes
+if [ ! -f /var/localstream/html ]; then
+rm -rf "$HLS_OUTPUT_DIR"/*
+# Clean up segments
+else
+echo "Cannot start stream. Make sure $SERVER_DIR exists and user $USER has permissions to write in it."
+exit 1
+fi
+# Start a simple HTTP server
+pkill -9 python3 2>/dev/null
+python3 -m http.server 8080 --directory /tmp/www/html --bind 0.0.0.0 &
+
 if command -v libcamera-vid &> /dev/null; then
     echo "Using libcamera-vid..."
-    # it is what it is
-    pkill -9 libcamera
-    
+    pkill -9 libcamera 2>/dev/null
     libcamera-vid --width 1920 --height 1080 --framerate 18 --bitrate 1000000 --inline -n -t 0 -o - | \
     gst-launch-1.0 fdsrc fd=0 ! video/x-h264,stream-format=byte-stream ! h264parse ! tee name=t \
-        t. ! queue ! udpsink host=$LOCAL_MV_HOST port=$LOCAL_MV_PORT sync=false \
-        t. ! queue ! mpegtsmux m2ts-mode=true ! udpsink host=$MPEGTS_HOST port=$MPEGTS_PORT sync=false ts-offset=-1
+        t. ! queue ! mpegtsmux name=mux m2ts-mode=true ! hlssink \
+            playlist-location="$HLS_OUTPUT_DIR/$PLAYLIST_NAME" \
+            location="$HLS_OUTPUT_DIR/segment_%05d.ts" \
+            target-duration=3 max-files=5 \
+        t. ! queue ! mux. \
+        t. ! queue ! udpsink host=$MPEGTS_HOST port=$MPEGTS_PORT sync=false ts-offset=-1
 else
     echo "libcamera-vid not found, using v4l2src as fallback..."
-    pkill -9 gst-launch   
-    gst-launch-1.0 v4l2src device=/dev/video0 ! videoconvert ! x264enc tune=zerolatency ! tee name=t \
-        t. ! queue ! h264parse ! udpsink host=$LOCAL_MV_HOST port=$LOCAL_MV_PORT sync=false \
-        t. ! queue ! h264parse ! mpegtsmux m2ts-mode=true ! udpsink host=$MPEGTS_HOST port=$MPEGTS_PORT sync=false
+    pkill -9 gst-launch 2>/dev/null
+    gst-launch-1.0 v4l2src device=/dev/video0 ! videoconvert ! x264enc tune=zerolatency bitrate=1000 speed-preset=ultrafast ! \
+        h264parse ! tee name=t \
+        t. ! queue ! mpegtsmux name=mux  ! hlssink \
+            playlist-location="$HLS_OUTPUT_DIR/$PLAYLIST_NAME" \
+            location="$HLS_OUTPUT_DIR/segment_%05d.ts" \
+            target-duration=3 max-files=5 \
+        t. ! queue ! mux. \
+        t. ! queue ! udpsink host=$MPEGTS_HOST port=$MPEGTS_PORT sync=false
 fi
