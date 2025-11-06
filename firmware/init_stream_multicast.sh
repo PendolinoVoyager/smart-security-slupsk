@@ -17,7 +17,7 @@ exit 1
 fi
 # Start a simple HTTP server
 pkill -9 python3 2>/dev/null
-python3 -m http.server 8080 --directory /tmp/www/html --bind 0.0.0.0 &
+python3 hls_server.py &
 
 if command -v libcamera-vid &> /dev/null; then
     echo "Using libcamera-vid..."
