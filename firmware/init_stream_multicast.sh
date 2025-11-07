@@ -10,13 +10,11 @@ MPEGTS_PORT="10001"
 
 if [ ! -f /var/localstream/html ]; then
 rm -rf "$HLS_OUTPUT_DIR"/*
-# Clean up segments
 else
 echo "Cannot start stream. Make sure $SERVER_DIR exists and user $USER has permissions to write in it."
 exit 1
 fi
 # Start a simple HTTP server
-pkill -9 python3 2>/dev/null
 python3 hls_server.py &
 
 if command -v libcamera-vid &> /dev/null; then
@@ -35,7 +33,7 @@ else
     pkill -9 gst-launch 2>/dev/null
     gst-launch-1.0 v4l2src device=/dev/video0 ! videoconvert ! x264enc tune=zerolatency bitrate=1000 speed-preset=ultrafast ! \
         h264parse ! tee name=t \
-        t. ! queue ! mpegtsmux name=mux  ! hlssink \
+        t. ! queue ! mpegtsmux name=mux m2ts-mode=true ! hlssink \
             playlist-location="$HLS_OUTPUT_DIR/$PLAYLIST_NAME" \
             location="$HLS_OUTPUT_DIR/segment_%05d.ts" \
             target-duration=3 max-files=5 \

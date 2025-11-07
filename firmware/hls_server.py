@@ -3,7 +3,7 @@ import sys
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 import os
 
-PORT = 8080
+PORT = 8088
 DIRECTORY = "/var/localstream/html"
 
 class NoCacheHandler(SimpleHTTPRequestHandler):
