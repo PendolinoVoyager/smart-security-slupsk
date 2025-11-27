@@ -1,19 +1,20 @@
 package com.kacper.iot_backend.measurements;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 
 import java.util.Date;
 
 public record AddMeasurementRequest(
-        @NotBlank(message = "Device ID is required")
+        @NotNull(message = "Device ID is required")
         int deviceId,
 
-        @NotBlank(message = "Temperature is required")
-        String temperature,
+        @NotBlank(message = "MeasurementType is required")
+        String measurementType,
 
-        @NotBlank(message = "Humidity is required")
-        String humidity,
+        @NotNull(message = "Value is required")
+        double value,
 
-        @NotBlank(message = "Timestamp is required")
+        @NotNull(message = "Timestamp is required")
         Date timestamp
 ) { }
