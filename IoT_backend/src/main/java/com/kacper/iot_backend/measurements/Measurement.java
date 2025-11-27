@@ -4,6 +4,7 @@ import com.kacper.iot_backend.device.Device;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
@@ -13,6 +14,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@Getter
 public class Measurement {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
