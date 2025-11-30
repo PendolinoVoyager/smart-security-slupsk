@@ -9,17 +9,18 @@ The configuration files are located at:
 ```
 /etc/sss_firmware/*
 ```
+
 ## Email file
 
 ### Purpose:
 
-*/etc/sss_firmware/email.txt*
+_/etc/sss_firmware/email.txt_
 
-This file contains current owner's email. The absence of any contents in the file means that the device isn't configured. 
+This file contains current owner's email. The absence of any contents in the file means that the device isn't configured.
 
 ### Structure:
 
-Is empty or contains a single line with user's email. 
+Is empty or contains a single line with user's email.
 
 ## Token File
 

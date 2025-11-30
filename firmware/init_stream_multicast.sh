@@ -20,23 +20,50 @@ python3 hls_server.py &
 if command -v libcamera-vid &> /dev/null; then
     echo "Using libcamera-vid..."
     pkill -9 libcamera 2>/dev/null
-    libcamera-vid --width 1920 --height 1080 --framerate 18 --bitrate 1000000 --inline -n -t 0 -o - | \
-    gst-launch-1.0 fdsrc fd=0 ! video/x-h264,stream-format=byte-stream ! h264parse ! tee name=t \
-        t. ! queue ! mpegtsmux name=mux m2ts-mode=true ! hlssink \
-            playlist-location="$HLS_OUTPUT_DIR/$PLAYLIST_NAME" \
-            location="$HLS_OUTPUT_DIR/segment_%05d.ts" \
-            target-duration=3 max-files=5 \
-        t. ! queue ! mux. \
-        t. ! queue ! udpsink host=$MPEGTS_HOST port=$MPEGTS_PORT sync=false ts-offset=-1
+
+    libcamera-vid \
+        --width 1920 --height 1080 \
+        --framerate 18 \
+        --bitrate 1000000 \
+        --inline \
+        -n -t 0 -o - | \
+
+    gst-launch-1.0 fdsrc fd=0 ! \
+        video/x-h264,stream-format=byte-stream ! \
+        h264parse config-interval=1 ! \
+        tee name=t \
+        t. ! queue max-size-buffers=0 max-size-time=0 max-size-bytes=0 leaky=downstream ! \
+            mpegtsmux ! \
+            hlssink \
+                playlist-location="$HLS_OUTPUT_DIR/$PLAYLIST_NAME" \
+                location="$HLS_OUTPUT_DIR/segment_%05d.ts" \
+                target-duration=1 \
+                max-files=10 \
+                playlist-length=3 \
+        t. ! queue max-size-buffers=0 max-size-time=0 max-size-bytes=0 leaky=downstream ! \
+            mpegtsmux m2ts-mode=true ! \
+            udpsink host=$MPEGTS_HOST port=$MPEGTS_PORT sync=false async=false \
+            ts-offset=0
+
 else
-    echo "libcamera-vid not found, using v4l2src as fallback..."
+    echo "libcamera-vid not found, using v4l2src fallback..."
     pkill -9 gst-launch 2>/dev/null
-    gst-launch-1.0 v4l2src device=/dev/video0 ! videoconvert ! x264enc tune=zerolatency bitrate=1000 speed-preset=ultrafast ! \
-        h264parse ! tee name=t \
-        t. ! queue ! mpegtsmux name=mux m2ts-mode=true ! hlssink \
-            playlist-location="$HLS_OUTPUT_DIR/$PLAYLIST_NAME" \
-            location="$HLS_OUTPUT_DIR/segment_%05d.ts" \
-            target-duration=3 max-files=5 \
-        t. ! queue ! mux. \
-        t. ! queue ! udpsink host=$MPEGTS_HOST port=$MPEGTS_PORT sync=false
+
+    gst-launch-1.0 v4l2src device=/dev/video0 ! \
+        videoconvert ! \
+        x264enc tune=zerolatency bitrate=1000 speed-preset=ultrafast key-int-max=30 ! \
+        h264parse config-interval=1 ! \
+        tee name=t \
+        t. ! queue max-size-buffers=0 max-size-time=0 max-size-bytes=0 leaky=downstream ! \
+            mpegtsmux ! \
+            hlssink \
+                playlist-location="$HLS_OUTPUT_DIR/$PLAYLIST_NAME" \
+                location="$HLS_OUTPUT_DIR/segment_%05d.ts" \
+                target-duration=1 \
+                max-files=10 \
+                playlist-length=3 \
+        t. ! queue max-size-buffers=0 max-size-time=0 max-size-bytes=0 leaky=downstream ! \
+            mpegtsmux m2ts-mode=true ! \
+            udpsink host=$MPEGTS_HOST port=$MPEGTS_PORT sync=false async=false \
+            ts-offset=0
 fi
