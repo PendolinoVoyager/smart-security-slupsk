@@ -38,6 +38,7 @@ public class SecurityConfig {
                                 "/api/v1/activation-token/verify",
                                 "/api/v1/reset-password-token/send",
                                 "/api/v1/reset-password-token/reset",
+                                "/api/v1/measurements",
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html").permitAll()

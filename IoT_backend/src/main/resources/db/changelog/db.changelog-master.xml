@@ -19,4 +19,5 @@
     <include file="/db/changelog/notification/notification.changelog-1.0.xml" />
     <include file="/db/changelog/notification/notification.changelog-1.1.xml" />
     <include file="/db/changelog/fixtures/fixtures.changelog-1.1.xml" />
+    <include file="db/changelog/measurement/measurement.changelog-1.0.xml" />
 </databaseChangeLog>

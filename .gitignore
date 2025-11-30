@@ -28,29 +28,10 @@ pnpm-debug.log*
 *.bak
 *.swp
 
-sss-frontend/
-sss-frontend/node_modules/
-sss-frontend/.env
-sss-frontend/.env.local
-sss-frontend/.env.development.local
-sss-frontend/.env.test.local
-sss-frontend/.env.production.local
-
-sss-frontend/dist/
-sss-frontend/build/
-sss-frontend/.cache/
-sss-frontend/coverage/
-
 sss-frontend/**/*.tsbuildinfo
+sss-frontend/node_modules/
+
 
 sss-frontend/.pnpm/
 sss-frontend/.yarn/
 sss-frontend/*.lock
-
-IoT_backend/
-IoT_backend/target/
-IoT_backend/*.class
-IoT_backend/*.jar
-IoT_backend/.classpath
-IoT_backend/.project
-IoT_backend/.settings/
