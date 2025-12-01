@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/collapsible";
 import { Button } from "@/components/ui/button";
 import NotificationListPaginated from "../notification/notificationListPaginated";
+import { WeatherStats } from "./weatherStats";
 
 // Panel with device info and image
 function DeviceInfoPanel({ device }: { device: DeviceEntitySimple }) {
@@ -19,6 +20,7 @@ function DeviceInfoPanel({ device }: { device: DeviceEntitySimple }) {
     <Card>
       <CardHeader>
         <CardTitle>Device Info</CardTitle>
+        <WeatherStats deviceId={device.id} />
       </CardHeader>
       <CardContent>
         <div className="space-y-2 text-sm">
