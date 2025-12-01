@@ -13,6 +13,10 @@ export const ENDPOINTS = {
     LIST: `${BACKEND_PROVIDER_URL}/api/v1/device/`,
     DETAILS: `${BACKEND_PROVIDER_URL}/api/v1/device/`,
   },
+  MEASUREMENTS: {
+    /** Add {deviceId} integer after slash to get measurements for the device */
+    PAGINATED: `${BACKEND_PROVIDER_URL}/api/v1/measurements/`,
+  },
   NOTIFICATIONS: {
     BY_DEVICE_PAGINATED: `${BACKEND_PROVIDER_URL}/api/v1/notification`,
   },
