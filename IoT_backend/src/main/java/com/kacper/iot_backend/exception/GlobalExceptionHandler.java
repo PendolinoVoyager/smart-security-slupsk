@@ -69,4 +69,9 @@ public class GlobalExceptionHandler
     public ResponseEntity<String> handleNotDeviceTokenException(NotDeviceTokenException e) {
         return new ResponseEntity<>(e.getMessage(), HttpStatus.FORBIDDEN);
     }
+
+    @ExceptionHandler(BadRequestYoloException.class)
+    public ResponseEntity<String> handleBadRequestYoloException(BadRequestYoloException e) {
+        return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
+    }
 }
