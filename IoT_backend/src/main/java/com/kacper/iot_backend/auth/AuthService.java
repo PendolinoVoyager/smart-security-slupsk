@@ -2,6 +2,7 @@ package com.kacper.iot_backend.auth;
 
 import com.kacper.iot_backend.activation_token.ActivationToken;
 import com.kacper.iot_backend.activation_token.ActivationTokenService;
+import com.kacper.iot_backend.exception.BadRequestYoloException;
 import com.kacper.iot_backend.exception.InvalidTokenException;
 import com.kacper.iot_backend.exception.WrongLoginCredentialsException;
 import com.kacper.iot_backend.jwt.JWTService;
@@ -16,6 +17,8 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
+
+import java.util.Objects;
 
 
 @Service
@@ -101,17 +104,27 @@ public class AuthService
     public boolean isTokenValid(IsTokenValidRequest isTokenValidRequest) {
         var tokenType = isTokenValidRequest.tokenType();
 
-        if (tokenType.equals("Device")) {
-            var isDeviceToken = jwtService.isDeviceToken(isTokenValidRequest.token());
-            if (!isDeviceToken) {
-                // zmienic na inny exception co rzuca bad request
-                throw new InvalidTokenException("TokenType was set to Device but provided token is not a device token");
-            }
-        }
-
         var userDetails = customUserDetailsService.loadUserByUsername(
                 jwtService.extractUsername(isTokenValidRequest.token())
         );
+
+        if (tokenType.equals("Device")) {
+            var isDeviceToken = jwtService.isDeviceToken(isTokenValidRequest.token());
+            if (!isDeviceToken) {
+                throw new BadRequestYoloException("TokenType was set to Device but provided token is not a device token");
+            }
+
+            var user = userService.getUserOrThrow(userDetails.getUsername());
+            var devices = user.getDevices();
+            var deviceUuidFromToken = jwtService.extractDeviceUUID(isTokenValidRequest.token());
+
+            var doesDeviceBelongsToUser = devices.stream()
+                    .anyMatch(x -> Objects.equals(x.getUuid(), deviceUuidFromToken));
+
+            if (!doesDeviceBelongsToUser) {
+                throw new BadRequestYoloException("Device token does not belong to any of the user's devices");
+            }
+        }
 
         return jwtService.isTokenValid(isTokenValidRequest.token(), userDetails);
     }
