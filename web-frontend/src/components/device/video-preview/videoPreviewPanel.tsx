@@ -5,7 +5,7 @@ import { getAuthData } from "@/lib/auth/server";
 import VideoController from "./videoController";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ExclamationTriangleIcon } from "@radix-ui/react-icons";
-
+import {ENDPOINTS} from "@/api/config";
 interface VideoPreviewPanelProps {
   deviceId: number;
 }
@@ -41,10 +41,10 @@ const VideoPreviewPanel: FC<VideoPreviewPanelProps> = async function ({
       );
     }
   }
+  
   const streamUrl =
-    "ws://" +
-    stream.server_addr +
-    `/stream?device_id=${stream.id}&token=${authData.token}`;
+   ENDPOINTS.STREAMING.WATCH_STREAM + 
+    `?device_id=${stream.id}&token=${authData.token}`;
   return <VideoController streamUrl={streamUrl} />;
 };
 

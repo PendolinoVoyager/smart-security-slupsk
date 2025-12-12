@@ -24,7 +24,6 @@ export async function getAuthData(): Promise<AuthData | undefined> {
 
 export async function logoutAction() {
   (await cookies()).delete(AUTH_COOKIE_NAME);
-  redirect("/");
 }
 
 export async function loginAction(_currentState: any, form: FormData) {

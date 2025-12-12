@@ -2,8 +2,6 @@ import Image from "next/image";
 import { DeviceEntitySimple } from "@/api/device";
 import VideoPreviewPanel from "../video-preview/videoPreviewPanel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
-import NotificationListLatest from "../notification/notificationListLatest";
 import { env } from "node:process";
 import {
   Collapsible,
@@ -13,6 +11,8 @@ import {
 import { Button } from "@/components/ui/button";
 import NotificationListPaginated from "../notification/notificationListPaginated";
 import { WeatherStats } from "./weatherStats";
+import AudioRecorder from "../audioRecorder";
+import { getAuthData } from "@/lib/auth/client";
 
 // Panel with device info and image
 function DeviceInfoPanel({ device }: { device: DeviceEntitySimple }) {
@@ -68,7 +68,10 @@ type DeviceDashboardProps = {
   device: DeviceEntitySimple;
 };
 
-export default function DeviceDashboard({ device }: DeviceDashboardProps) {
+export default  function DeviceDashboard({ device }: DeviceDashboardProps) {
+  const authData = getAuthData();
+  const token = authData?.token!;
+
   return (
     <div className="flex flex-col gap-4 p-4">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -79,13 +82,19 @@ export default function DeviceDashboard({ device }: DeviceDashboardProps) {
 
         {/* Live Feed */}
         <div className="lg:col-span-2">
-          <Card className="h-full">
+          <Card>
             <CardHeader>
               <CardTitle>Live Feed - {device.deviceName}</CardTitle>
             </CardHeader>
             <CardContent>
-              <VideoPreviewPanel deviceId={device.id} />
+              <div className="flex flex-col md:flex-row justify-center items-center md:items-start gap-4">
+                <VideoPreviewPanel deviceId={device.id} />
+                <AudioRecorder deviceId={device.id} token={token} />
+              </div>
             </CardContent>
+
+
+
           </Card>
         </div>
       </div>
