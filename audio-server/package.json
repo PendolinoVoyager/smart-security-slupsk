@@ -1,0 +1,16 @@
+{
+  "name": "audio-server",
+  "version": "1.0.0",
+  "description": "Simple node.js WebSocket server. For authenticating devices and users it uses HTTP requests to main backend server. Basically and functionally a switch.",
+  "license": "ISC",
+  "author": "",
+  "type": "commonjs",
+  "main": "main.js",
+  "scripts": {
+    "dev": "node main.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "ws": "^8.18.3"
+  }
+}
