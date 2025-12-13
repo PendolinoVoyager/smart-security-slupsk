@@ -1,5 +1,5 @@
 use hyper::Response;
-use hyper::header::{CONTENT_LANGUAGE, CONTENT_TYPE};
+use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
 
 use crate::core::context::AppContext;
 use crate::core::http::{AppRequest, AppResponse};
@@ -21,7 +21,7 @@ pub async fn openapi_handler(
     ctx: &'static AppContext,
 ) -> anyhow::Result<AppResponse> {
     let mut res = Response::builder()
-        .header(CONTENT_LANGUAGE, OPENAPI_YAML.len())
+        .header(CONTENT_LENGTH, OPENAPI_YAML.len())
         .header(CONTENT_TYPE, "application/yaml")
         .body(OPENAPI_YAML.clone().into())?;
     add_common_headers(&mut res, ctx);

@@ -35,6 +35,7 @@ pub async fn route(req: AppRequest, ctx: &'static AppContext) -> AppResponse {
         "/hello" => route!("hello", hello_handler, req, ctx),
         "/benchmark" => route!("benchmark", bench_handler, req, ctx),
         "/streams" => route!("streams", streams_handler, req, ctx),
+        "/streams/all" => route!("list_all_devices", list_all_devices_handler, req, ctx),
         "/streams/availability" => {
             route!("availability", availability_handler, req, ctx)
         }
