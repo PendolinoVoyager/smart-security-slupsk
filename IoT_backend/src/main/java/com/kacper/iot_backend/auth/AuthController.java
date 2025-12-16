@@ -34,6 +34,7 @@ public class AuthController
         return authService.login(authLoginRequest);
     }
 
+    /// Shit endpoint - dont use pls
     @GetMapping("is-token-valid")
     public ResponseEntity<IsTokenValidResponse> isTokenValid(@Valid @RequestBody IsTokenValidRequest isTokenValidRequest) {
         boolean isValid = authService.isTokenValid(isTokenValidRequest);

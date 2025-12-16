@@ -26,11 +26,5 @@ public class NotificationController
     @PostMapping("/")
     public DefaultResponse addNotification(@RequestHeader("Authorization") String authorizationHeader, @RequestBody NotificationRequest notificationRequest) {
         return notificationService.addNotification(authorizationHeader, notificationRequest);
-
     }
-
-
-
-
-
 }

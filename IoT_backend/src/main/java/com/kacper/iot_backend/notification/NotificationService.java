@@ -9,6 +9,7 @@ import com.kacper.iot_backend.user.UserService;
 import com.kacper.iot_backend.utils.DefaultResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
@@ -25,16 +26,19 @@ public class NotificationService
     private final JWTService jwtService;
     private final static Logger logger = Logger.getLogger(NotificationService.class.getName());
     private final DeviceRepository deviceRepository;
+    private final SimpMessagingTemplate messagingTemplate;
+
 
     public NotificationService(
             NotificationRepository notificationRepository,
             UserService userService,
             JWTService jwtService,
-            DeviceRepository deviceRepository) {
+            DeviceRepository deviceRepository, SimpMessagingTemplate messagingTemplate) {
         this.notificationRepository = notificationRepository;
         this.userService = userService;
         this.jwtService = jwtService;
         this.deviceRepository = deviceRepository;
+        this.messagingTemplate = messagingTemplate;
     }
 
     public NotificationPageResponse getNotifications(UserDetails userDetails, Pageable pageable) {
@@ -75,6 +79,21 @@ public class NotificationService
                 .build();
 
         notificationRepository.save(notification);
+
+        var notificationResponse = new NotificationResponse(
+                notification.getId(),
+                notification.getType(),
+                notification.getMessage(),
+                notification.getHas_seen(),
+                notification.getTimestamp()
+        );
+
+        // If you think hmm... how websocket knows which user to send to?
+        // The answer: it is YOLO broadcast to all subscribed clients.
+        messagingTemplate.convertAndSend(
+                "/topic/notifications",
+                notificationResponse
+        );
 
         return new DefaultResponse("Notification added successfully");
     }
