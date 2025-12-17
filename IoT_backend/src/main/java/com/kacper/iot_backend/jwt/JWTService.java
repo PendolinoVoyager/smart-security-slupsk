@@ -80,6 +80,11 @@ public class JWTService
                 .compact();
     }
 
+    public boolean isDeviceToken(String token) {
+        var claims = extractAllClaims(token);
+        return claims.get("isDevice", Boolean.class) != null;
+    }
+
     /**
      * @param userDetails user details
      * @return generated refresh token with claims, subject, issuedAt, expiration and signed with secret key

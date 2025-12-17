@@ -2,9 +2,12 @@ package com.kacper.iot_backend.auth;
 
 import com.kacper.iot_backend.activation_token.ActivationToken;
 import com.kacper.iot_backend.activation_token.ActivationTokenService;
+import com.kacper.iot_backend.exception.BadRequestYoloException;
+import com.kacper.iot_backend.exception.InvalidTokenException;
 import com.kacper.iot_backend.exception.WrongLoginCredentialsException;
 import com.kacper.iot_backend.jwt.JWTService;
 import com.kacper.iot_backend.mail.MailService;
+import com.kacper.iot_backend.user.CustomUserDetailsService;
 import com.kacper.iot_backend.user.User;
 import com.kacper.iot_backend.user.UserService;
 import jakarta.mail.MessagingException;
@@ -12,7 +15,10 @@ import jakarta.mail.MessagingException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
+
+import java.util.Objects;
 
 
 @Service
@@ -23,19 +29,21 @@ public class AuthService
     private final MailService mailService;
     private final UserService userService;
     private final ActivationTokenService activationTokenService;
+    private final CustomUserDetailsService customUserDetailsService;
 
 
     public AuthService(
             JWTService jwtService,
             AuthenticationManager authenticationManager,
             MailService mailService,
-            UserService userService, ActivationTokenService activationTokenService
+            UserService userService, ActivationTokenService activationTokenService, CustomUserDetailsService customUserDetailsService
     ) {
         this.jwtService = jwtService;
         this.authenticationManager = authenticationManager;
         this.mailService = mailService;
         this.userService = userService;
         this.activationTokenService = activationTokenService;
+        this.customUserDetailsService = customUserDetailsService;
     }
 
     public AuthRegistrationResponse register(
@@ -91,5 +99,33 @@ public class AuthService
         } catch (MessagingException e) {
             throw new MessagingException("Error during sending verification mail");
         }
+    }
+
+    public boolean isTokenValid(IsTokenValidRequest isTokenValidRequest) {
+        var tokenType = isTokenValidRequest.tokenType();
+
+        var userDetails = customUserDetailsService.loadUserByUsername(
+                jwtService.extractUsername(isTokenValidRequest.token())
+        );
+
+        if (tokenType.equals("Device")) {
+            var isDeviceToken = jwtService.isDeviceToken(isTokenValidRequest.token());
+            if (!isDeviceToken) {
+                throw new BadRequestYoloException("TokenType was set to Device but provided token is not a device token");
+            }
+
+            var user = userService.getUserOrThrow(userDetails.getUsername());
+            var devices = user.getDevices();
+            var deviceUuidFromToken = jwtService.extractDeviceUUID(isTokenValidRequest.token());
+
+            var doesDeviceBelongsToUser = devices.stream()
+                    .anyMatch(x -> Objects.equals(x.getUuid(), deviceUuidFromToken));
+
+            if (!doesDeviceBelongsToUser) {
+                throw new BadRequestYoloException("Device token does not belong to any of the user's devices");
+            }
+        }
+
+        return jwtService.isTokenValid(isTokenValidRequest.token(), userDetails);
     }
 }
