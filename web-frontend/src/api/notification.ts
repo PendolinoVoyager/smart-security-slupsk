@@ -29,6 +29,8 @@ export const fetchByUserPaginated = async function (
   token: string,
   page: number
 ): Promise<NotificationResponse | HttpError> {
+  console.log(token)
+
   const res = await fetchSafe<NotificationResponse>(
     `${ENDPOINTS.NOTIFICATIONS.BY_DEVICE_PAGINATED}?page=${page}&size=${PAGE_SIZE}`,
     addCredentials({}, token)

@@ -17,6 +17,7 @@ import {
   PaginationContent,
   PaginationItem,
 } from "@/components/ui/pagination";
+import { useNotifications } from "@/lib/context/NotificationContext";
 
 interface NotificationListClientProps {
   token: string;
@@ -61,6 +62,14 @@ export default function NotificationListClient({
       </Alert>
     );
   }
+  const {notifications: newNotifications } = useNotifications();
+ 
+  useEffect(() => {
+    if (!data?.notifications[0]) return;
+    if (newNotifications[0] !== data.notifications[0]) {
+      setPage(0); // let page change drive fetching
+    }
+  }, [newNotifications, data]);
 
   return (
     <div className="lg:col-span-1 flex flex-col">
@@ -92,7 +101,7 @@ export default function NotificationListClient({
                             <Badge
                               variant={notif.has_seen ? "secondary" : "default"}
                             >
-                              {notif.type}
+                              {notif.type.toUpperCase()}
                             </Badge>
                             <span className="text-xs text-muted-foreground">
                               {new Date(notif.timestamp).toLocaleString()}
