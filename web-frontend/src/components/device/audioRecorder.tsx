@@ -51,14 +51,14 @@ export default function AudioRecorder({deviceId, token}: {deviceId: number, toke
       };
 
       ws.onerror = () => {
-        setStatus('Connection error');
         stopRecording();
+        setStatus('Connection error');
       };
 
       ws.onclose = () => {
         if (isRecording) {
-          setStatus('Connection lost');
           stopRecording();
+          setStatus('Connection lost');
         }
       };
 

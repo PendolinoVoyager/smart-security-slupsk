@@ -21,6 +21,7 @@ export const ENDPOINTS = {
   },
   NOTIFICATIONS: {
     BY_DEVICE_PAGINATED: `${BACKEND_PROVIDER_URL}/api/v1/notification`,
+    WS: `${BACKEND_PROVIDER_URL}/ws`
   },
   STREAMING: {
     /**
@@ -48,5 +49,5 @@ export const ENDPOINTS = {
      * Connect to audio server and begin to stream audio chunks
      */
     CONNECT:  `${AUDIO_SERVER_URL}/user`
-  }
+  },
 };

@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import NotificationListPaginated from "../notification/notificationListPaginated";
 import { WeatherStats } from "./weatherStats";
 import AudioRecorder from "../audioRecorder";
-import { getAuthData } from "@/lib/auth/client";
+import { getAuthData } from "@/lib/auth/server";
 
 // Panel with device info and image
 function DeviceInfoPanel({ device }: { device: DeviceEntitySimple }) {
@@ -68,8 +68,8 @@ type DeviceDashboardProps = {
   device: DeviceEntitySimple;
 };
 
-export default  function DeviceDashboard({ device }: DeviceDashboardProps) {
-  const authData = getAuthData();
+export default async function DeviceDashboard({ device }: DeviceDashboardProps) {
+  const authData = await getAuthData();
   const token = authData?.token!;
 
   return (
