@@ -97,4 +97,30 @@ public class NotificationService
 
         return new DefaultResponse("Notification added successfully");
     }
+
+    public DefaultResponse addAiServiceNotification(NotificationRequest notificationRequest) {
+        Notification notification = Notification.builder()
+                .type(notificationRequest.type())
+                .message(notificationRequest.message())
+                .timestamp(OffsetDateTime.now(ZoneOffset.UTC))
+                .has_seen(false)
+                .build();
+
+        notificationRepository.save(notification);
+
+        var notificationResponse = new NotificationResponse(
+                notification.getId(),
+                notification.getType(),
+                notification.getMessage(),
+                notification.getHas_seen(),
+                notification.getTimestamp()
+        );
+
+        messagingTemplate.convertAndSend(
+                "/topic/notifications",
+                notificationResponse
+        );
+
+        return new DefaultResponse("AI Service Notification added successfully");
+    }
 }

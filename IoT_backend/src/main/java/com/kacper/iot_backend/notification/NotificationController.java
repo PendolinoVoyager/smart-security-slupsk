@@ -27,4 +27,9 @@ public class NotificationController
     public DefaultResponse addNotification(@RequestHeader("Authorization") String authorizationHeader, @RequestBody NotificationRequest notificationRequest) {
         return notificationService.addNotification(authorizationHeader, notificationRequest);
     }
+
+    @PostMapping("/ai-service")
+    public DefaultResponse addAiServiceNotification(@RequestBody NotificationRequest notificationRequest) {
+        return notificationService.addAiServiceNotification(notificationRequest);
+    }
 }
