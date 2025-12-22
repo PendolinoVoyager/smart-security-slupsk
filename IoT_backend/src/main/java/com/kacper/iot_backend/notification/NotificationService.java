@@ -1,5 +1,7 @@
 package com.kacper.iot_backend.notification;
 
+import com.kacper.iot_backend.ai_service_notification.AiServiceNotification;
+import com.kacper.iot_backend.ai_service_notification.AiServiceNotificationRepository;
 import com.kacper.iot_backend.device.Device;
 import com.kacper.iot_backend.device.DeviceRepository;
 import com.kacper.iot_backend.exception.ResourceNotFoundException;
@@ -27,18 +29,20 @@ public class NotificationService
     private final static Logger logger = Logger.getLogger(NotificationService.class.getName());
     private final DeviceRepository deviceRepository;
     private final SimpMessagingTemplate messagingTemplate;
+    private final AiServiceNotificationRepository aiServiceNotificationRepository;
 
 
     public NotificationService(
             NotificationRepository notificationRepository,
             UserService userService,
             JWTService jwtService,
-            DeviceRepository deviceRepository, SimpMessagingTemplate messagingTemplate) {
+            DeviceRepository deviceRepository, SimpMessagingTemplate messagingTemplate, AiServiceNotificationRepository aiServiceNotificationRepository) {
         this.notificationRepository = notificationRepository;
         this.userService = userService;
         this.jwtService = jwtService;
         this.deviceRepository = deviceRepository;
         this.messagingTemplate = messagingTemplate;
+        this.aiServiceNotificationRepository = aiServiceNotificationRepository;
     }
 
     public NotificationPageResponse getNotifications(UserDetails userDetails, Pageable pageable) {
@@ -99,28 +103,41 @@ public class NotificationService
     }
 
     public DefaultResponse addAiServiceNotification(NotificationRequest notificationRequest) {
-        Notification notification = Notification.builder()
-                .type(notificationRequest.type())
+        var notification = AiServiceNotification.builder()
+                .notificationType(notificationRequest.type())
                 .message(notificationRequest.message())
                 .timestamp(OffsetDateTime.now(ZoneOffset.UTC))
-                .has_seen(false)
+                .hasSeen(false)
                 .build();
 
-        notificationRepository.save(notification);
+        aiServiceNotificationRepository.save(notification);
 
         var notificationResponse = new NotificationResponse(
                 notification.getId(),
-                notification.getType(),
+                notification.getNotificationType(),
                 notification.getMessage(),
-                notification.getHas_seen(),
+                notification.isHasSeen(),
                 notification.getTimestamp()
         );
 
+        // juololo
         messagingTemplate.convertAndSend(
                 "/topic/notifications",
                 notificationResponse
         );
 
         return new DefaultResponse("AI Service Notification added successfully");
+    }
+
+    public List<NotificationResponse> getAllAiServiceNotifications() {
+        return aiServiceNotificationRepository.findAll().stream()
+                .map(notification -> new NotificationResponse(
+                        notification.getId(),
+                        notification.getNotificationType(),
+                        notification.getMessage(),
+                        notification.isHasSeen(),
+                        notification.getTimestamp()
+                ))
+                .toList();
     }
 }

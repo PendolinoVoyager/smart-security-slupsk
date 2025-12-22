@@ -43,7 +43,9 @@ public class SecurityConfig {
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
                                 "/ws/**",
-                                "/api/v1/notification/ai-service").permitAll()
+                                "/api/v1/notification/ai-service",
+                                "/api/v1/minio/upload",
+                                "/api/v1/minio/images").permitAll()
                         .anyRequest().authenticated())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authenticationProvider(authenticationProvider())

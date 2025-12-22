@@ -32,4 +32,9 @@ public class NotificationController
     public DefaultResponse addAiServiceNotification(@RequestBody NotificationRequest notificationRequest) {
         return notificationService.addAiServiceNotification(notificationRequest);
     }
+
+    @GetMapping("/ai-service")
+    public List<NotificationResponse> getAiServiceNotifications() {
+        return notificationService.getAllAiServiceNotifications();
+    }
 }
