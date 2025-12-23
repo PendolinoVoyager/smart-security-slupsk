@@ -45,7 +45,9 @@ public class SecurityConfig {
                                 "/ws/**",
                                 "/api/v1/notification/ai-service",
                                 "/api/v1/minio/upload",
-                                "/api/v1/minio/images").permitAll()
+                                "/api/v1/minio/images",
+                                "/api/v1/minio/images/{notificationId}",
+                                "/api/v1/notification/ai-service").permitAll()
                         .anyRequest().authenticated())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authenticationProvider(authenticationProvider())
