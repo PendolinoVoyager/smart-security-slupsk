@@ -1,10 +1,12 @@
 package com.kacper.iot_backend.ai_service_notification;
 
+import com.kacper.iot_backend.notification_images.NotificationImage;
 import jakarta.persistence.*;
 import lombok.*;
-import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.List;
 
 @Getter
 @Setter
@@ -31,4 +33,7 @@ public class AiServiceNotification {
 
     @Column(name = "timestamp", nullable = false)
     private OffsetDateTime timestamp = OffsetDateTime.now(ZoneOffset.UTC);
+
+    @OneToMany(mappedBy = "aiServiceNotification", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<NotificationImage> images = new ArrayList<>();
 }

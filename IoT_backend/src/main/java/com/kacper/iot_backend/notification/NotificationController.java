@@ -29,7 +29,7 @@ public class NotificationController
     }
 
     @PostMapping("/ai-service")
-    public DefaultResponse addAiServiceNotification(@RequestBody NotificationRequest notificationRequest) {
+    public NotificationResponse addAiServiceNotification(@RequestBody NotificationRequest notificationRequest) {
         return notificationService.addAiServiceNotification(notificationRequest);
     }
 

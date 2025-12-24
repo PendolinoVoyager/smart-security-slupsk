@@ -102,7 +102,7 @@ public class NotificationService
         return new DefaultResponse("Notification added successfully");
     }
 
-    public DefaultResponse addAiServiceNotification(NotificationRequest notificationRequest) {
+    public NotificationResponse addAiServiceNotification(NotificationRequest notificationRequest) {
         var notification = AiServiceNotification.builder()
                 .notificationType(notificationRequest.type())
                 .message(notificationRequest.message())
@@ -126,7 +126,7 @@ public class NotificationService
                 notificationResponse
         );
 
-        return new DefaultResponse("AI Service Notification added successfully");
+        return notificationResponse;
     }
 
     public List<NotificationResponse> getAllAiServiceNotifications() {

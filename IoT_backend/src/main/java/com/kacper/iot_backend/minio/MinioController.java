@@ -17,12 +17,20 @@ public class MinioController
     }
 
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public DefaultResponse upload(@ModelAttribute UploadImageRequest request) {
-        return minioService.uploadImageToMinio(request);
+    public DefaultResponse upload(
+            @ModelAttribute UploadImageRequest request,
+            @RequestParam("ai-service-notification-id") Integer aiServiceNotificationId
+    ) {
+        return minioService.uploadImageToMinio(request, aiServiceNotificationId);
     }
 
     @GetMapping("/images")
     public List<String> getAllImages() {
         return minioService.getAllImages();
+    }
+
+    @GetMapping("/images/{notificationId}")
+    public List<String> getImagesByNotificationId(@PathVariable Integer notificationId) {
+        return minioService.getImagesByNotificationId(notificationId);
     }
 }
