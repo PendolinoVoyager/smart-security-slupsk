@@ -1,6 +1,6 @@
 export const AUTH_PROVIDER_URL = "http://127.0.0.1:8080";
 export const BACKEND_PROVIDER_URL = "http://localhost:8080";
-export const STREAMING_SERVER_HTTP_URL = "http://localhost:9000";
+export const STREAMING_SERVER_HTTP_URL = "http://localhost:9002";
 export const STREAMING_SERVER_WS_URL = "ws://localhost:9080";
 export const AUDIO_SERVER_URL = "ws://localhost:8888";
 
@@ -21,6 +21,9 @@ export const ENDPOINTS = {
   },
   NOTIFICATIONS: {
     BY_DEVICE_PAGINATED: `${BACKEND_PROVIDER_URL}/api/v1/notification`,
+    AI_SERIVCE_NOTIFICATIONS: `${BACKEND_PROVIDER_URL}/api/v1/notification/ai-service`,
+    /** Add {notification_id} after a slash to get related images */
+    GET_IMAGES: `${BACKEND_PROVIDER_URL}/api/v1/minio/images`,
     WS: `${BACKEND_PROVIDER_URL}/ws`
   },
   STREAMING: {

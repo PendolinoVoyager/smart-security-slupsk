@@ -7,15 +7,14 @@ import ToastNotification from './toastNotification';
 
 export default function OnScreenNotification() {
   const { notifications } = useNotifications();
-
+  
   return (
     <>
       {notifications.map((n) =>
-        n.type === 'visit' ? (
-          <ModalNotification notification={n} />
+        n.type.toLowerCase() === 'visit' ? (
+          <ModalNotification notification={n} key={n.id} />
         ) : (
-          <ToastNotification notification={n} />
-
+          <ToastNotification notification={n} key={n.id} />
         )
       )}
     </>
