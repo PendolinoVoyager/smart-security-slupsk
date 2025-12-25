@@ -29,8 +29,6 @@ export const fetchByUserPaginated = async function (
   token: string,
   page: number
 ): Promise<NotificationResponse | HttpError> {
-  console.log(token)
-
   const res = await fetchSafe<NotificationResponse>(
     `${ENDPOINTS.NOTIFICATIONS.BY_DEVICE_PAGINATED}?page=${page}&size=${PAGE_SIZE}`,
     addCredentials({}, token)
@@ -38,3 +36,25 @@ export const fetchByUserPaginated = async function (
   console.debug(res);
   return res;
 };
+
+export const fetchAiNotifications = async function (): Promise<Notification[] | HttpError> {
+  const res = await fetchSafe<Notification[]>(
+    `${ENDPOINTS.NOTIFICATIONS.AI_SERIVCE_NOTIFICATIONS}`);
+  console.debug(res);
+  return res;
+};
+
+/**
+ * Fetch a list of images related to the notification.
+ * @param notificationId 
+ * @returns a list of urls with images
+ */
+export const fetchNotificationImages = async function (
+  notificationId: number
+): Promise<string[] | HttpError> {
+  const res = await fetchSafe<string[]>(
+    `${ENDPOINTS.NOTIFICATIONS.GET_IMAGES}/${notificationId}`,
+  );
+  console.debug(res);
+  return res;
+}

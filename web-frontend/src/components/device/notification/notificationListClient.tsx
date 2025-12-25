@@ -2,7 +2,10 @@
 
 import React, { useEffect, useState } from "react";
 import {
+  fetchAiNotifications,
   fetchByUserPaginated,
+  fetchNotificationImages,
+  Notification,
   NotificationResponse,
   PAGE_SIZE,
 } from "@/api/notification";
@@ -18,6 +21,8 @@ import {
   PaginationItem,
 } from "@/components/ui/pagination";
 import { useNotifications } from "@/lib/context/NotificationContext";
+import { HttpError } from "@/api/utils";
+import ModalNotification from "./modalNotification";
 
 interface NotificationListClientProps {
   token: string;
@@ -31,6 +36,10 @@ export default function NotificationListClient({
   token,
   deviceUuid,
 }: NotificationListClientProps) {
+  const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null);
+  const [imageUrls, setImageUrls] = useState<string[]>([]);
+  const [modalOpen, setModalOpen] = useState(false);
+
   const [page, setPage] = useState(0);
   const [data, setData] = useState<NotificationResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -41,7 +50,14 @@ export default function NotificationListClient({
       setLoading(true);
       setError(null);
       const result = await fetchByUserPaginated(token, p);
+      const additional_notifs = await fetchAiNotifications();
+      
       if (result instanceof Error) throw result;
+      if (!(additional_notifs instanceof HttpError)) {
+        result.notifications.push(...additional_notifs);
+        result.notifications.sort((a, b) => Date.parse(b.timestamp) - Date.parse(a.timestamp));
+        result.notifications.splice(PAGE_SIZE);
+      }
       setData(result);
     } catch (err) {
       console.error(err);
@@ -51,9 +67,13 @@ export default function NotificationListClient({
     }
   }
 
+  const {notifications: newNotifications } = useNotifications();
   useEffect(() => {
     loadPage(page);
   }, [page]);
+  useEffect(() => {
+    loadPage(0);
+  }, [newNotifications])
 
   if (error) {
     return (
@@ -62,14 +82,20 @@ export default function NotificationListClient({
       </Alert>
     );
   }
-  const {notifications: newNotifications } = useNotifications();
- 
-  useEffect(() => {
-    if (!data?.notifications[0]) return;
-    if (newNotifications[0] !== data.notifications[0]) {
-      setPage(0); // let page change drive fetching
+
+  async function handleNotificationClick(notification: Notification) {
+    try {
+      const images = await fetchNotificationImages(notification.id);
+      setSelectedNotification(notification);
+      if (!(images instanceof HttpError)) {
+        setImageUrls(images);
+      }
+      setModalOpen(true);
+    } catch (e) {
+      console.error("Failed to load notification images", e);
     }
-  }, [newNotifications, data]);
+  }
+
 
   return (
     <div className="lg:col-span-1 flex flex-col">
@@ -93,23 +119,7 @@ export default function NotificationListClient({
                   <ScrollArea className="h-80 pr-2">
                     <div className="space-y-3">
                       {data.notifications.map((notif) => (
-                        <div
-                          key={notif.id}
-                          className="p-3 border rounded-lg shadow-sm bg-card"
-                        >
-                          <div className="flex justify-between items-center">
-                            <Badge
-                              variant={notif.has_seen ? "secondary" : "default"}
-                            >
-                              {notif.type.toUpperCase()}
-                            </Badge>
-                            <span className="text-xs text-muted-foreground">
-                              {new Date(notif.timestamp).toLocaleString()}
-                            </span>
-                          </div>
-                          <Separator className="my-2" />
-                          <p className="text-sm">{notif.message}</p>
-                        </div>
+                        <NotificationListItem notification={notif} key={notif.id} onClick={() => handleNotificationClick(notif)} />
                       ))}
                     </div>
                   </ScrollArea>
@@ -154,6 +164,43 @@ export default function NotificationListClient({
           )}
         </CardContent>
       </Card>
+      {modalOpen && selectedNotification && (
+      <ModalNotification
+        notification={selectedNotification}
+        imageUrls={imageUrls}
+        onClose={() => {setModalOpen(false); setSelectedNotification(null)}}
+      />
+      )}
+
+    </div>
+  );
+}
+
+
+function NotificationListItem({
+  notification,
+  onClick,
+}: {
+  notification: Notification;
+  onClick?: () => void;
+}) {
+  return (
+    <div
+      onClick={onClick}
+      className="p-3 border rounded-lg shadow-sm bg-card cursor-pointer hover:bg-accent transition"
+    >
+      <div className="flex justify-between items-center">
+        <Badge
+          variant={notification.has_seen ? "secondary" : "default"}
+        >
+          {notification.type.toUpperCase()}
+        </Badge>
+        <span className="text-xs text-muted-foreground">
+          {new Date(notification.timestamp).toLocaleString()}
+        </span>
+      </div>
+      <Separator className="my-2" />
+      <p className="text-sm">{notification.message}</p>
     </div>
   );
 }

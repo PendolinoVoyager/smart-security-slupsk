@@ -92,7 +92,7 @@ lazy_static::lazy_static! {
     pub static ref NOT_FOUND_RESPONSE: AppResponse = {
         Response::builder()
         .header(CONTENT_TYPE, "application/json")
-        .status(StatusCode::INTERNAL_SERVER_ERROR)
+        .status(StatusCode::NOT_FOUND)
         .header(CONTENT_LENGTH, MSG_404.len())
         .header(ACCESS_CONTROL_ALLOW_ORIGIN, "*")
         .body(MSG_404.clone().into()).unwrap()
