@@ -178,6 +178,31 @@ paths:
                   payload:
                     type: string
                     example: "device not found: <details>"
+  /list_all_devices:
+    get:
+      summary: Get all device IDs in database that are streaming. !NO AUTH IMPLEMENTED YET!
+      description: Get all device IDS in database that are streaming. No reason for it to fail other than server error.
+      responses:
+        "200":
+          description: Retrieved all devices succesfully. 
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  payload:
+                    type: object
+                    properties:
+                      count:
+                        type: integer
+                        example: 2
+                      devices:
+                        type: array
+                        items:
+                          type: number
   /udp_stream_start:
     get:
       summary: Start a UDP stream to provided address. !NO AUTH IMPLEMENTED YET!
