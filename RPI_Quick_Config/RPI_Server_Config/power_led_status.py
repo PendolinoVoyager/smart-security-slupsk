@@ -30,9 +30,37 @@ def is_configured():
                     if i + 1 < len(lines):
                         return lines[i + 1].strip() == "1"
     except Exception as e:
-        print(f"Error reading config file: {e}")
+        log(f"Error reading config file: {e}")
     return False
 
+def setup_configuration_file():
+    with open(CONFIG_FILE_PATH, "r", encoding="utf-8") as f:
+        f.write("[Is Configured]\n0\n")
+
+# Don't touch this func. On start dnsmasq always fails on startup for some reason.
+# Single restart always helps.
+def restart_dnsmasq_till_works():
+    while True:
+        try:
+            subprocess.run(["sudo", "systemctl", "restart", "dnsmasq"], check=True)
+            log("dnsmasq restarted successfully.")
+            break
+        except subprocess.CalledProcessError as e:
+            log(f"Failed to restart dnsmasq: {e}. Retrying in 5 seconds...")
+            time.sleep(5)
+
+def log(message):
+    with open(LOG_FILE, "a+") as f:
+        f.write("\n\n\n")
+        f.write(message)
+
+def stop_dnsmasq_on_configured():
+    if is_configured():
+        try:
+            subprocess.run(["sudo", "systemctl", "stop", "dnsmasq"], check=True)
+            log("dnsmasq stopped as device is configured.")
+        except subprocess.CalledProcessError as e:
+            log(f"Failed to stop dnsmasq: {e}.")
 
 def blink_led():
     global blinking
@@ -106,7 +134,7 @@ def stop_http_server():
         finally:
             server_process = None
 
-
+# This is shit xD I will refactor that tomorrow
 def monitor_config():
     global blinking
     while True:
@@ -135,10 +163,10 @@ def stop_mdns_service():
 
 def main():
     setup()
+    setup_configuration_file()
+    restart_dnsmasq_till_works()
     threading.Thread(target=blink_led, daemon=True).start()
     monitor_config()
-    stop_http_server()
-    stop_mdns_service()
 
 
 if __name__ == "__main__":
