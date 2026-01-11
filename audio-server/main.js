@@ -53,6 +53,6 @@ wss.on("error", () => {
     })
 })
 
-server.listen(PORT, () => {
+server.listen(PORT, "0.0.0.0", () => {
   console.log(`Audio server running on port ${PORT}`);
 });
