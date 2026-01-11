@@ -36,10 +36,10 @@ tmux send-keys "cd web-frontend && npm run dev" C-m
 
 tmux select-pane -t 2
 
-tmux send-keys "cd streaming-server && docker compose up" C-m
+tmux send-keys "cd streaming-server && docker compose -f compose.dev.yaml up -d && cargo run --release" C-m
 
 tmux select-pane -t 3
 
-tmux send-keys "cd firmware && python3 debug_stream_controller.py $STREAMING_SERVER_ADDR --token 100" C-m 
+tmux send-keys "cd audio-server && npm run dev" C-m 
 
 tmux attach -t $SESSION_NAME
