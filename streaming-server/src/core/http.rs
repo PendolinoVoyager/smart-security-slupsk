@@ -9,16 +9,24 @@ pub type AppRequest = Request<hyper::body::Incoming>;
 /// Type alias for hyper Response
 pub type AppResponse = Response<http_body_util::Full<hyper::body::Bytes>>;
 
+
 pub async fn handle_http(listener: tokio::net::TcpListener, ctx: &'static AppContext) {
     while let Ok((tcp_stream, sock_addr)) = listener.accept().await {
         tracing::debug!("incoming TCP connection from {sock_addr}");
         // sync io adapter
         tokio::spawn(async move {
+            let ip_str: Result<String, std::io::Error> = tcp_stream.peer_addr().map(|addr| addr.ip().to_string());
             let io = hyper_util::rt::TokioIo::new(tcp_stream);
-
+            
             let conn = hyper::server::conn::http1::Builder::new()
                 .half_close(false)
-                .serve_connection(io, service_fn(async |req| _handle_http(req, ctx).await));
+                .serve_connection(io, service_fn(async |mut req| {
+                    if  let Ok(ip_str) = &ip_str &&
+                        let Ok(ip_hdr) = hyper::header::HeaderValue::from_str(&ip_str)  {
+                        req.headers_mut().insert(hyper::header::FORWARDED, ip_hdr);
+                    }
+                    _handle_http(req, ctx).await
+                }));
 
             tracing::info!(event = "http_request", from = sock_addr.to_string());
 
