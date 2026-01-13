@@ -24,7 +24,7 @@ def stop_streaming():
 
 def start_streaming():
     global stream_process, multicast_process
-    init_command = [f'{script_dir_path}/init_stream_multicast.sh'] 
+    init_command = [f'{script_dir_path}/../init_stream_multicast.sh'] 
 
     stream_command = ["cargo", "run", "--release", "--", "--addr", args["server_addr"], "--token", \
     args["token"] if args["token"] is not None  else args["id"] 
@@ -35,7 +35,7 @@ def start_streaming():
 
         stream_process = subprocess.Popen(
             stream_command,
-            cwd=f"{script_dir_path}/ws-stream",
+            cwd=f"{script_dir_path}/../ws-stream",
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             bufsize=1,
@@ -49,7 +49,7 @@ def start_streaming():
         for line in iter(stream_process.stdout.readline, ''):
             print(line, end='')
     except Exception as e:
-        print("Error:\n" + e)
+        print("Error:\n" + str(e))
     finally:
         stop_streaming()
 

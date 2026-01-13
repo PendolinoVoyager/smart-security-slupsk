@@ -4,7 +4,7 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 import os
 
 PORT = 8088
-DIRECTORY = "/var/localstream/html"
+DIRECTORY = "/var/localstream/http"
 
 class NoCacheHandler(SimpleHTTPRequestHandler):
     def end_headers(self):

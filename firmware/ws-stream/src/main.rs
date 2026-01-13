@@ -1,5 +1,4 @@
 #![feature(type_changing_struct_update)]
-#![feature(let_chains)]
 #![feature(stmt_expr_attributes)]
 
 //! Binary utility to stream to a websocket.
@@ -31,7 +30,7 @@ fn main() {
     if !config.silent {
         let subscriber = FmtSubscriber::builder()
             .with_writer(std::io::stderr) // Write logs to stderr
-            .with_max_level(Level::INFO) // Set the maximum level of logs (optional)
+            .with_max_level(Level::TRACE) // Set the maximum level of logs (optional)
             .finish();
         tracing::subscriber::set_global_default(subscriber)
             .expect("Setting default subscriber failed");
@@ -77,12 +76,10 @@ fn stream_until_disconnect(mut ws: tungstenite::WebSocket<MaybeTlsStream<TcpStre
     tracing::info!("Starting streaming...");
 
     let mut buffer = StreamBuffer::new(192 * 10, stream_socket);
+    tracing::info!("Created buffer...");
+
     while let Ok(read) = buffer.read() {
-        // if you're developing on arm I'm sorry
-        #[cfg(not(target_arch = "aarch64"))]
-        {
-            tracing::info!("{}", read.len());
-        }
+        tracing::info!("{}", read.len());
         let msg = Message::Binary(Bytes::copy_from_slice(read));
         if let Err(e) = ws.send(msg) {
             tracing::warn!("Cannot send packet, connection broken!");
