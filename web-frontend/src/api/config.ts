@@ -1,8 +1,8 @@
-export const AUTH_PROVIDER_URL = "http://127.0.0.1:8080";
-export const BACKEND_PROVIDER_URL = "http://localhost:8080";
-export const STREAMING_SERVER_HTTP_URL = "http://localhost:9002";
-export const STREAMING_SERVER_WS_URL = "ws://localhost:9080";
-export const AUDIO_SERVER_URL = "ws://localhost:8888";
+export const AUTH_PROVIDER_URL = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://127.0.0.1:8080";
+export const BACKEND_PROVIDER_URL = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://127.0.0.1:8080";
+export const STREAMING_SERVER_HTTP_URL = process.env.NEXT_PUBLIC_STREAMING_SERVER_HTTP_URL ?? "http://localhost:9002";
+export const STREAMING_SERVER_WS_URL = process.env.NEXT_PUBLIC_STREAMING_SERVER_WS_URL ?? "ws://localhost:9080";
+export const AUDIO_SERVER_URL = process.env.NEXT_PUBLIC_AUDIO_SERVER_URL ?? "ws://localhost:8888";
 
 export const ENDPOINTS = {
   AUTH: {
