@@ -29,11 +29,6 @@ COPY . .
 # Uncomment the following line in case you want to disable telemetry during the build.
 # ENV NEXT_TELEMETRY_DISABLED=1
 
-ENV  NEXT_PUBLIC_BACKEND_URL: http://localhost:8080
-ENV  NEXT_PUBLIC_STREAMING_SERVER_HTTP_URL: http://localhost:9002
-ENV  NEXT_PUBLIC_STREAMING_SERVER_WS_URL: ws://localhost:9080
-ENV  NEXT_PUBLIC_AUDIO_SERVER_URL: ws://localhost:8888
-
 RUN \
   if [ -f yarn.lock ]; then yarn run build; \
   elif [ -f package-lock.json ]; then npm run build; \
