@@ -1,0 +1,13 @@
+version: "3.8"
+
+services:
+  web:
+    build: .
+    image: nextjs-app
+    ports:
+      - "3001:3000"
+    environment:
+      NEXT_PUBLIC_BACKEND_URL: http://0.0.0.0:8080
+      NEXT_PUBLIC_STREAMING_SERVER_HTTP_URL: http://localhost:9002
+      NEXT_PUBLIC_STREAMING_SERVER_WS_URL: ws://localhost:9080
+      NEXT_PUBLIC_AUDIO_SERVER_URL: ws://localhost:8888
