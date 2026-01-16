@@ -25,7 +25,8 @@ COPY --from=builder /app/target/release/streaming-server /usr/local/bin/streamin
 COPY cfg/cfg.yaml /etc/streaming-server/cfg.yaml
 COPY cfg/jwt_pub_key.pem /etc/streaming-server/jwt_pub_key.pem
 COPY cfg/openapi.yaml /etc/streaming-server/openapi.yaml
- 
+COPY logo.ascii .
+
 ENV RUST_LOG=info \
     STRSRV_APP_CONFIG=/etc/streaming-server/cfg.yaml \
     STRSRV_JWT_PUB_KEY_PATH=/etc/streaming-server/jwt_pub_key.pem \
