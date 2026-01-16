@@ -10,6 +10,7 @@ export const requestLogin = async function (
   email: string,
   password: string
 ): Promise<AuthData | HttpError> {
+  console.log(ENDPOINTS.AUTH.LOGIN);
   const res = await fetchSafe<AuthData>(ENDPOINTS.AUTH.LOGIN, {
     method: "POST",
     headers: {
