@@ -9,6 +9,7 @@ import org.springframework.amqp.core.TopicExchange;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.amqp.RabbitProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -98,12 +99,18 @@ public class RabbitMQConfig
     }
 
     @Bean
-    public ConnectionFactory connectionFactory() {
-        CachingConnectionFactory connectionFactory = new CachingConnectionFactory("localhost");
-        connectionFactory.setUsername("guest");
-        connectionFactory.setPassword("guest");
-        connectionFactory.setVirtualHost("/");
-        return connectionFactory;
+    public ConnectionFactory connectionFactory(
+            @Value("${spring.rabbitmq.host}") String host,
+            @Value("${spring.rabbitmq.port}") int port,
+            @Value("${spring.rabbitmq.username}") String username,
+            @Value("${spring.rabbitmq.password}") String password,
+            @Value("${spring.rabbitmq.virtual-host:/}") String vhost
+    ) {
+        CachingConnectionFactory cf = new CachingConnectionFactory(host, port);
+        cf.setUsername(username);
+        cf.setPassword(password);
+        cf.setVirtualHost(vhost);
+        return cf;
     }
 
     @Bean
