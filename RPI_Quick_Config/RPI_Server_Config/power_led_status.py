@@ -5,20 +5,15 @@ import RPi.GPIO as GPIO
 import subprocess
 from subprocess import Popen
 
-LED_PIN = 4
+from watchdog.observers import Observer
+from watchdog.events import FileSystemEventHandler
+
 CONFIG_FILE_PATH = "/etc/sss_firmware/config.cfg"
 VENV_PYTHON = "/home/kacper/venv/bin/python3"
 SERVER_SCRIPT = "/home/kacper/Desktop/start_up_app/app_v0.0.1.py"
 LOG_FILE = "/home/kacper/Desktop/start_up_app/log.txt"
 
 server_process = None
-blinking = False
-
-
-def setup():
-    GPIO.setmode(GPIO.BCM)
-    GPIO.setup(LED_PIN, GPIO.OUT)
-    GPIO.output(LED_PIN, GPIO.HIGH)
 
 
 def is_configured():
@@ -33,46 +28,38 @@ def is_configured():
         log(f"Error reading config file: {e}")
     return False
 
+
 def setup_configuration_file():
-    with open(CONFIG_FILE_PATH, "r", encoding="utf-8") as f:
+    with open(CONFIG_FILE_PATH, "w", encoding="utf-8") as f:
         f.write("[Is Configured]\n0\n")
+
 
 # Don't touch this func. On start dnsmasq always fails on startup for some reason.
 # Single restart always helps.
 def restart_dnsmasq_till_works():
     while True:
         try:
-            subprocess.run(["sudo", "systemctl", "restart", "dnsmasq"], check=True)
+            subprocess.run(["systemctl", "restart", "dnsmasq"], check=True)
             log("dnsmasq restarted successfully.")
             break
         except subprocess.CalledProcessError as e:
             log(f"Failed to restart dnsmasq: {e}. Retrying in 5 seconds...")
             time.sleep(5)
 
+
 def log(message):
     with open(LOG_FILE, "a+") as f:
         f.write("\n\n\n")
         f.write(message)
 
+
 def stop_dnsmasq_on_configured():
     if is_configured():
         try:
-            subprocess.run(["sudo", "systemctl", "stop", "dnsmasq"], check=True)
+            subprocess.run(["systemctl", "stop", "dnsmasq"], check=True)
             log("dnsmasq stopped as device is configured.")
         except subprocess.CalledProcessError as e:
             log(f"Failed to stop dnsmasq: {e}.")
-
-def blink_led():
-    global blinking
-    while True:
-        if blinking:
-            GPIO.output(LED_PIN, GPIO.HIGH)
-            time.sleep(0.5)
-            GPIO.output(LED_PIN, GPIO.LOW)
-            time.sleep(0.5)
-        else:
-            GPIO.output(LED_PIN, GPIO.HIGH)
-            time.sleep(1)
 
 
 def start_http_server():
@@ -134,39 +121,80 @@ def stop_http_server():
         finally:
             server_process = None
 
-# This is shit xD I will refactor that tomorrow
-def monitor_config():
-    global blinking
-    while True:
-        if is_configured():
-            print("Device configured - LED solid, server stopped.")
-            blinking = False
-            stop_http_server()
-        else:
-            print("Device NOT configured - LED blinking, starting server and network.")
-            blinking = True
-            start_http_server()
-            connect_to_config_network()
-
-        time.sleep(5)
-
 
 def stop_mdns_service():
     try:
         print("Disabling mDNS (avahi-daemon)...")
-        subprocess.run(["sudo", "systemctl", "stop", "avahi-daemon"], check=True)
-        subprocess.run(["sudo", "systemctl", "disable", "avahi-daemon"], check=True)
+        subprocess.run(["systemctl", "stop", "avahi-daemon"], check=True)
+        subprocess.run(["systemctl", "disable", "avahi-daemon"], check=True)
         print("mDNS disabled.")
     except subprocess.CalledProcessError as e:
         print(f"Error disabling mDNS: {e}")
 
 
+def apply_config_state():
+    if is_configured():
+        print("Device configured - Server stopped.")
+        stop_http_server()
+        stop_dnsmasq_on_configured()
+    else:
+        print("Device NOT configured - Starting server and network.")
+        start_http_server()
+        connect_to_config_network()
+
+
+class ConfigFileHandler(FileSystemEventHandler):
+    def on_modified(self, event):
+        if getattr(event, "is_directory", False):
+            return
+
+        try:
+            src = os.path.realpath(event.src_path)
+            target = os.path.realpath(CONFIG_FILE_PATH)
+        except Exception:
+            src = event.src_path
+            target = CONFIG_FILE_PATH
+
+        if src == target:
+            apply_config_state()
+
+    def on_created(self, event):
+        self.on_modified(event)
+
+    def on_moved(self, event):
+        if getattr(event, "is_directory", False):
+            return
+        try:
+            dest = os.path.realpath(getattr(event, "dest_path", ""))
+            target = os.path.realpath(CONFIG_FILE_PATH)
+        except Exception:
+            dest = getattr(event, "dest_path", "")
+            target = CONFIG_FILE_PATH
+
+        if dest == target:
+            apply_config_state()
+
+
+def monitor_config_with_watchdog():
+    handler = ConfigFileHandler()
+    observer = Observer()
+    observer.schedule(handler, path=os.path.dirname(CONFIG_FILE_PATH) or ".", recursive=False)
+    observer.start()
+
+    apply_config_state()
+
+    try:
+        while True:
+            time.sleep(1)
+    finally:
+        observer.stop()
+        observer.join()
+
+
 def main():
-    setup()
     setup_configuration_file()
     restart_dnsmasq_till_works()
-    threading.Thread(target=blink_led, daemon=True).start()
-    monitor_config()
+    monitor_config_with_watchdog()
 
 
 if __name__ == "__main__":
