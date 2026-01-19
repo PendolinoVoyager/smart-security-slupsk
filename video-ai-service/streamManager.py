@@ -1,7 +1,8 @@
 import socket
 import cv2
 import requests
-
+from pipelineElement import PipelineElement
+from tracker import TrackingPipeline
 """This class is responsible for fetching and updating available video streams from the streaming server"""
 class StreamManager:
 
@@ -10,6 +11,7 @@ class StreamManager:
     _STREAMING_SERVER_STREAMS_ENDPOINT: str = "/streams/all"
 
     streams: dict[int, cv2.VideoCapture] = {}
+    pipeline: list[PipelineElement] = [TrackingPipeline()]
 
     def __init__(self):
         for id in self.check_missing_streams():
@@ -49,8 +51,12 @@ class StreamManager:
         if self.streams.get(device_id) is not None:
             print(f"Failed to add stream {device_id}, stream exists already.")
             return
-    
+
         self.streams[device_id] = self.__make_udp_request(device_id)
+        
+        # init pipeline for this stream
+        for element in self.pipeline:
+            element.on_stream_start(device_id)
 
     
     def delete_stream(self, device_id):
@@ -59,6 +65,11 @@ class StreamManager:
             print(f"Attempted to delete {device_id} even though it was empty")
             return
         cap.release()
+
+        # clean up pipelines
+        for element in self.pipeline:
+            element.on_stream_end(device_id)
+
         del self.streams[device_id]
 
     def __fetch_all_streams(self):
@@ -97,6 +108,16 @@ class StreamManager:
             raise Exception("capture failed")
         
         return cap
+    
+    def pipe_stream(self, device_id):
+        for element in self.pipeline:
+            ret, frame = self.streams[device_id].read()
+            
+            # if bad return then ignore, it will sync eventually
+            if not ret:
+                continue
+
+            element.on_frame(device_id, frame)
     
     @staticmethod
     def __get_free_udp_port():

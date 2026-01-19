@@ -1,4 +1,6 @@
 from typing import Tuple
+from pipelineElement import PipelineElement
+
 class TrackedObject:
     def __init__(self, confidence: int, pos: Tuple[int, int, int, int], id: str, name: str):
         self.confidence = confidence
@@ -53,3 +55,17 @@ class Tracker:
             # If the object is not repeated, add it to the current objects list
             self.current_objects.append((new_object, 0))
         
+class TrackingPipeline(PipelineElement):
+
+    trackers: set[int, Tracker] = set()
+
+    def __init__(self):
+        print("Tracking pipeline created")
+        super().__init__()
+
+    def on_frame(self, device_id, frame):
+        print(f"Tracking pipeline got {device_id}")
+    def on_stream_end(self, device_id):
+        print(f"Tracking ended {device_id}")
+    def on_stream_start(self, device_id):
+        print(f"Tracking started {device_id}")
