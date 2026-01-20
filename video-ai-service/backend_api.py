@@ -5,10 +5,11 @@ BACKEND_URL = "http://127.0.0.1:8080/"
 BACKEND_POST_NOTIF_URL = "api/v1/notification/ai-service"
 BACKEND_POST_IMAGE_URL = "api/v1/minio/upload"
 class NotificationType(enum.Enum):
-    Info = "Info"
-    Warning = "Warning"
-    Critical = "Critical"
-    Visit = "Visit"
+    Info = "Info" # for object recognition use log, but it exists anyway as an option for other services
+    Warning = "Warning" # ex. a car parks
+    Critical = "Critical" # can't trust the model to detect robbers but just in case 
+    Visit = "Visit" # a person visits
+    Log = "Log" # unimportant data that is filtered by default but kept just in case
 
 
 def send_notification(type: NotificationType, message: str) -> int:
@@ -25,7 +26,6 @@ def send_notification(type: NotificationType, message: str) -> int:
         exit(1)
     
     res = response.json()
-    print(res)
     return res["id"]
 
 def send_image(notification_id: int, frame):

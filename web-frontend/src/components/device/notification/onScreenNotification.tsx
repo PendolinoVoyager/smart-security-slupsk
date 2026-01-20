@@ -11,7 +11,7 @@ export default function OnScreenNotification() {
   return (
     <>
       {notifications.map((n) =>
-        n.type.toLowerCase() === 'visit' ? (
+        n.type.toLowerCase() === 'visit' || n.type.toLocaleLowerCase() === "critical" ? (
           <ModalNotification notification={n} key={n.id} />
         ) : (
           <ToastNotification notification={n} key={n.id} />
