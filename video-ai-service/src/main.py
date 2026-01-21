@@ -1,7 +1,14 @@
+
+# These lines need to be called first in this order to init the service properly
+from config import parse_args, update_globals
+args = parse_args()
+update_globals(args)
+
+
 import cv2
 from streamManager import StreamManager
 import time
-import sys
+
 
 
 STREAM_REFRESH_SEC = 5.0
@@ -46,7 +53,9 @@ def handle_streams(manager: StreamManager):
 
 
 if __name__ == "__main__":
-    if sys.argv[1] == "debug":
+    from config import DEBUG
+
+    if DEBUG:
         _main_loop_debug()
 
     main_loop()

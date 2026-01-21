@@ -1,9 +1,11 @@
 import requests
 import enum
 import cv2
-BACKEND_URL = "http://127.0.0.1:8080/"
+from config import BACKEND_URL
+
 BACKEND_POST_NOTIF_URL = "api/v1/notification/ai-service"
 BACKEND_POST_IMAGE_URL = "api/v1/minio/upload"
+
 class NotificationType(enum.Enum):
     Info = "Info" # for object recognition use log, but it exists anyway as an option for other services
     Warning = "Warning" # ex. a car parks
