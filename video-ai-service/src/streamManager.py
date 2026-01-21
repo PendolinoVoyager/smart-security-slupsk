@@ -3,10 +3,11 @@ import cv2
 import requests
 from pipelineElement import PipelineElement
 from tracker import TrackingPipeline
+from config import STREAMING_SERVER_URL
+
 """This class is responsible for fetching and updating available video streams from the streaming server"""
 class StreamManager:
 
-    _STREAMING_SERVER_URL: str = "http://127.0.0.1:9002"
     _STREAMING_SERVER_UDP_ENDPOINT: str = "/udp_stream_start"
     _STREAMING_SERVER_STREAMS_ENDPOINT: str = "/streams/all"
 
@@ -73,7 +74,7 @@ class StreamManager:
         del self.streams[device_id]
 
     def __fetch_all_streams(self):
-        response = requests.get(f"{self._STREAMING_SERVER_URL}{self._STREAMING_SERVER_STREAMS_ENDPOINT}")
+        response = requests.get(f"{STREAMING_SERVER_URL}{self._STREAMING_SERVER_STREAMS_ENDPOINT}")
         if response.status_code != 200:
             raise Exception(f"Failed to get streams: {response.text}")
         res_json = response.json()
@@ -97,7 +98,7 @@ class StreamManager:
 
         headers = {"Content-Type": "application/json"}
 
-        response = requests.get(f"{self._STREAMING_SERVER_URL}{self._STREAMING_SERVER_UDP_ENDPOINT}", json=payload, headers=headers)
+        response = requests.get(f"{STREAMING_SERVER_URL}{self._STREAMING_SERVER_UDP_ENDPOINT}", json=payload, headers=headers)
         if response.status_code != 200:
             raise Exception(f"Failed to start stream: {response.text}")    
         
