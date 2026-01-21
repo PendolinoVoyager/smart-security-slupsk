@@ -1,0 +1,10 @@
+# example docker-compose.yaml for integrating
+services:
+  websocket:
+    image: audio-server
+    environment:
+      HOST: 0.0.0.0
+      PORT: 8888
+    ports:
+      - "8888:8888"
+    restart: unless-stopped

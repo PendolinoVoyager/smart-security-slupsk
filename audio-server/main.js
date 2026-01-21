@@ -1,8 +1,10 @@
 const WebSocket = require("ws");
 const http = require('http');
 
+const HOST = process.env.HOST || '0.0.0.0';
+const PORT = Number(process.env.PORT || 8088);
+const BACKEND_URL = process.env.BACKEND_URL || 'http://127.0.0.1:8080';
 
-const PORT = 8888;
 const users = new Map();
 const devices = new Map();
 
@@ -47,12 +49,14 @@ wss.on("connection", (ws, req) => {
         ws.close(1008, "wrong url: /user or /device only");
     }
 });
+
 wss.on("error", () => {
     devices.forEach((d, key) => {
         d.ws.close();
     })
 })
 
-server.listen(PORT, "0.0.0.0", () => {
-  console.log(`Audio server running on port ${PORT}`);
+
+server.listen(PORT, HOST, () => {
+  console.log(`Audio server running on host ${HOST} and port ${PORT}`);
 });
