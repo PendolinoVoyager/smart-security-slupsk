@@ -11,14 +11,16 @@ import subprocess
 import sys
 import signal
 
+SUBPROCESS = None
+
 class AudioPlayer:
     def __init__(self, server_url):
         self.server_url = server_url
-        self.ffplay_process = None
+        self.ffmpeg_process: subprocess.Popen | None = None
         self.ws = None
-        self.running = False
         
     async def connect_and_play(self):
+        
         """Connect to WebSocket server and stream audio to ffplay"""
         try:
             print(f"Connecting to {self.server_url}...")
@@ -28,69 +30,52 @@ class AudioPlayer:
             # Identify as Pi client
             await self.ws.send(b'PI:client')
             
-            # Start ffplay process
-            # -nodisp: no video window
-            # -autoexit: exit when stream ends
-            # -probesize 32: smaller probe for lower latency
-            # -fflags nobuffer: reduce buffering
-            # -flags low_delay: optimize for low latency
-            # -: read from stdin
-            self.ffplay_process = subprocess.Popen([
-                'ffplay',
-                '-nodisp',
-                '-autoexit',
-                '-probesize', '32',
-                '-fflags', 'nobuffer',
-                '-flags', 'low_delay',
-                '-'
-            ], stdin=subprocess.PIPE, stderr=subprocess.DEVNULL)
+ 
+            self.ffmpeg_process = subprocess.Popen(
+            [
+                "ffmpeg",
+                "-loglevel", "error",
+                "-fflags", "nobuffer",
+                "-flags", "low_delay",
+                "-i", "pipe:0",
+                "-f", "alsa",
+                "default",
+            ],
+            stdin=subprocess.PIPE,
+            )
+            global SUBPROCESS
+            SUBPROCESS = self.ffmpeg_process
             
             self.running = True
-            chunk_count = 0
-            
-            # Receive and forward audio chunks
             async for message in self.ws:
-                if not self.running:
-                    break
-                    
-                # Write audio chunk to ffplay stdin
-                try:
-                    self.ffplay_process.stdin.write(message)
-                    self.ffplay_process.stdin.flush()
-                    chunk_count += 1
-                    
-                    if chunk_count % 100 == 0:
-                        print(f"Received {chunk_count} chunks")
-                        
-                except BrokenPipeError:
-                    print("ffplay process died")
-                    break
-                    
+                self.ffmpeg_process.stdin.write(message)
+                self.ffmpeg_process.stdin.flush()
+
+                            
         except websockets.exceptions.WebSocketException as e:
             print(f"WebSocket error: {e}")
         except Exception as e:
             print(f"Error: {e}")
         finally:
             await self.cleanup()
-    
+
     async def cleanup(self):
         """Clean up resources"""
         print("\nCleaning up...")
         self.running = False
         
-        if self.ffplay_process:
+        if self.ffmpeg_process:
             try:
-                self.ffplay_process.stdin.close()
-                self.ffplay_process.terminate()
-                self.ffplay_process.wait(timeout=2)
-            except:
-                self.ffplay_process.kill()
+                self.ffmpeg_process.stdin.close()
+                self.ffmpeg_process.terminate()
+                self.ffmpeg_process.wait(timeout=2)
+            except Exception:
+                self.ffmpeg_process.kill()
         
         if self.ws and not self.ws.closed:
             await self.ws.close()
         
         print("Stopped")
-
 
 async def main():
     parser = argparse.ArgumentParser(description='Raspberry Pi Audio Client')
@@ -108,15 +93,11 @@ async def main():
     
     player = AudioPlayer(server_url)
     
-    # Handle Ctrl+C gracefully
-    def signal_handler(sig, frame):
-        print("\nReceived interrupt signal")
-        player.running = False
-    
-    signal.signal(signal.SIGINT, signal_handler)
-    signal.signal(signal.SIGTERM, signal_handler)
-    
-    await player.connect_and_play()
+    try:
+        handle = player.connect_and_play()
+        await handle
+    except KeyboardInterrupt:
+        player.cleanup()
 
 if __name__ == "__main__":
     print("Raspberry Pi Audio Client")

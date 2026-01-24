@@ -53,7 +53,7 @@ export default function HomePagePromo() {
             title: "Advanced Security",
             icon: Shield,
             description:
-              "Encrypted cloud storage and instant alerts to keep you informed 24/7.",
+              "Feel secure with encrypted data transfer and instant alerts to keep you informed 24/7.",
           },
         ].map((feature, i) => (
           <motion.div
@@ -81,7 +81,7 @@ export default function HomePagePromo() {
           Ready to make your home smarter?
         </h2>
         <p className="mb-6 text-blue-100">
-          Join thousands of users protecting their spaces with AI-driven
+          Join users protecting their spaces with AI-driven
           surveillance.
         </p>
         <Button
@@ -95,7 +95,7 @@ export default function HomePagePromo() {
 
       {/* Footer */}
       <footer className="py-8 text-center text-gray-500 text-sm">
-        © {new Date().getFullYear()} SmartVision AI — All rights reserved.
+        © {new Date().getFullYear()} We are not a compoany so there's no copyright.
       </footer>
     </div>
   );
