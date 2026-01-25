@@ -1,12 +1,14 @@
 package com.kacper.iot_backend.notification;
 
 import com.kacper.iot_backend.utils.DefaultResponse;
+
+import jakarta.servlet.http.HttpServletRequest;
+
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/notification")
@@ -29,12 +31,9 @@ public class NotificationController
     }
 
     @PostMapping("/ai-service")
-    public NotificationResponse addAiServiceNotification(@RequestBody NotificationRequest notificationRequest) {
-        return notificationService.addAiServiceNotification(notificationRequest);
+    public NotificationResponse addAiServiceNotification(HttpServletRequest servletRequest, 
+                                                        @RequestBody NotificationRequestWithId notificationRequest) {
+        return notificationService.addAiServiceNotification(servletRequest.getRemoteAddr(), notificationRequest);
     }
 
-    @GetMapping("/ai-service")
-    public List<NotificationResponse> getAiServiceNotifications() {
-        return notificationService.getAllAiServiceNotifications();
-    }
 }

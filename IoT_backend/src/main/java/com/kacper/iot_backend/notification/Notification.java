@@ -3,9 +3,12 @@ package com.kacper.iot_backend.notification;
 import com.kacper.iot_backend.device.Device;
 import jakarta.persistence.*;
 import lombok.*;
+import com.kacper.iot_backend.notification_images.NotificationImage;
 
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.List;
 
 @Setter
 @Getter
@@ -46,6 +49,9 @@ public class Notification {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "device_id", nullable = false)
     private Device device;
+
+    @OneToMany(mappedBy = "notification", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<NotificationImage> images = new ArrayList<>();
 
     @Override
     public String toString() {
