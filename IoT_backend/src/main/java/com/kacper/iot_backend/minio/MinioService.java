@@ -1,13 +1,13 @@
 package com.kacper.iot_backend.minio;
 
-import com.kacper.iot_backend.ai_service_notification.AiServiceNotification;
-import com.kacper.iot_backend.ai_service_notification.AiServiceNotificationRepository;
 import com.kacper.iot_backend.notification_images.NotificationImage;
 import com.kacper.iot_backend.notification_images.NotificationImageRepository;
 import com.kacper.iot_backend.utils.DefaultResponse;
+
 import io.minio.*;
 import io.minio.http.Method;
 import io.minio.messages.Item;
+
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -16,25 +16,32 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Logger;
+
+import com.kacper.iot_backend.notification.Notification;
+import com.kacper.iot_backend.notification.NotificationRepository;
+import com.kacper.iot_backend.notification.NotificationService;
+
 
 @Service
 public class MinioService {
     private final MinioClient minioClient;
-    private final AiServiceNotificationRepository aiServiceNotificationRepository;
+    private final NotificationRepository notificationRepository;
     private final NotificationImageRepository notificationImageRepository;
     private static final String BUCKET = "images";
+    private final static Logger logger = Logger.getLogger(NotificationService.class.getName());
 
     public MinioService(
             MinioClient minioClient,
-            AiServiceNotificationRepository aiServiceNotificationRepository,
+            NotificationRepository notificationRepository,
             NotificationImageRepository notificationImageRepository
     ) {
         this.minioClient = minioClient;
-        this.aiServiceNotificationRepository = aiServiceNotificationRepository;
+        this.notificationRepository = notificationRepository;
         this.notificationImageRepository = notificationImageRepository;
     }
 
-    public DefaultResponse uploadImageToMinio(UploadImageRequest request, Integer aiServiceNotificationId) {
+    public DefaultResponse uploadImageToMinio(UploadImageRequest request, Integer notificationId) {
         MultipartFile file = request.file();
         if (file == null || file.isEmpty()) {
             return DefaultResponse.builder()
@@ -42,8 +49,9 @@ public class MinioService {
                     .build();
         }
 
-        AiServiceNotification notification = aiServiceNotificationRepository.findById(aiServiceNotificationId)
-                .orElseThrow(() -> new RuntimeException("Notification not found with id: " + aiServiceNotificationId));
+        Notification notification = notificationRepository.findById(notificationId).orElseThrow(() ->
+                new RuntimeException("Notification not found with id: " + notificationId)
+        );
 
         try {
             boolean exists = minioClient.bucketExists(BucketExistsArgs.builder().bucket(BUCKET).build());
@@ -65,8 +73,9 @@ public class MinioService {
             String imageUrl = BUCKET + "/" + objectName;
             NotificationImage notificationImage = NotificationImage.builder()
                     .imageUrl(imageUrl)
-                    .aiServiceNotification(notification)
+                    .notification(notification)
                     .build();
+            logger.info("Saving notification image" + notificationImage);
             notificationImageRepository.save(notificationImage);
 
             return DefaultResponse.builder()
@@ -117,7 +126,7 @@ public class MinioService {
     }
 
     public List<String> getImagesByNotificationId(Integer notificationId) {
-        List<NotificationImage> notificationImages = notificationImageRepository.findByAiServiceNotificationId(notificationId);
+        List<NotificationImage> notificationImages = notificationImageRepository.findByNotificationId(notificationId);
 
         List<String> imageUrls = new ArrayList<>();
         for (NotificationImage image : notificationImages) {

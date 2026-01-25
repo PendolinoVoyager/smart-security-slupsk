@@ -1,7 +1,4 @@
 package com.kacper.iot_backend.notification;
-
-import com.kacper.iot_backend.ai_service_notification.AiServiceNotification;
-import com.kacper.iot_backend.ai_service_notification.AiServiceNotificationRepository;
 import com.kacper.iot_backend.device.Device;
 import com.kacper.iot_backend.device.DeviceRepository;
 import com.kacper.iot_backend.exception.ResourceNotFoundException;
@@ -9,6 +6,8 @@ import com.kacper.iot_backend.jwt.JWTService;
 import com.kacper.iot_backend.user.User;
 import com.kacper.iot_backend.user.UserService;
 import com.kacper.iot_backend.utils.DefaultResponse;
+
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -18,6 +17,7 @@ import org.springframework.stereotype.Service;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 @Service
@@ -29,20 +29,20 @@ public class NotificationService
     private final static Logger logger = Logger.getLogger(NotificationService.class.getName());
     private final DeviceRepository deviceRepository;
     private final SimpMessagingTemplate messagingTemplate;
-    private final AiServiceNotificationRepository aiServiceNotificationRepository;
 
-
+    @Value("${security.allowed-ips}")
+    private List<String> allowedIps;
+    
     public NotificationService(
             NotificationRepository notificationRepository,
             UserService userService,
             JWTService jwtService,
-            DeviceRepository deviceRepository, SimpMessagingTemplate messagingTemplate, AiServiceNotificationRepository aiServiceNotificationRepository) {
+            DeviceRepository deviceRepository, SimpMessagingTemplate messagingTemplate) {
         this.notificationRepository = notificationRepository;
         this.userService = userService;
         this.jwtService = jwtService;
         this.deviceRepository = deviceRepository;
         this.messagingTemplate = messagingTemplate;
-        this.aiServiceNotificationRepository = aiServiceNotificationRepository;
     }
 
     public NotificationPageResponse getNotifications(UserDetails userDetails, Pageable pageable) {
@@ -102,42 +102,45 @@ public class NotificationService
         return new DefaultResponse("Notification added successfully");
     }
 
-    public NotificationResponse addAiServiceNotification(NotificationRequest notificationRequest) {
-        var notification = AiServiceNotification.builder()
-                .notificationType(notificationRequest.type())
+
+           
+    public NotificationResponse addAiServiceNotification(String remoteAddr, NotificationRequestWithId notificationRequest) {
+        //check if the remoteAddr is in application.properties allowed list
+        if (!allowedIps.contains(remoteAddr)) {
+            logger.log(Level.WARNING, "Unauthorized access attempt from IP: {0}", remoteAddr);
+            throw new SecurityException("Unauthorized access");
+        }
+
+        var deviceId = notificationRequest.deviceId();
+        var device = deviceRepository.findById(deviceId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Device with id " + deviceId + " not found."));
+
+        var notification = Notification.builder()
+                .type(notificationRequest.type())
                 .message(notificationRequest.message())
                 .timestamp(OffsetDateTime.now(ZoneOffset.UTC))
-                .hasSeen(false)
+                .device(device)
+                .has_seen(false)
                 .build();
-
-        aiServiceNotificationRepository.save(notification);
-
+            
+        notificationRepository.save(notification);
+        
         var notificationResponse = new NotificationResponse(
                 notification.getId(),
-                notification.getNotificationType(),
+                notification.getType(),
                 notification.getMessage(),
-                notification.isHasSeen(),
+                notification.getHas_seen(),
                 notification.getTimestamp()
         );
-
+        
         // juololo
         messagingTemplate.convertAndSend(
                 "/topic/notifications",
                 notificationResponse
         );
-
+        
         return notificationResponse;
-    }
+        }
+        
 
-    public List<NotificationResponse> getAllAiServiceNotifications() {
-        return aiServiceNotificationRepository.findAll().stream()
-                .map(notification -> new NotificationResponse(
-                        notification.getId(),
-                        notification.getNotificationType(),
-                        notification.getMessage(),
-                        notification.isHasSeen(),
-                        notification.getTimestamp()
-                ))
-                .toList();
-    }
 }

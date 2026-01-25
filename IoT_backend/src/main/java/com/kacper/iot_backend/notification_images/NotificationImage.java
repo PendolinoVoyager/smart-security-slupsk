@@ -1,6 +1,7 @@
 package com.kacper.iot_backend.notification_images;
 
-import com.kacper.iot_backend.ai_service_notification.AiServiceNotification;
+import com.kacper.iot_backend.notification.Notification;
+
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -22,6 +23,11 @@ public class NotificationImage {
     private String imageUrl;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "ai_service_notification_id", nullable = false)
-    private AiServiceNotification aiServiceNotification;
+    @JoinColumn(name = "notification_id", nullable = false)
+    private Notification notification;
+
+    @Override
+    public String toString() {
+        return "NotificationImage(id=" + this.getId() + ", imageUrl=" + this.getImageUrl() + ", notificationId=" + this.getNotification().getId() + ")";
+    }
 }

@@ -22,4 +22,6 @@
     <include file="db/changelog/measurement/measurement.changelog-1.0.xml" />
     <include file="db/changelog/ai_service_notification/ai_service_notification.changelog-1.0.xml" />
     <include file="db/changelog/notification_images/notification_images.changelog-1.0.xml" />
+    <include file="db/changelog/notification_images/notification_images.changelog-1.1.xml" />
+
 </databaseChangeLog>

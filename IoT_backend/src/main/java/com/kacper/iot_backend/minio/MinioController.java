@@ -19,9 +19,9 @@ public class MinioController
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public DefaultResponse upload(
             @ModelAttribute UploadImageRequest request,
-            @RequestParam("ai-service-notification-id") Integer aiServiceNotificationId
+            @RequestParam("notification-id") Integer notificationId
     ) {
-        return minioService.uploadImageToMinio(request, aiServiceNotificationId);
+        return minioService.uploadImageToMinio(request, notificationId);
     }
 
     @GetMapping("/images")

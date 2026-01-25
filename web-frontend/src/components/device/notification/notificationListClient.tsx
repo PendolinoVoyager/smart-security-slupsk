@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState } from "react";
 import {
-  fetchAiNotifications,
   fetchByUserPaginated,
   fetchNotificationImages,
   Notification,
@@ -50,14 +49,8 @@ export default function NotificationListClient({
       setLoading(true);
       setError(null);
       const result = await fetchByUserPaginated(token, p);
-      const additional_notifs = await fetchAiNotifications();
       
       if (result instanceof Error) throw result;
-      if (!(additional_notifs instanceof HttpError)) {
-        result.notifications.push(...additional_notifs);
-        result.notifications.sort((a, b) => Date.parse(b.timestamp) - Date.parse(a.timestamp));
-        result.notifications.splice(PAGE_SIZE);
-      }
       setData(result);
     } catch (err) {
       console.error(err);

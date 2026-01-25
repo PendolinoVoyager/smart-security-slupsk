@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                   https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="drop-ai-notification-fk" author="Klaudia">
+        <dropForeignKeyConstraint
+         baseTableName="notification_images"
+            constraintName="fk_notification_images_ai_service_notification"/>
+    </changeSet>
+
+    <changeSet id="rename-ai-service-notification-id" author="Klaudia">
+        <renameColumn
+            tableName="notification_images"
+            oldColumnName="ai_service_notification_id"
+            newColumnName="notification_id"
+            columnDataType="INT"/>
+    </changeSet>
+
+    <changeSet id="add-correct-notification-fk" author="Klaudia">
+
+        <addForeignKeyConstraint
+            baseTableName="notification_images"
+            baseColumnNames="notification_id"
+            referencedTableName="notifications"
+            referencedColumnNames="id"
+            constraintName="fk_notification_images_notification"
+            onDelete="CASCADE"
+            onUpdate="CASCADE" />
+    </changeSet>
+
+    <changeSet id="notification-id-not-null" author="Klaudia">
+        <addNotNullConstraint
+            tableName="notification_images"
+            columnName="notification_id"
+            columnDataType="INT"/>
+    </changeSet>
+
+</databaseChangeLog>

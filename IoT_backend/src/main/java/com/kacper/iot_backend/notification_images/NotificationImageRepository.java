@@ -7,5 +7,5 @@ import java.util.List;
 
 @Repository
 public interface NotificationImageRepository extends JpaRepository<NotificationImage, Integer> {
-    List<NotificationImage> findByAiServiceNotificationId(Integer aiServiceNotificationId);
+    List<NotificationImage> findByNotificationId(Integer notificationId);
 }
