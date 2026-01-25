@@ -34,22 +34,22 @@ export async function WeatherStats({ deviceId }: { deviceId: number }) {
     authData.token,
     deviceId
   );
-
+  console.log()
   if (measurements instanceof HttpError || measurements.empty) {
     return <NoMeasurements />;
   }
 
-  // placehrolders
+  
   const temp = measurements.content.find(
-    (m) => m.measurementType == "t"
+    (m) => m.measurementType == "t" || m.measurementType == "temperature"
   )?.value;
   const humidity = measurements.content.find(
-    (m) => m.measurementType == "h"
+    (m) => m.measurementType == "h" || m.measurementType == "humidity"
   )?.value;
-  if (!temp || !humidity) {
+  console.log(temp, humidity);
+  if (temp == undefined || humidity == undefined) {
     return <NoMeasurements />;
   }
-
   return (
     <div className="flex gap-4" style={{ "flex": "1 1 0px", width: 0 }}>
       <Card className="p-4">

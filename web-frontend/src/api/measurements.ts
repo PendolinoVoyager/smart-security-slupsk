@@ -32,7 +32,7 @@ export const fetchMeasurementsByDevicePaginated = async function (
   deviceId: number
 ): Promise<MeasurementResponsePaginated | HttpError> {
   const res = await fetchSafe<MeasurementResponsePaginated>(
-    `${ENDPOINTS.MEASUREMENTS.PAGINATED}${deviceId}`,
+    `${ENDPOINTS.MEASUREMENTS.PAGINATED}${deviceId}?page=0&size=10`,
     addCredentials({}, token)
   );
   console.debug(res);
