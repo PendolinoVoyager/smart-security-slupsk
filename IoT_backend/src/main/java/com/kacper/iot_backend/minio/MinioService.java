@@ -8,6 +8,7 @@ import io.minio.*;
 import io.minio.http.Method;
 import io.minio.messages.Item;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -30,6 +31,9 @@ public class MinioService {
     private final NotificationImageRepository notificationImageRepository;
     private static final String BUCKET = "images";
     private final static Logger logger = Logger.getLogger(NotificationService.class.getName());
+    
+    @Value("${security.allowed-ips}")
+    private List<String> allowedIps;
 
     public MinioService(
             MinioClient minioClient,
@@ -41,6 +45,9 @@ public class MinioService {
         this.notificationImageRepository = notificationImageRepository;
     }
 
+    public boolean checkIpAllowed(String ipAddress) {
+        return allowedIps.contains(ipAddress);
+    }
     public DefaultResponse uploadImageToMinio(UploadImageRequest request, Integer notificationId) {
         MultipartFile file = request.file();
         if (file == null || file.isEmpty()) {

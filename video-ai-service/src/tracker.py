@@ -144,7 +144,7 @@ class TrackingPipeline(PipelineElement):
         for notif in notifs:
             print(notif)
             try:
-                notif_id = send_notification(notif[0], notif[1])
+                notif_id = send_notification(notif[0], notif[1], device_id)
                 if notif_id is None:
                     raise Exception("Cannot send notification, no response")
                 send_image(notif_id, frame)

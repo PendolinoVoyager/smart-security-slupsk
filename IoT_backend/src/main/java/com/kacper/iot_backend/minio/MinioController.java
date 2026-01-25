@@ -1,6 +1,9 @@
 package com.kacper.iot_backend.minio;
 
 import com.kacper.iot_backend.utils.DefaultResponse;
+
+import jakarta.servlet.http.HttpServletRequest;
+
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 
@@ -30,7 +33,11 @@ public class MinioController
     }
 
     @GetMapping("/images/{notificationId}")
-    public List<String> getImagesByNotificationId(@PathVariable Integer notificationId) {
+    public List<String> getImagesByNotificationId(HttpServletRequest servletRequest, @PathVariable Integer notificationId) {
+        String ipAddress = servletRequest.getRemoteAddr();
+        if (!minioService.checkIpAllowed(ipAddress)) {
+            throw new RuntimeException("IP address is not allowed");
+        }
         return minioService.getImagesByNotificationId(notificationId);
     }
 }

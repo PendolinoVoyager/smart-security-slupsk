@@ -14,10 +14,11 @@ class NotificationType(enum.Enum):
     Log = "Log" # unimportant data that is filtered by default but kept just in case
 
 
-def send_notification(type: NotificationType, message: str) -> int:
+def send_notification(type: NotificationType, message: str, device_id: int) -> int:
     payload = {
         "type": type.value,
-        "message": message
+        "message": message,
+        "deviceId": device_id
     }
 
     headers = {"Content-Type": "application/json"}
@@ -37,7 +38,6 @@ def send_image(notification_id: int, frame):
         raise RuntimeError("Failed to encode frame")
     
     image_bytes = encoded.tobytes()
-
     files = {
     "file": (
         "frame.jpg",        # originalFilename
@@ -46,7 +46,7 @@ def send_image(notification_id: int, frame):
         )
     }
 
-    response = requests.post(f"{BACKEND_URL}{BACKEND_POST_IMAGE_URL}?ai-service-notification-id={notification_id}", files=files)
+    response = requests.post(f"{BACKEND_URL}{BACKEND_POST_IMAGE_URL}?notification-id={notification_id}", files=files)
 
     print(response.status_code)
     print(response.text)
