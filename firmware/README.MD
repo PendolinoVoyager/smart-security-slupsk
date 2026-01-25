@@ -10,6 +10,11 @@ This is a directory for all of the code running on the device.
 6. After runnning step 4. you can run `ws-stream --addr ws://<streaming-server-ip>:9080 --token <token OR 100 for debug>`. This will stream to streaming server until it errors out or something.
 Ideally, it should be run with a service with auto restart in case of connection failure, but it's what it is for now.
 7. You should see a stream on the frontend. It should have audio if a microphone is connected to RaspberryPi, if not, tell me :P.
+8. Deploying scripts in step 2. will also install `audioListener.py` in the same way. Run it like the other two to keep listening for incoming audio from web browser and play it in real time.
+It should also autorestart if anything goes wrong.
+
+PS.
+- Make sure RPI has all dependencies with `./scripts/install_rpi_deps.sh`.
 
 # Firmware Module Configuration and Token File Guide
 
