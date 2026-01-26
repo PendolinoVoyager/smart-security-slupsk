@@ -6,7 +6,7 @@ final class AuthService {
     private init() {}
     
     func login(email: String, password: String, appState: AppState, completion: @escaping (Bool, String) -> Void) {
-        guard let url = URL(string: "http://192.168.0.4:8080/api/v1/auth/login") else {
+        guard let url = URL(string: "https://smart-intercom.duckdns.org/api/v1/auth/login") else {
             completion(false, "Invalid request URL.")
             return
         }
