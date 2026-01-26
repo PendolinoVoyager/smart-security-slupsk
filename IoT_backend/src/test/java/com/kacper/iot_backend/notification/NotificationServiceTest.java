@@ -1,5 +1,6 @@
 package com.kacper.iot_backend.notification;
 
+import com.kacper.iot_backend.ai_service_notification.AiServiceNotificationRepository;
 import com.kacper.iot_backend.device.Device;
 import com.kacper.iot_backend.device.DeviceRepository;
 import com.kacper.iot_backend.exception.ResourceNotFoundException;
@@ -16,6 +17,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.time.OffsetDateTime;
@@ -39,6 +41,12 @@ class NotificationServiceTest {
 
     @Mock
     private DeviceRepository deviceRepository;
+
+    @Mock
+    private SimpMessagingTemplate messagingTemplate;
+
+    @Mock
+    private AiServiceNotificationRepository aiServiceNotificationRepository;
 
     @InjectMocks
     private NotificationService notificationService;

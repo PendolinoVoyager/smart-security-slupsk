@@ -3,79 +3,221 @@ import SwiftUI
 struct AuthenticateDeviceView: View {
     let device: Device
 
+    @Environment(\.dismiss) private var dismiss
+
     @State private var uuid: String?
     @State private var password: String = ""
+
     @State private var isLoading: Bool = true
+    @State private var isSubmitting: Bool = false
     @State private var showPasswordField: Bool = false
+
     @State private var statusMessage: String = "Starting authentication..."
     @State private var errorMessage: String?
-    @State private var navigationPath = NavigationPath()
-    
+
+    @FocusState private var isPasswordFocused: Bool
+
     var body: some View {
-        NavigationStack(path: $navigationPath) {
-            ZStack {
-                LinearGradient(
-                    gradient: Gradient(colors: [Color.black, Color.gray.opacity(0.8)]),
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-                .ignoresSafeArea()
+        ZStack {
+            PremiumBackground()
 
-                VStack(spacing: 20) {
-                    if let errorMessage = errorMessage {
-                        Text(errorMessage)
-                            .foregroundColor(.red)
-                            .multilineTextAlignment(.center)
-                    } else {
-                        Text(statusMessage)
-                            .foregroundColor(.green)
-                            .multilineTextAlignment(.center)
-                    }
+            VStack(spacing: 14) {
+                header
 
-                    if isLoading {
-                        ProgressView()
-                    }
+                statusCard
 
-                    if showPasswordField {
-                        SecureField("Enter Password", text: $password)
-                            .textFieldStyle(RoundedBorderTextFieldStyle())
-                            .padding()
-                        
-                        Button(action: {
-                            authenticateWithPassword(device: device)
-                        }) {
-                            Text("Authenticate Device")
-                                .font(.headline)
-                                .padding()
-                                .frame(maxWidth: .infinity)
-                                .background(Color.green)
-                                .foregroundColor(.white)
-                                .cornerRadius(10)
-                        }
-
-                    }
+                if showPasswordField {
+                    passwordCard
                 }
-                .padding()
+
+                Spacer()
             }
-            .navigationTitle("Authenticate Device")
-            .onAppear {
-                startAuthentication(device: device)
-            }
-            .navigationDestination(for: String.self) { destination in
-                if destination == "HomeView" {
-                    HomeView()
+            .padding(.horizontal, 20)
+            .padding(.top, 12)
+            .padding(.bottom, 16)
+        }
+        .navigationTitle("Authenticate")
+        .navigationBarTitleDisplayMode(.large)
+        .toolbarColorScheme(.dark, for: .navigationBar)
+        .toolbarBackground(.hidden, for: .navigationBar)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    dismiss()
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(.white.opacity(0.95))
+                        .padding(10)
+                        .background(.ultraThinMaterial, in: Circle())
+                        .overlay(Circle().strokeBorder(.white.opacity(0.12), lineWidth: 1))
                 }
+                .accessibilityLabel("Close")
             }
         }
+        .onAppear {
+            startAuthentication(device: device)
+        }
+        .onTapGesture {
+            isPasswordFocused = false
+        }
+    }
+}
+
+// MARK: - UI
+private extension AuthenticateDeviceView {
+
+    var header: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Secure pairing")
+                .font(.system(.title2, design: .rounded).weight(.bold))
+                .foregroundStyle(.white)
+
+            Text("Device: \(device.name)")
+                .font(.system(.callout, design: .rounded))
+                .foregroundStyle(.white.opacity(0.75))
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.top, 4)
     }
 
-    private func startAuthentication(device: Device) {
+    var statusCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 12) {
+                ZStack {
+                    Circle()
+                        .fill(.white.opacity(0.10))
+                        .frame(width: 44, height: 44)
+                        .overlay(Circle().strokeBorder(.white.opacity(0.12), lineWidth: 1))
+
+                    if isLoading || isSubmitting {
+                        ProgressView()
+                            .tint(.white.opacity(0.9))
+                            .scaleEffect(0.9)
+                    } else if errorMessage != nil {
+                        Image(systemName: "xmark.octagon.fill")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundStyle(.red.opacity(0.9))
+                    } else {
+                        Image(systemName: "checkmark.seal.fill")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundStyle(.green.opacity(0.9))
+                    }
+                }
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(errorMessage == nil ? "Status" : "Error")
+                        .font(.system(.headline, design: .rounded).weight(.semibold))
+                        .foregroundStyle(.white)
+
+                    Text(errorMessage ?? statusMessage)
+                        .font(.system(.subheadline, design: .rounded))
+                        .foregroundStyle(errorMessage == nil ? .white.opacity(0.75) : .red.opacity(0.92))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                Spacer()
+            }
+
+            Divider()
+                .overlay(.white.opacity(0.12))
+
+            // proste “kroki” — wygląd premium bez kombinowania
+            VStack(spacing: 8) {
+                StepRow(title: "Reach device", isDone: uuid != nil, isActive: isLoading)
+                StepRow(title: "Verify backend", isDone: !isLoading && !isSubmitting && errorMessage == nil && uuid != nil && showPasswordField == false, isActive: false)
+                StepRow(title: "Send token", isDone: false, isActive: isSubmitting)
+            }
+            .padding(.top, 2)
+        }
+        .padding(14)
+        .background {
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(.ultraThinMaterial)
+                .overlay {
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .strokeBorder(.white.opacity(0.12), lineWidth: 1)
+                }
+        }
+        .shadow(color: .black.opacity(0.22), radius: 18, x: 0, y: 10)
+    }
+
+    var passwordCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Device password")
+                .font(.system(.headline, design: .rounded).weight(.semibold))
+                .foregroundStyle(.white)
+
+            SecureField("Enter password", text: $password)
+                .focused($isPasswordFocused)
+                .textContentType(.password)
+                .submitLabel(.go)
+                .onSubmit { authenticateWithPassword(device: device) }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 12)
+                .background {
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .fill(.white.opacity(0.08))
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .strokeBorder(.white.opacity(0.10), lineWidth: 1)
+                        }
+                }
+                .foregroundStyle(.white)
+                .tint(.white)
+
+            Button {
+                authenticateWithPassword(device: device)
+            } label: {
+                HStack(spacing: 10) {
+                    if isSubmitting {
+                        ProgressView().tint(.white).scaleEffect(0.9)
+                    } else {
+                        Image(systemName: "lock.open.fill")
+                            .font(.system(size: 16, weight: .semibold))
+                    }
+                    Text(isSubmitting ? "Authenticating..." : "Authenticate")
+                        .font(.system(.headline, design: .rounded).weight(.semibold))
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+            }
+            .buttonStyle(PremiumPrimaryButtonStyle())
+            .disabled(isSubmitting || password.isEmpty)
+            .opacity((isSubmitting || password.isEmpty) ? 0.7 : 1.0)
+        }
+        .padding(14)
+        .background {
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(.ultraThinMaterial)
+                .overlay {
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .strokeBorder(.white.opacity(0.12), lineWidth: 1)
+                }
+        }
+        .shadow(color: .black.opacity(0.20), radius: 16, x: 0, y: 9)
+    }
+}
+
+// MARK: - Logic (Twoje requesty, tylko lepsze sterowanie stanem)
+private extension AuthenticateDeviceView {
+
+    func startAuthentication(device: Device) {
+        // reset stanu
+        errorMessage = nil
+        statusMessage = "Starting authentication..."
+        isLoading = true
+        isSubmitting = false
+        showPasswordField = false
+        uuid = nil
+
         Task {
             do {
                 try await fetchUUID(device: device)
-                statusMessage = "RPI OK"
+                statusMessage = "Device reachable. Enter password to continue."
                 showPasswordField = true
                 isLoading = false
+                isPasswordFocused = true
             } catch {
                 errorMessage = error.localizedDescription
                 isLoading = false
@@ -83,7 +225,7 @@ struct AuthenticateDeviceView: View {
         }
     }
 
-    private func fetchUUID(device: Device) async throws {
+    func fetchUUID(device: Device) async throws {
         guard let url = URL(string: "http://\(device.name).local:5000/api/v1/uuid") else {
             throw NSError(domain: "Invalid Raspberry Pi URL", code: 0, userInfo: nil)
         }
@@ -97,27 +239,34 @@ struct AuthenticateDeviceView: View {
         uuid = decodedResponse.uuid
     }
 
-    private func authenticateWithPassword(device: Device) {
+    func authenticateWithPassword(device: Device) {
+        guard !isSubmitting else { return }
+        errorMessage = nil
+        isPasswordFocused = false
+
+        isSubmitting = true
+        statusMessage = "Authenticating with backend..."
+
         Task {
             do {
                 let (token, refreshToken) = try await authenticateWithBackend()
-                statusMessage = "Backend OK"
-                
-                print(token)
-                print(refreshToken)
+                statusMessage = "Sending token to device..."
 
                 try await sendTokenToRaspberryPi(token: token, refreshToken: refreshToken, device: device)
-                statusMessage = "RPI OK"
 
-                navigationPath.append("HomeView")
+                statusMessage = "Paired successfully."
+                isSubmitting = false
+
+                // Profesjonalnie: zamykamy ekran (wracasz do poprzedniego, czyli Home)
+                dismiss()
             } catch {
                 errorMessage = error.localizedDescription
-                isLoading = false
+                isSubmitting = false
             }
         }
     }
 
-    private func authenticateWithBackend() async throws -> (String, String) {
+    func authenticateWithBackend() async throws -> (String, String) {
         guard let uuid = uuid, !password.isEmpty else {
             throw NSError(domain: "UUID or password missing", code: 0, userInfo: nil)
         }
@@ -126,7 +275,7 @@ struct AuthenticateDeviceView: View {
             throw NSError(domain: "User email not found in UserDefaults", code: 0, userInfo: nil)
         }
 
-        guard let backendURL = URL(string: "http://192.168.0.4:8080/api/v1/auth/device") else {
+        guard let backendURL = URL(string: "https://smart-intercom.duckdns.org/api/v1/auth/device") else {
             throw NSError(domain: "Invalid backend URL", code: 0, userInfo: nil)
         }
 
@@ -156,7 +305,7 @@ struct AuthenticateDeviceView: View {
         return (decodedResponse.token, decodedResponse.refreshToken)
     }
 
-    private func sendTokenToRaspberryPi(token: String, refreshToken: String, device: Device) async throws {
+    func sendTokenToRaspberryPi(token: String, refreshToken: String, device: Device) async throws {
         guard let url = URL(string: "http://\(device.name).local:5000/api/v1/token") else {
             throw NSError(domain: "Invalid Raspberry Pi URL", code: 0, userInfo: nil)
         }
@@ -180,16 +329,98 @@ struct AuthenticateDeviceView: View {
         }
     }
 
-    struct UUIDResponse: Decodable {
-        let uuid: String
-    }
+    struct UUIDResponse: Decodable { let uuid: String }
+    struct AuthDeviceResponse: Decodable { let token: String; let refreshToken: String }
+}
 
-    struct AuthDeviceResponse: Decodable {
-        let token: String
-        let refreshToken: String
+// MARK: - Small UI helpers
+private struct StepRow: View {
+    let title: String
+    let isDone: Bool
+    let isActive: Bool
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: isDone ? "checkmark.circle.fill" : (isActive ? "circle.dotted" : "circle"))
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(isDone ? .green.opacity(0.9) : .white.opacity(isActive ? 0.85 : 0.35))
+
+            Text(title)
+                .font(.system(.subheadline, design: .rounded))
+                .foregroundStyle(.white.opacity(isDone ? 0.9 : 0.7))
+
+            Spacer()
+        }
+    }
+}
+
+private struct PremiumBackground: View {
+    var body: some View {
+        ZStack {
+            LinearGradient(
+                colors: [
+                    Color.black,
+                    Color(red: 0.09, green: 0.11, blue: 0.18),
+                    Color(red: 0.06, green: 0.06, blue: 0.08)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .ignoresSafeArea()
+
+            Circle()
+                .fill(.blue.opacity(0.22))
+                .frame(width: 420, height: 420)
+                .blur(radius: 60)
+                .offset(x: -210, y: -260)
+
+            Circle()
+                .fill(.purple.opacity(0.20))
+                .frame(width: 360, height: 360)
+                .blur(radius: 60)
+                .offset(x: 210, y: 240)
+
+            Circle()
+                .fill(.cyan.opacity(0.12))
+                .frame(width: 340, height: 340)
+                .blur(radius: 70)
+                .offset(x: -110, y: 330)
+        }
+        .accessibilityHidden(true)
+    }
+}
+
+private struct PremiumPrimaryButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .foregroundStyle(.white)
+            .background {
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color(red: 0.35, green: 0.45, blue: 1.0),
+                                Color(red: 0.62, green: 0.30, blue: 0.95)
+                            ],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .strokeBorder(.white.opacity(0.18), lineWidth: 1)
+                    }
+            }
+            .shadow(color: .black.opacity(configuration.isPressed ? 0.18 : 0.28),
+                    radius: configuration.isPressed ? 10 : 18,
+                    x: 0, y: configuration.isPressed ? 6 : 10)
+            .scaleEffect(configuration.isPressed ? 0.98 : 1.0)
+            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
     }
 }
 
 #Preview {
-    AuthenticateDeviceView(device: Device(name: "IoT_Device", type: "TEST", domain: "TEST"))
+    NavigationStack {
+        AuthenticateDeviceView(device: Device(name: "IoT_Device", type: "TEST", domain: "TEST"))
+    }
 }
