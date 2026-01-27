@@ -1,6 +1,8 @@
 package com.kacper.iot_backend.faces;
 
 import com.kacper.iot_backend.utils.DefaultResponse;
+import jakarta.servlet.http.HttpServletRequest;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
@@ -12,7 +14,6 @@ import java.util.logging.Logger;
 import com.kacper.iot_backend.device.Device;
 import com.kacper.iot_backend.device.DeviceRepository;
 import com.kacper.iot_backend.minio.MinioService;
-import com.kacper.iot_backend.notification.NotificationService;
 
 
 @Service
@@ -23,7 +24,10 @@ public class FaceService {
     @Value("${minio.faceBucket}")
     private String FACE_BUCKET;
 
-    private final static Logger logger = Logger.getLogger(NotificationService.class.getName());
+    @Value("${security.allowed-ips}")
+    private List<String> ALLOWED_IPS_SERVICE; 
+
+    private final static Logger logger = Logger.getLogger(FaceService.class.getName());
 
     public FaceService(
             FaceRepository faceRepository,
@@ -35,7 +39,7 @@ public class FaceService {
         this.deviceRepository = deviceRepository;
     }
 
-    private boolean isUserOwnerOfDevice(UserDetails userDetails, Device device) {
+    private static boolean isUserOwnerOfDevice(UserDetails userDetails, Device device) {
         return device.getUser().getEmail().equals(userDetails.getUsername());
     }
 
@@ -54,7 +58,7 @@ public class FaceService {
                 .orElseThrow(() -> new Exception("No device found with id: " + request.deviceId()));
 
             if (!isUserOwnerOfDevice(userDetails, device)) {
-                throw new SecurityException("User does not own the device");
+                throw new Exception("User does not own the device");
             } 
             Face face = Face.builder()
                     .faceName(request.faceName())
@@ -71,32 +75,26 @@ public class FaceService {
 
     }
 
-    public List<FaceResponse> getAllFacesByDeviceId(UserDetails userDetails, int deviceId) throws Exception {
+    public List<FaceResponse> getAllFacesByDeviceIdForUser(UserDetails userDetails, int deviceId) throws Exception {
         var device = deviceRepository.findById(deviceId)
                 .orElseThrow(() -> new Exception("No device found with id: " + deviceId));
 
         if (!isUserOwnerOfDevice(userDetails, device)) {
-            throw new SecurityException("User does not own the device");
+            throw new Exception("User does not own the device");
         }
-
-        try {
-            var faces = faceRepository.findByDeviceId(deviceId);
-        List<FaceResponse> facesWithCorrectUrl = new java.util.ArrayList<>();
-        for (Face face : faces) {
-            String faceName = face.getImageUrl().replace(FACE_BUCKET+"/", "");
-            facesWithCorrectUrl.add(new FaceResponse(
-                face.getId(),
-                face.getFaceName(),
-                minioService.generateUrlByBucketAndName(FACE_BUCKET, faceName)
-            ));
-        }
-        return facesWithCorrectUrl;
-    
-        } catch (Exception e) {
-            throw e;
-        }
+         return getFacesByDeviceIdInsecure(deviceId);
     }
 
+    public List<FaceResponse> getAllFacesByDeviceIdIpProtected(HttpServletRequest request, int deviceId) throws Exception {
+        logger.info("Service endpoint accessed.");
+        String addr = request.getRemoteAddr();
+        if (!ALLOWED_IPS_SERVICE.contains(addr)) {
+            logger.warning(addr + " tried to access service endpoint.");
+            throw new Exception(addr + " tried to access service endpoint.");
+        }
+        return getFacesByDeviceIdInsecure(deviceId);
+    }
+    
     public FaceResponse changeFaceName(UserDetails userDetails,
         ChangeFaceNameRequest request,
         Integer faceId) {
@@ -119,6 +117,7 @@ public class FaceService {
             throw new RuntimeException("Error changing face name: " + e.getMessage());
         }
     }
+    
 
     public FaceResponse deleteFaceById(UserDetails userDetails, Integer faceId) {
         try {
@@ -139,5 +138,25 @@ public class FaceService {
             logger.log(java.util.logging.Level.SEVERE, "Error deleting face: " + e.getMessage());
             throw new RuntimeException("Error deleting face: " + e.getMessage());
         }
+    }
+
+        /**
+     * Helper private method to get faces without checking permissions.
+     * @param deviceId
+     * @return
+     * @throws Exception
+     */
+    private List<FaceResponse> getFacesByDeviceIdInsecure(int deviceId) throws Exception {
+        var faces = faceRepository.findByDeviceId(deviceId);
+        List<FaceResponse> facesWithCorrectUrl = new java.util.ArrayList<>();
+        for (Face face : faces) {
+            String faceName = face.getImageUrl().replace(FACE_BUCKET+"/", "");
+            facesWithCorrectUrl.add(new FaceResponse(
+                face.getId(),
+                face.getFaceName(),
+                minioService.generateUrlByBucketAndName(FACE_BUCKET, faceName)
+            ));
+        }
+        return facesWithCorrectUrl;
     }
 }

@@ -7,7 +7,6 @@ This Python service performs real-time object detection using OpenCV and a YOLOv
 ## 🧠 Features
 
 - 🎥 Connects to a streaming server to request live video streams from available devices.
-- 📦 Uses a shared Redis database to discover connected and actively streaming devices.
 - 🕵️ Performs real-time object detection using YOLOv8 and OpenCV.
 - ✅ Filters detections by size and confidence threshold.
 - 🚨 Sends structured alerts to a Spring Boot backend via HTTP when notable detections occur.
@@ -18,12 +17,12 @@ This Python service performs real-time object detection using OpenCV and a YOLOv
 ---
 
 ## ⚙️ Requirements
+- Packages cmake, python3-dev and build-essential (needed to build dlib for face_recognition)
+- Python 3.12+
 
-- Python 3.8+
-- OpenCV
-- Ultralytics YOLOv8
-- Redis (for device discovery)
-- `requests` (for HTTP API calls)
+Then setup with `setup_repo.sh`
+
+**OR**
 
 Install dependencies with:
 
@@ -33,5 +32,5 @@ pip install -r requirements.txt
 
 ## Usage
 ```python
-python main.py
+python src/main.py
 ```

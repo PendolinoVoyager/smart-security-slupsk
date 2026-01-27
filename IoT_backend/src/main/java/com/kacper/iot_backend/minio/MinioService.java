@@ -21,7 +21,6 @@ import java.util.logging.Logger;
 
 import com.kacper.iot_backend.notification.Notification;
 import com.kacper.iot_backend.notification.NotificationRepository;
-import com.kacper.iot_backend.notification.NotificationService;
 
 
 @Service
@@ -38,7 +37,7 @@ public class MinioService {
     @Value("${security.allowed-ips}")
     private List<String> allowedIps;
 
-    private final static Logger logger = Logger.getLogger(NotificationService.class.getName());
+    private final static Logger logger = Logger.getLogger(MinioService.class.getName());
 
     public MinioService(
             MinioClient minioClient,

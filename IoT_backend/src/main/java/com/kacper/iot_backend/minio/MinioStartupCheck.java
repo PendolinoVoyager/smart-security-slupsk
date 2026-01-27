@@ -11,8 +11,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
-import com.kacper.iot_backend.notification.NotificationService;
-
 @Component
 public class MinioStartupCheck implements CommandLineRunner
 {
@@ -24,7 +22,7 @@ public class MinioStartupCheck implements CommandLineRunner
     @Value("${minio.faceBucket}")
     private String faceBucket;
 
-    private final static Logger logger = Logger.getLogger(NotificationService.class.getName());
+    private final static Logger logger = Logger.getLogger(MinioStartupCheck.class.getName());
 
     public MinioStartupCheck(MinioClient minioClient) {
         this.minioClient = minioClient;

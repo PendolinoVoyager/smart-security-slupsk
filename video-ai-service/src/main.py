@@ -4,12 +4,9 @@ from config import parse_args, update_globals
 args = parse_args()
 update_globals(args)
 
-
 import cv2
 from streamManager import StreamManager
 import time
-
-
 
 STREAM_REFRESH_SEC = 5.0
 FRAME_SLEEP_SEC = 0.001  
@@ -31,6 +28,7 @@ def main_loop():
 
 def _main_loop_debug():
     manager = StreamManager.__new__(StreamManager)
+    StreamManager._init_pipeline(manager)
     manager.streams[100] = cv2.VideoCapture(0)
     for pipeline_element in manager.pipeline:
         pipeline_element.on_stream_start(100)

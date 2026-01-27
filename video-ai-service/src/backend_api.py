@@ -5,7 +5,7 @@ from config import BACKEND_URL
 
 BACKEND_POST_NOTIF_URL = "api/v1/notification/ai-service"
 BACKEND_POST_IMAGE_URL = "api/v1/minio/upload"
-
+BACKEND_GET_FACES_URL = "api/v1/faces/ai-service"
 class NotificationType(enum.Enum):
     Info = "Info" # for object recognition use log, but it exists anyway as an option for other services
     Warning = "Warning" # ex. a car parks
@@ -50,3 +50,11 @@ def send_image(notification_id: int, frame):
 
     print(response.status_code)
     print(response.text)
+
+
+def fetch_faces_for_device(device_id: int) -> list[dict["id": int, "name": str, "imageUrl": str]]:
+    response = requests.get(f"{BACKEND_URL}{BACKEND_GET_FACES_URL}/{device_id}")
+    print(response)
+    if response.status_code == 403:
+        raise Exception("Failed to fetch faces: " + response.text)
+    return response.json()

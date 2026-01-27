@@ -4,6 +4,11 @@ from pipelineElement import PipelineElement
 from ultralytics import YOLO
 import time 
 import math
+from faceRecognizer import FACE_RECOGNIZER_NAME
+
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from streamManager import StreamManager
 
 class TrackedObject:
     def __init__(self, confidence: int, pos: Tuple[int, int, int, int], id: str, name: str):
@@ -99,18 +104,19 @@ class Tracker:
         self.current_objects = updated_current
         self.static_objects = updated_static
        
-        
+TRACKING_ELEMENT_NAME = "TE"
 class TrackingPipeline(PipelineElement):
-    
+    NAME = TRACKING_ELEMENT_NAME
     TIME_BETWEEN_TRACKS = 1.0
     MIN_CONFIDENCE = 0.5  # Minimum confidence to consider an object
     MODEL_NAME="yolo26n.pt"
 
     trackers: dict[int, dict["last_track": float, "model": Any, "tracker": Tracker]] = {}
 
-    def __init__(self):
+    def __init__(self, manager: "StreamManager"):
         print("Tracking pipeline created")
-        super().__init__()
+        super().__init__(manager)
+
     def _init_tracker_for_stream(self, device_id):
         model = YOLO(self.MODEL_NAME)
         print("model created")
@@ -131,7 +137,6 @@ class TrackingPipeline(PipelineElement):
         return detected_objects
 
     def on_frame(self, device_id, frame):
-
         last_tracking_time = self.trackers[device_id]["last_track"]
         if last_tracking_time + self.TIME_BETWEEN_TRACKS > time.time():
             return
@@ -142,7 +147,12 @@ class TrackingPipeline(PipelineElement):
         tracker.update(objects)
         notifs = self._get_notifications(tracker, len(frame[0]), len(frame))
         for notif in notifs:
-            print(notif)
+
+            if notif[2] == "person":
+                face_recognizer = self.manager.get_pipe_element_by_name(FACE_RECOGNIZER_NAME)
+                if face_recognizer is not None:
+                    face_recognizer.unfreeze(device_id) # enable face recognition for this stream
+
             try:
                 notif_id = send_notification(notif[0], notif[1], device_id)
                 if notif_id is None:
@@ -154,7 +164,7 @@ class TrackingPipeline(PipelineElement):
             
 
     def _get_notifications(self, tracker: Tracker, width, height):
-        notifications: List[Tuple[NotificationType, str]] = []
+        notifications: List[Tuple[NotificationType, str, str]] = []
 
         for object in tracker.new_objects:
             notifications.append(classify_notification(object, frame_width=width,
@@ -176,6 +186,7 @@ class TrackingPipeline(PipelineElement):
     
     def on_stream_end(self, device_id):
         del self.trackers[device_id]
+        self.unfreeze(device_id)
         print(f"Tracking ended {device_id}")
 
     def on_stream_start(self, device_id):
@@ -197,9 +208,9 @@ def classify_notification(
     frame_height: int,
     is_static: bool,
     is_new: bool,
-) -> Tuple[NotificationType | None, str | None]:
+) -> Tuple[NotificationType | None, str | None, str]:
     """
-    Returns (NotificationType, message) or (None, None) if already reported.
+    Returns (NotificationType, message, objectName) or (None, None) if already reported.
     """
 
     x1, y1, x2, y2 = obj.position
@@ -211,10 +222,10 @@ def classify_notification(
 
     def report(ntype: NotificationType, message: str):
         if ntype in obj.reported_types:
-            return None, None
+            return None, None, None
         obj.reported_types.add(ntype)
         obj.last_reported_type = ntype
-        return ntype, message
+        return ntype, message, name
 
     # --- STATIC OBJECTS (reported once on appearance) ---
     if is_static and is_new:
@@ -287,4 +298,4 @@ def classify_notification(
             f"Detected: {obj.name}"
         )
 
-    return None, None
+    return None, None, None
