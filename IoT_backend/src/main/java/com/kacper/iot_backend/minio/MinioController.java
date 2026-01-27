@@ -24,12 +24,14 @@ public class MinioController
             @ModelAttribute UploadImageRequest request,
             @RequestParam("notification-id") Integer notificationId
     ) {
-        return minioService.uploadImageToMinio(request, notificationId);
+        return minioService.uploadNotificationImageToMinio(request, notificationId);
     }
+
+
 
     @GetMapping("/images")
     public List<String> getAllImages() {
-        return minioService.getAllImages();
+        return minioService.getAllImages("images");
     }
 
     @GetMapping("/images/{notificationId}")

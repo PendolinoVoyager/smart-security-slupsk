@@ -31,24 +31,32 @@ public class SecurityConfig {
         httpSecurity.csrf(AbstractHttpConfigurer::disable)
                 .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(request -> request
-                        .requestMatchers(
-                                "/api/v1/auth/register",
-                                "/api/v1/auth/login",
-                                "/api/v1/auth/device",
-                                "/api/v1/activation-token/verify",
-                                "/api/v1/reset-password-token/send",
-                                "/api/v1/reset-password-token/reset",
-                                "/api/v1/measurements",
-                                "/v3/api-docs/**",
-                                "/swagger-ui/**",
-                                "/swagger-ui.html",
-                                "/ws/**",
-                                "/api/v1/notification/ai-service",
-                                "/api/v1/minio/upload",
-                                "/api/v1/minio/images",
-                                "/api/v1/minio/images/{notificationId}",
-                                "/api/v1/notification/ai-service").permitAll()
-                        .anyRequest().authenticated())
+                    // IP-filtered / service endpoints (NO JWT)
+                    .requestMatchers(
+                        "/api/v1/faces/ai-service/**",
+                        "/api/v1/minio/images",
+                        "/api/v1/minio/upload",
+                        "/api/v1/notification/ai-service"
+                    ).permitAll()
+
+                    // Public endpoints
+                    .requestMatchers(
+                        "/api/v1/auth/register",
+                        "/api/v1/auth/login",
+                        "/api/v1/auth/device",
+                        "/api/v1/activation-token/verify",
+                        "/api/v1/reset-password-token/send",
+                        "/api/v1/reset-password-token/reset",
+                        "/api/v1/measurements",
+                        "/v3/api-docs/**",
+                        "/swagger-ui/**",
+                        "/swagger-ui.html",
+                        "/ws/**"
+                    ).permitAll()
+
+                    // Rest needs tokens
+                    .anyRequest().authenticated()
+                    )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authenticationProvider(authenticationProvider())
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);

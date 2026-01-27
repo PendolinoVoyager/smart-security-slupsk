@@ -1,5 +1,6 @@
 package com.kacper.iot_backend.device;
 
+import com.kacper.iot_backend.faces.Face;
 import com.kacper.iot_backend.notification.Notification;
 import com.kacper.iot_backend.user.User;
 import jakarta.persistence.*;
@@ -7,6 +8,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.NoArgsConstructor;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -46,6 +48,10 @@ public class Device {
 
     @OneToMany(mappedBy = "device", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Notification> notifications;
+
+
+    @OneToMany(mappedBy = "device", cascade = CascadeType.ALL, orphanRemoval = true)
+    private final List<Face> faces = new ArrayList<>();
 
     @Override
     public String toString() {

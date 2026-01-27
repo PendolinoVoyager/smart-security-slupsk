@@ -1,5 +1,4 @@
 "use client";
-
 import React, { useEffect, useState } from "react";
 import {
   fetchByUserPaginated,
@@ -89,7 +88,7 @@ export default function NotificationListClient({
     }
   }
 
-
+  console.log(data)
   return (
     <div className="lg:col-span-1 flex flex-col">
       <Card className="flex-1 flex flex-col">
@@ -177,6 +176,18 @@ function NotificationListItem({
   notification: Notification;
   onClick?: () => void;
 }) {
+    const badgeClassMap: Record<string, string> = {
+    critical: "bg-red-600 text-white",
+    warning: "bg-orange-500 text-white",
+    info: "bg-blue-500 text-white",
+    visit: "bg-lime-500 text-black",
+    default: "bg-gray-400 text-black",
+  };
+
+  const badgeClass =
+    badgeClassMap[notification.type.toLowerCase()] ??
+    badgeClassMap.default;
+
   return (
     <div
       onClick={onClick}
@@ -185,6 +196,7 @@ function NotificationListItem({
       <div className="flex justify-between items-center">
         <Badge
           variant={notification.has_seen ? "secondary" : "default"}
+          className={`badge-lg font-semibold ${badgeClass}`}
         >
           {notification.type.toUpperCase()}
         </Badge>

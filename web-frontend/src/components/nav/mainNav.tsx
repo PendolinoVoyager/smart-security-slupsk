@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils"; // shadcn's cn utility for className merging
 import LoginButton from "../auth/loginButton";
 import { logoutAction } from "@/lib/auth/server";
+export const dynamic = "force-dynamic";
 
 export default function Navbar({ isLoggedIn }: { isLoggedIn: boolean }) {
   return (
@@ -41,6 +42,14 @@ export default function Navbar({ isLoggedIn }: { isLoggedIn: boolean }) {
                   href="/devices"
                 >
                   Devices
+                </NavigationMenuLink>
+              </NavigationMenuItem>
+               <NavigationMenuItem>
+                <NavigationMenuLink
+                  className="px-4 py-2 hover:bg-accent hover:text-accent-foreground rounded-md"
+                  href="/devices/manage-access"
+                >
+                  Manage Access
                 </NavigationMenuLink>
               </NavigationMenuItem>
               <NavigationMenuItem>

@@ -26,6 +26,19 @@ export const ENDPOINTS = {
     GET_IMAGES: `${BACKEND_PROVIDER_URL}/api/v1/minio/images`,
     WS: `${BACKEND_PROVIDER_URL}/ws`
   },
+  /**
+   * Endpoints for faces. All require authentication with Bearer token. 
+   */
+  FACES: {
+    /** Add {deviceId} integer after slash to get faces for the device */
+    GET_BY_DEVICE: `${BACKEND_PROVIDER_URL}/api/v1/faces`,
+    /** Post with MultipartFile file and deviceId and faceName */
+    POST: `${BACKEND_PROVIDER_URL}/api/v1/faces`,
+    /** Patch with {faceId} after slash and JSON with newFaceName */
+    PATCH: `${BACKEND_PROVIDER_URL}/api/v1/faces`,
+    /** Delete with {faceId} after slash */
+    DELETE: `${BACKEND_PROVIDER_URL}/api/v1/faces`,
+  },
   STREAMING: {
     /**
      * Fetch all available streams from streaming server.
