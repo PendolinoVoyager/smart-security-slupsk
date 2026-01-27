@@ -66,8 +66,9 @@ public class MinioService {
                                     .message("Empty file not allowed")
                                     .build();
             }
-            uploadImageToMinio(file, BUCKET);
-            linkImageToNotification(BUCKET, notificationId);
+
+            String objectName = uploadImageToMinio(file, BUCKET);
+            linkImageToNotification(objectName, notificationId);
             return DefaultResponse.builder()
                     .message("Image uploaded and linked to notification successfully")
                     .build();

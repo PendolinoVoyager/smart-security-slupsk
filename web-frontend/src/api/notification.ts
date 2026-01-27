@@ -43,10 +43,12 @@ export const fetchByUserPaginated = async function (
  * @returns a list of urls with images
  */
 export const fetchNotificationImages = async function (
+  token: string,
   notificationId: number
 ): Promise<string[] | HttpError> {
   const res = await fetchSafe<string[]>(
     `${ENDPOINTS.NOTIFICATIONS.GET_IMAGES}/${notificationId}`,
+     addCredentials({}, token)
   );
   return res;
 }

@@ -34,7 +34,6 @@ public class SecurityConfig {
                     // IP-filtered / service endpoints (NO JWT)
                     .requestMatchers(
                         "/api/v1/faces/ai-service/**",
-                        "/api/v1/minio/images",
                         "/api/v1/minio/upload",
                         "/api/v1/notification/ai-service"
                     ).permitAll()

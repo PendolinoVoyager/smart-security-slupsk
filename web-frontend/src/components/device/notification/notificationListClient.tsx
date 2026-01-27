@@ -77,7 +77,7 @@ export default function NotificationListClient({
 
   async function handleNotificationClick(notification: Notification) {
     try {
-      const images = await fetchNotificationImages(notification.id);
+      const images = await fetchNotificationImages(token, notification.id);
       setSelectedNotification(notification);
       if (!(images instanceof HttpError)) {
         setImageUrls(images);
