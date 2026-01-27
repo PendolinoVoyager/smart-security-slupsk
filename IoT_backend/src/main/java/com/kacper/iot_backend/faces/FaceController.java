@@ -2,9 +2,10 @@ package com.kacper.iot_backend.faces;
 
 import com.kacper.iot_backend.utils.DefaultResponse;
 
+import jakarta.validation.Valid;
+
 import java.util.List;
 
-import org.simpleframework.xml.Path;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -45,7 +46,7 @@ public class FaceController
     @PatchMapping(value = "/{faceId}")
     public FaceResponse updateFaceName(
         @AuthenticationPrincipal UserDetails userDetails,
-        @ModelAttribute ChangeFaceNameRequest request,
+        @Valid @RequestBody  ChangeFaceNameRequest request,
         @PathVariable Integer faceId) {
 
         return faceService.changeFaceName(userDetails, request, faceId);

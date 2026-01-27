@@ -1,5 +1,7 @@
 import { ReactNode } from "react";
+//@ts-ignore
 import "@/app/globals.css";
+
 import {
   NavigationMenu,
   NavigationMenuList,
@@ -25,12 +27,12 @@ export default async function RootLayout({
   const isLoggedIn = !!(await getAuthData());
   return (
     <html lang="en">
-      <body className="bg-gray-100 text-gray-900">
+      <body className="">
         <NotificationProvider >
-          <header className="bg-white border-b p-4">
+          <header className="border-b p-4">
             <MainNav isLoggedIn={isLoggedIn} />
           </header>
-          <main className="container mx-auto p-6">{children}</main>
+          <main className="container mx-auto p-6 background">{children}</main>
           <OnScreenNotification />
           <Toaster />
         </NotificationProvider>

@@ -39,7 +39,7 @@ export async function WeatherStats({ deviceId }: { deviceId: number }) {
     return <NoMeasurements />;
   }
 
-  
+
   const temp = measurements.content.find(
     (m) => m.measurementType == "t" || m.measurementType == "temperature"
   )?.value;
@@ -51,26 +51,35 @@ export async function WeatherStats({ deviceId }: { deviceId: number }) {
     return <NoMeasurements />;
   }
   return (
-    <div className="flex gap-4" style={{ "flex": "1 1 0px", width: 0 }}>
+    <div className="flex flex-col gap-4 md:flex-row items-center justify-evenly flex-stretch">
       <Card className="p-4">
-        <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <CardTitle className="text-lg font-medium">Temperature</CardTitle>
-          <Thermometer className="h-5 w-5" />
+        <CardHeader className="p-0 mb-2 flex items-center justify-between w-30">
+            <CardTitle className="text-sm font-bold over">
+              Temperature
+            </CardTitle>
+            <Thermometer className="h-5 w-5 shrink-0 text-muted-foreground" />
         </CardHeader>
-        <CardContent>
-          <p className="text-3xl font-bold">{temp}°C</p>
+        <CardContent className="p-0">
+          <p className="text-3xl font-bold leading-none truncate">
+            {temp}°C
+          </p>
         </CardContent>
       </Card>
 
-      <Card className="p-4 ">
-        <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <CardTitle className="text-lg font-medium">Humidity</CardTitle>
-          <Droplets className="h-5 w-5" />
+      <Card className="p-4">
+        <CardHeader className="p-0 mb-2 flex items-center justify-between w-30">
+            <CardTitle className="text-sm font-bold">
+              Humidity
+            </CardTitle>
+            <Droplets className="h-5 w-5 shrink-0 text-muted-foreground" />
         </CardHeader>
-        <CardContent>
-          <p className="text-3xl font-bold">{humidity}%</p>
+        <CardContent className="p-0">
+          <p className="text-3xl font-bold leading-none truncate">
+            {humidity}%
+          </p>
         </CardContent>
       </Card>
     </div>
+
   );
 }
