@@ -25,7 +25,7 @@ def make_udp_request(device_id, port):
 
     headers = {"Content-Type": "application/json"}
 
-    response = requests.get(f"{STREAMING_SERVER_URL}{STREAMING_SERVER_UDP_ENDPOINT}", json=payload, headers=headers)
+    response = requests.post(f"{STREAMING_SERVER_URL}{STREAMING_SERVER_UDP_ENDPOINT}", json=payload, headers=headers)
     body = response.json()
     if response.status_code != 200:
         raise Exception(f"Failed to start stream: {body["payload"] if "payload" in body else response.text}")    

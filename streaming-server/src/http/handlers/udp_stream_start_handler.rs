@@ -3,11 +3,11 @@ use std::time::Duration;
 
 use crate::core::context::AppContext;
 use crate::core::http::{AppRequest, AppResponse};
-use crate::http::JSONAppResponse;
+use crate::http::{JSONAppResponse, NOT_FOUND_RESPONSE};
 use crate::services::core_db::CoreDBId;
 use crate::services::ip_utils;
 use http_body_util::BodyExt;
-use hyper::StatusCode;
+use hyper::{Method, StatusCode};
 use tokio_tungstenite::tungstenite::Message;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
@@ -22,6 +22,9 @@ pub async fn udp_stream_start_handler(
     mut req: AppRequest,
     ctx: &'static AppContext,
 ) -> anyhow::Result<AppResponse> {
+    if req.method() != Method::POST {
+        return Ok(NOT_FOUND_RESPONSE.clone());
+    }
     if ip_utils::filter_non_service_ips(&ctx.config, &req) == false {
         return JSONAppResponse::pack(ctx, "Forbidden IP address.", StatusCode::FORBIDDEN);
     }
