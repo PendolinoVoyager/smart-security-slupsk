@@ -5,6 +5,7 @@ use crate::core::context::AppContext;
 use crate::core::http::{AppRequest, AppResponse};
 use crate::http::JSONAppResponse;
 use crate::services::core_db::CoreDBId;
+use crate::services::ip_utils;
 use http_body_util::BodyExt;
 use hyper::StatusCode;
 use tokio_tungstenite::tungstenite::Message;
@@ -21,6 +22,10 @@ pub async fn udp_stream_start_handler(
     mut req: AppRequest,
     ctx: &'static AppContext,
 ) -> anyhow::Result<AppResponse> {
+    if ip_utils::filter_non_service_ips(&ctx.config, &req) == false {
+        return JSONAppResponse::pack(ctx, "Forbidden IP address.", StatusCode::FORBIDDEN);
+    }
+    
     let body = req.body_mut().collect().await?.to_bytes();
     let Ok(body): Result<UdpStreamStartRequest, serde_json::Error> = serde_json::from_slice(&body)
     else {
