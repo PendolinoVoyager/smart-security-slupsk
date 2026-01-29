@@ -10,6 +10,7 @@ use crate::services::core_db::{CoreDBId, User};
 use crate::services::jwt::{extract_token, verify_user};
 use hyper::StatusCode;
 use serde::Serialize;
+use serde_json::json;
 
 #[derive(Debug, Serialize)]
 pub struct StreamsResponse {
@@ -108,10 +109,9 @@ pub async fn availability_handler(
     let mut con = ctx.app_db.get().await?;
     match RedisDeviceSchema::get_device(&mut con, device_id).await {
         Ok(device) => {
-            let payload = StreamsResponse {
-                count: 1,
-                available: vec![device],
-            };
+            let payload = json!({
+                "device": device
+            });
             JSONAppResponse::pack(ctx, payload, StatusCode::OK)
         }
         Err(e) => JSONAppResponse::pack(

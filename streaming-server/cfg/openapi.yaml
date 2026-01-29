@@ -151,7 +151,7 @@ paths:
                   - $ref: "#/components/schemas/ApiResponse"
                   - properties:
                       payload:
-                        $ref: "#/components/schemas/StreamListPayload"
+                        $ref: "#/components/schemas/StreamDevice"
 
   /streams/all:
     get:
@@ -181,7 +181,7 @@ paths:
                         example: Not a service
 
   /udp_stream_start:
-    post:
+    get:
       summary: Start a UDP stream
       description: Only allowed IPs from config can access this endpoint.
       requestBody:
