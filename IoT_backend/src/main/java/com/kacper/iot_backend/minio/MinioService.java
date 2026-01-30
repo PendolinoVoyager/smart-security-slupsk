@@ -21,7 +21,6 @@ import java.util.logging.Logger;
 
 import com.kacper.iot_backend.notification.Notification;
 import com.kacper.iot_backend.notification.NotificationRepository;
-import com.kacper.iot_backend.notification.NotificationService;
 
 
 @Service
@@ -29,11 +28,16 @@ public class MinioService {
     private final MinioClient minioClient;
     private final NotificationRepository notificationRepository;
     private final NotificationImageRepository notificationImageRepository;
+
     private static final String BUCKET = "images";
-    private final static Logger logger = Logger.getLogger(NotificationService.class.getName());
-    
+
+    @Value("${minio.faceBucket}")
+    private String FACE_BUCKET;
+
     @Value("${security.allowed-ips}")
     private List<String> allowedIps;
+
+    private final static Logger logger = Logger.getLogger(MinioService.class.getName());
 
     public MinioService(
             MinioClient minioClient,
@@ -48,65 +52,77 @@ public class MinioService {
     public boolean checkIpAllowed(String ipAddress) {
         return allowedIps.contains(ipAddress);
     }
-    public DefaultResponse uploadImageToMinio(UploadImageRequest request, Integer notificationId) {
-        MultipartFile file = request.file();
-        if (file == null || file.isEmpty()) {
+    
+    private static String generateObjectName(String originalFilename) {
+        return UUID.randomUUID().toString() + "_" + originalFilename;
+    }
+
+
+    public DefaultResponse uploadNotificationImageToMinio(UploadImageRequest request, Integer notificationId) {
+        try {
+            var file = request.file();
+            if (file == null || file.isEmpty()) {
+                return DefaultResponse.builder()
+                                    .message("Empty file not allowed")
+                                    .build();
+            }
+
+            String objectName = uploadImageToMinio(file, BUCKET);
+            linkImageToNotification(objectName, notificationId);
             return DefaultResponse.builder()
-                    .message("Empty file")
+                    .message("Image uploaded and linked to notification successfully")
                     .build();
         }
-
-        Notification notification = notificationRepository.findById(notificationId).orElseThrow(() ->
-                new RuntimeException("Notification not found with id: " + notificationId)
-        );
-
-        try {
-            boolean exists = minioClient.bucketExists(BucketExistsArgs.builder().bucket(BUCKET).build());
-            if (!exists) {
-                minioClient.makeBucket(MakeBucketArgs.builder().bucket(BUCKET).build());
-            }
-
-            String objectName = UUID.randomUUID().toString() + "_" + file.getOriginalFilename();
-            try (InputStream is = file.getInputStream()) {
-                PutObjectArgs putArgs = PutObjectArgs.builder()
-                        .bucket(BUCKET)
-                        .object(objectName)
-                        .stream(is, file.getSize(), -1)
-                        .contentType(file.getContentType())
-                        .build();
-                minioClient.putObject(putArgs);
-            }
-
-            String imageUrl = BUCKET + "/" + objectName;
-            NotificationImage notificationImage = NotificationImage.builder()
-                    .imageUrl(imageUrl)
-                    .notification(notification)
-                    .build();
-            logger.info("Saving notification image" + notificationImage);
-            notificationImageRepository.save(notificationImage);
-
+        catch (Exception e) {
             return DefaultResponse.builder()
-                    .message("File has been saved: " + objectName)
-                    .build();
-        } catch (Exception e) {
-            return DefaultResponse.builder()
-                    .message("Error? xD: " + e.getMessage())
+                    .message("Error uploading image: " + e.getMessage())
                     .build();
         }
     }
+    /**
+     * Uploads an image to MinIO bucket
+     * @param request
+     * @param bucket
+     * @return object name inside the bucket
+     * @throws Exception 
+     */
+    public String uploadImageToMinio(MultipartFile file, String bucket) throws Exception {
+        if (file == null || file.isEmpty()) {
+            throw new RuntimeException("File is missing");
+        }
 
-    public List<String> getAllImages() {
+        String objectName = generateObjectName(file.getOriginalFilename());
+        InputStream is = file.getInputStream();
+        PutObjectArgs putArgs = PutObjectArgs.builder()
+                .bucket(bucket)
+                .object(objectName)
+                .stream(is, file.getSize(), -1)
+                .contentType(file.getContentType())
+                .build();
+        minioClient.putObject(putArgs);
+        return objectName;
+    }
+
+    private void linkImageToNotification(String objectName, Integer notificationId) {
+        Notification notification = notificationRepository.findById(notificationId).orElseThrow(() ->
+                new RuntimeException("Notification not found with id: " + notificationId)
+        );
+        String imageUrl = BUCKET + "/" + objectName;
+        NotificationImage notificationImage = NotificationImage.builder()
+                .imageUrl(imageUrl)
+                .notification(notification)
+                .build();
+        logger.info("Saving notification image" + notificationImage);
+        notificationImageRepository.save(notificationImage);
+    }
+
+    public List<String> getAllImages(String bucket) {
         List<String> images = new ArrayList<>();
 
         try {
-            if (!minioClient.bucketExists(
-                    BucketExistsArgs.builder().bucket(BUCKET).build())) {
-                return images;
-            }
-
             Iterable<Result<Item>> results = minioClient.listObjects(
                     ListObjectsArgs.builder()
-                            .bucket(BUCKET)
+                            .bucket(bucket)
                             .build()
             );
 
@@ -116,7 +132,7 @@ public class MinioService {
                 String url = minioClient.getPresignedObjectUrl(
                         GetPresignedObjectUrlArgs.builder()
                                 .method(Method.GET)
-                                .bucket(BUCKET)
+                                .bucket(bucket)
                                 .object(objectName)
                                 .expiry(30, TimeUnit.MINUTES)
                                 .build()
@@ -139,19 +155,30 @@ public class MinioService {
         for (NotificationImage image : notificationImages) {
             try {
                 String objectName = image.getImageUrl().replace(BUCKET + "/", "");
-                String url = minioClient.getPresignedObjectUrl(
-                        GetPresignedObjectUrlArgs.builder()
-                                .method(Method.GET)
-                                .bucket(BUCKET)
-                                .object(objectName)
-                                .expiry(30, TimeUnit.MINUTES)
-                                .build()
-                );
+                String url = generateUrlByBucketAndName(BUCKET, objectName);
                 imageUrls.add(url);
             } catch (Exception e) {
                 throw new RuntimeException("Error generating presigned URL", e);
             }
         }
         return imageUrls;
+    }
+    public String generateUrlByBucketAndName(String bucket, String objectName) throws Exception {
+        return minioClient.getPresignedObjectUrl(
+                GetPresignedObjectUrlArgs.builder()
+                        .method(Method.GET)
+                        .bucket(bucket)
+                        .object(objectName)
+                        .expiry(30, TimeUnit.MINUTES)
+                        .build()
+        );
+    }
+    public void deleteImageFromMinio(String bucket, String objectName) throws Exception {
+        minioClient.removeObject(
+                RemoveObjectArgs.builder()
+                        .bucket(bucket)
+                        .object(objectName)
+                        .build()
+        );
     }
 }

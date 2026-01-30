@@ -11,8 +11,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
-import com.kacper.iot_backend.notification.NotificationService;
-
 @Component
 public class MinioStartupCheck implements CommandLineRunner
 {
@@ -21,7 +19,10 @@ public class MinioStartupCheck implements CommandLineRunner
     @Value("${minio.bucket}")
     private String bucket;
 
-    private final static Logger logger = Logger.getLogger(NotificationService.class.getName());
+    @Value("${minio.faceBucket}")
+    private String faceBucket;
+
+    private final static Logger logger = Logger.getLogger(MinioStartupCheck.class.getName());
 
     public MinioStartupCheck(MinioClient minioClient) {
         this.minioClient = minioClient;
@@ -29,16 +30,21 @@ public class MinioStartupCheck implements CommandLineRunner
 
     @Override
     public void run(String... args) throws Exception {
+        checkBucketExistsAndCreateIfNot(bucket);
+        checkBucketExistsAndCreateIfNot(faceBucket);
+    
+        System.out.println("MinIO OK: connected, bucket exists = " + bucket);
+    }
+    private boolean checkBucketExistsAndCreateIfNot(String bucketName) throws Exception {
         boolean exists = minioClient.bucketExists(
-                BucketExistsArgs.builder().bucket(bucket).build()
+                BucketExistsArgs.builder().bucket(bucketName).build()
         );
 
         if (!exists) {
-            logger.log(Level.INFO, "MinIO bucket '{0}' does not exist. Creating...\"", bucket);
-            minioClient.makeBucket(MakeBucketArgs.builder().bucket(bucket).build());
-            logger.log(Level.INFO, "MinIO bucket '{0}' created.", bucket);
+            logger.log(Level.INFO, "MinIO bucket '{0}' does not exist. Creating...\"", bucketName);
+            minioClient.makeBucket(MakeBucketArgs.builder().bucket(bucketName).build());
+            logger.log(Level.INFO, "MinIO bucket '{0}' created.", bucketName);
         }
-
-        System.out.println("MinIO OK: connected, bucket exists = " + bucket);
+        return exists;
     }
 }

@@ -9,12 +9,12 @@ MPEGTS_HOST="127.0.0.1"
 MPEGTS_PORT="10001"
 
 # Ensure HLS output directory exists
-if [ ! -w "$HLS_OUTPUT_DIR" ]; then
-    echo "$HLS_OUTPUT_DIR is not writable. Please check permissions."
-    exit 1
-fi
+#if [ ! -w "$HLS_OUTPUT_DIR" ]; then
+#    echo "$HLS_OUTPUT_DIR is not writable. Please check permissions."
+#    exit 1
+#fi
 
-rm -rf $HLS_OUTPUT_DIR/*
+#rm -rf $HLS_OUTPUT_DIR/*
 
 
 # Start a simple HTTP server in background
@@ -48,8 +48,8 @@ if command -v rpicam-vid &> /dev/null; then
             ts-offset=0
 	'
 	
-    rpicam-vid --framerate 15 -g 300 -n --inline\
-	    --encoder-libs "tune=zerolatency;key-int-max=30;speed-preset=ultrafast;bitrate=500" \
+    rpicam-vid --framerate 15 -g 60 -n --inline\
+	    --encoder-libs "tune=zerolatency;speed-preset=ultrafast;bitrate=500" \
 	     -t 0 -o - | \
     gst-launch-1.0 fdsrc fd=0 is-live=true ! \
 	video/x-h264, width=640, height=480, framerate=15/1, stream-format=byte-stream ! \
@@ -60,23 +60,17 @@ if command -v rpicam-vid &> /dev/null; then
 else
     echo "rpicam not found, using v4l2src fallback..."
     pkill -9 gst-launch 2>/dev/null
+ 
+    gst-launch-1.0 -v \
+    v4l2src device=/dev/video0 ! \
+    video/x-raw,format=YUY2,width=1280,height=720,framerate=10/1 ! \
+    videoconvert ! \
+    video/x-raw,format=I420 ! \
+    x264enc tune=zerolatency bitrate=1500 speed-preset=ultrafast key-int-max=20 ! \
+    h264parse config-interval=1 ! \
+    video/x-h264,stream-format=byte-stream,alignment=au ! \
+    queue ! \
+    mpegtsmux m2ts-mode=true ! \
+    udpsink host=$MPEGTS_HOST port=$MPEGTS_PORT sync=false async=false
 
-    gst-launch-1.0 v4l2src device=/dev/video0 ! \
-        video/x-raw,width=320,height=240,framerate=15/1 ! \
-        videoconvert ! video/x-raw,format=I420 ! \
-        x264enc tune=zerolatency bitrate=500 speed-preset=ultrafast key-int-max=30 ! \
-        h264parse config-interval=1 ! \
-        tee name=t \
-        t. ! queue max-size-buffers=2 leaky=downstream ! \
-            mpegtsmux ! \
-            hlssink \
-                playlist-location="$HLS_OUTPUT_DIR/$PLAYLIST_NAME" \
-                location="$HLS_OUTPUT_DIR/segment_%05d.ts" \
-                target-duration=1 \
-                max-files=10 \
-                playlist-length=3 \
-        t. ! queue max-size-buffers=2 leaky=downstream ! \
-            mpegtsmux m2ts-mode=true ! \
-            udpsink host=$MPEGTS_HOST port=$MPEGTS_PORT sync=false async=false
 fi
-

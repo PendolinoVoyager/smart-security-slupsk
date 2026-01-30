@@ -1,267 +1,226 @@
 openapi: 3.0.3
+
 info:
   title: Streaming Server API
-  description: API documentation for the Rust-based streaming server. Don't forget to set the Authorization header with a valid JWT token OR device ID if the server is running in 'tokens-are-actually-just-ids' mode.
   version: 1.0.0
+  description: >
+    API documentation for the Rust-based streaming server.
+    Authorization uses a JWT token or a device ID if the server
+    runs in 'tokens-are-actually-just-ids' mode.
+
 servers:
   - url: http://localhost:9000
     description: Local development server
 
+security:
+  - bearerAuth: []
 
 components:
   securitySchemes:
-    bearerAuth: # arbitrary name for the security scheme
+    bearerAuth:
       type: http
       scheme: bearer
-      description:  JWT OR device ID if the server is running in 'tokens-are-actually-just-ids' mode for either device or user authentication.
       bearerFormat: JWT
-#apply the security scheme globally
-security:
-  - bearerAuth: [] # use the same name as above
+
+  schemas:
+    ApiResponse:
+      type: object
+      required: [status, payload]
+      properties:
+        status:
+          type: string
+          example: success
+        payload:
+          type: string
+          enum:
+            - success
+            - error
+    ApiErrorResponse:
+      type: object
+      required: [payload]
+      properties:
+        status:
+          type: string
+          enum:
+            - error
+        payload:
+          type: string
+          nullable: false
+          example: "Not allowed"
+    StreamDevice:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 100
+        device_name:
+          type: string
+          example: Default Device
+        user_id:
+          type: integer
+          example: 1
+        server_addr:
+          type: string
+          example: 192.168.8.1:9080
+
+    StreamListPayload:
+      type: object
+      properties:
+        count:
+          type: integer
+          example: 1
+        available:
+          type: array
+          items:
+            $ref: "#/components/schemas/StreamDevice"
+
+    DeviceIdListPayload:
+      type: object
+      properties:
+        count:
+          type: integer
+          example: 1
+        devices:
+          type: array
+          items:
+            type: integer
+
 paths:
   /hello:
     get:
       summary: Get system and device information
-      description: Returns details about the server, including OS type, hostname, and the number of connected devices.
       responses:
         "200":
           description: Server information retrieved successfully
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    example: "success"
-                  payload:
-                    type: object
-                    properties:
-                      hostname:
-                        type: string
-                        example: "my-server"
-                      operating_system:
-                        type: string
-                        example: "Linux"
-                      os_release:
-                        type: string
-                        example: "5.15.0-84-generic"
-                      connected_devices:
-                        type: integer
-                        example: 3
-                      config:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - properties:
+                      payload:
                         type: object
-                        additionalProperties: true  # Allows config to be any JSON object
+                        properties:
+                          hostname:
+                            type: string
+                            example: my-server
+                          operating_system:
+                            type: string
+                            example: Linux
+                          os_release:
+                            type: string
+                            example: 5.15.0-84-generic
+                          connected_devices:
+                            type: integer
+                            example: 3
+                          config:
+                            type: object
+                            additionalProperties: true
+
   /streams:
     get:
-      summary: Get a list of devices ready for streaming
-      description: Returns a list of all active streams on the server. They are available for authenticated users only. Authorization is via the 'Authorization' header with a valid JWT token OR if a flag on the server is set to allow ID's instead of tokens, then substitute token with id in the header.
-      security:
-        - bearerAuth: []
+      summary: List devices ready for streaming
       responses:
         "200":
-          description: List of active streams retrieved successfully
+          description: Active streams retrieved successfully
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    example: "success"
-                  payload:
-                    type: object
-                    properties:
-                      count:
-                        type: integer
-                        example: 3
-                      available:
-                        type: array
-                        items:
-                          type: object
-                          properties:
-                            id:
-                              type: integer
-                              example: 100
-                            device_name:
-                              type: string
-                              example: "Default Device"
-                            user_id:
-                              type: interger
-                              example: 1
-                            server_addr:
-                              type: string
-                              example: "192.168.8.1:9080"
-        "403":
-          description: Bad token or expired token provided in 'Authorization' header.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    example: "failure"
-                  payload:
-                    type: string
-                    example: "bad token"
-        "401":
-          description: Unauthorized access. No token provided.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    example: "falure"
-                  payload:
-                    type: string
-                    example: "missing Authorization: Bearer <token> heade"
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - properties:
+                      payload:
+                        $ref: "#/components/schemas/StreamListPayload"
+
   /streams/availability:
     get:
-      summary: Check if a device is available for streaming. Use query parameters to filter by device name or user ID.
-      description: Returns a list with ONE DEVICE. It is are available for authenticated users only. Authorization is via the 'Authorization' header with a valid JWT token OR if a flag on the server is set to allow ID's instead of tokens, then substitute token with id in the header.
-      security:
-        - bearerAuth: []
+      summary: Check if a device is available for streaming
       parameters:
         - in: query
           name: device_id
+          required: true
           schema:
             type: integer
-          required: true
-          description: Device ID to check availability for.
       responses:
         "200":
-          description: Device availability retrieved successfully.
+          description: Device availability retrieved successfully
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    example: "success"
-                  payload:
-                    type: object
-                    properties:
-                      count:
-                        type: integer
-                        example: 1
-                      available:
-                        type: array
-                        items:
-                          type: object
-                          properties:
-                            id:
-                              type: integer
-                              example: 100
-                            device_name:
-                              type: string
-                              example: "Default Device"
-                            user_id:
-                              type: interger
-                              example: 1
-                            server_addr:
-                              type: string
-                              example: "
-        "404":
-          description: Device not found.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    example: "failure"
-                  payload:
-                    type: string
-                    example: "device not found: <details>"
-  /list_all_devices:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - properties:
+                      payload:
+                        $ref: "#/components/schemas/StreamDevice"
+
+  /streams/all:
     get:
-      summary: Get all device IDs in database that are streaming. !NO AUTH IMPLEMENTED YET!
-      description: Get all device IDS in database that are streaming. No reason for it to fail other than server error.
+      summary: Get all device IDs currently streaming (service-only)
+      description: Only allowed IPs from config can access this endpoint.
       responses:
         "200":
-          description: Retrieved all devices succesfully. 
+          description: Devices retrieved successfully
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    example: "success"
-                  payload:
-                    type: object
-                    properties:
-                      count:
-                        type: integer
-                        example: 2
-                      devices:
-                        type: array
-                        items:
-                          type: number
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - properties:
+                      payload:
+                        $ref: "#/components/schemas/DeviceIdListPayload"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiErrorResponse"
+                  - properties:
+                      payload:
+                        type: string
+                        example: Not a service
+
   /udp_stream_start:
     get:
-      summary: Start a UDP stream to provided address. !NO AUTH IMPLEMENTED YET!
-      description: Starts a stream using raw UDP to the specified address. The device ID and address are required in the request body.
-      security:
-        - bearerAuth: []
+      summary: Start a UDP stream
+      description: Only allowed IPs from config can access this endpoint.
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
+              required: [device_id, address]
               properties:
                 device_id:
                   type: integer
                   example: 100
                 address:
                   type: string
-                  example: "192.168.1.3:1234"
+                  example: 192.168.1.3:1234
       responses:
         "200":
-          description: UDP stream started successfully. It will 
+          description: UDP stream started successfully
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    example: "success"
-                  payload:
-                    type: object
-                    properties:
-                      message:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - properties:
+                      payload:
+                        type: object
+                        properties:
+                          message:
+                            type: string
+                            example: streaming to 192.168.1.3:1234
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiErrorResponse"
+                  - properties:
+                      payload:
                         type: string
-                        example: "streaming to 192.168.1.3:1234"
-        "400":
-          description: Bad request. Invalid device ID or address.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    example: "failure"
-                  payload:
-                    type: string
-                    example: "bad request: expected device_id and address"
-        "404":
-          description: Device not found.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    example: "failure"
-                  payload:
-                    type: string
-                    example: "no device found with id: <id>"
+                        example: Not a service

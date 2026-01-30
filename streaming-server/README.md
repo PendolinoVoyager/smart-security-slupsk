@@ -48,6 +48,7 @@ List of variables that influence config:
 - STRSRV_REDIS_DB_URI - redis_db_uri
 - STRSRV_LOKI_URL - loki url, default is http://127.0.0.1:3100
 - STRSRV_TOKENS_ARE_IDS - tokens_are_ids
+- STRSRV_ALLOWED_IPS - comma-separated allowed ips list, example 127.0.0.1,192.168.1.15,0.0.0.0,localhost
 
 - STRSRV_HTTP_ADDR - http address to bind to
 - STRSRV_HTTP_PORT - http port to bind to

@@ -55,6 +55,7 @@ pub struct AppConfig {
     pub log: String,
     pub app_db_uri: String,
     pub tokens_are_ids: bool,
+    pub allowed_ips: Vec<String>
 }
 
 impl AppConfig {
@@ -147,6 +148,14 @@ impl AppConfig {
 
         let tokens_are_ids = yaml["tokens_are_ids"].as_bool().unwrap_or(false);
 
+        let allowed_ips: Vec<String> = yaml["allowed-ips"].as_vec()
+                        .unwrap_or(&vec![])
+                        .iter().map(|v|  v.as_str().unwrap_or_else( || {
+                            tracing::warn!("Cannot parse allowed ip {:?}", v);
+                            return "";
+                        }).to_owned())
+                        .filter(|v| !v.is_empty())
+                        .collect();
         Ok(Self {
             env,
             db_uri,
@@ -155,6 +164,7 @@ impl AppConfig {
             ws,
             app_db_uri,
             tokens_are_ids,
+            allowed_ips
         })
     }
     // Override self values with environment variables if they exist
@@ -227,6 +237,12 @@ impl AppConfig {
             self.ws.address = format!("{}:{}", addr, ws_port)
                 .parse()
                 .unwrap_or(self.ws.address);
+        }
+
+        if let Some(allowed_ips) = var_os("STRSRV_ALLOWED_IPS") 
+            && let Some(allowed_ips) = allowed_ips.to_str() {
+                self.allowed_ips = allowed_ips.split(',').map(|v| v.to_owned()).collect(); 
+
         }
     }
 }
