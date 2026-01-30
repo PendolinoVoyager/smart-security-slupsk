@@ -48,8 +48,8 @@ if command -v rpicam-vid &> /dev/null; then
             ts-offset=0
 	'
 	
-    rpicam-vid --framerate 15 -g 300 -n --inline\
-	    --encoder-libs "tune=zerolatency;key-int-max=30;speed-preset=ultrafast;bitrate=500" \
+    rpicam-vid --framerate 15 -g 60 -n --inline\
+	    --encoder-libs "tune=zerolatency;speed-preset=ultrafast;bitrate=500" \
 	     -t 0 -o - | \
     gst-launch-1.0 fdsrc fd=0 is-live=true ! \
 	video/x-h264, width=640, height=480, framerate=15/1, stream-format=byte-stream ! \

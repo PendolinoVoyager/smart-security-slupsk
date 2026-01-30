@@ -248,13 +248,7 @@ def classify_notification(
 
     # --- PERSON ---
     if name == "person":
-        if area_ratio >= 0.35:
-            return report(
-                NotificationType.Critical,
-                "A person is very close to the door."
-            )
-
-        if area_ratio >= 0.15:
+        if area_ratio >= 0.25:
             return report(
                 NotificationType.Visit,
                 "Someone is at the door."
