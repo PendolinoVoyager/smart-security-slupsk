@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { PropsWithChildren, useEffect, useState } from "react";
 import {
   fetchByUserPaginated,
   fetchNotificationImages,
@@ -21,6 +21,8 @@ import {
 import { useNotifications } from "@/lib/context/NotificationContext";
 import { HttpError } from "@/api/utils";
 import ModalNotification from "./modalNotification";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Input } from "@/components/ui/input";
 
 interface NotificationListClientProps {
   token: string;
@@ -42,10 +44,8 @@ export default function NotificationListClient({
   const [data, setData] = useState<NotificationResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
   async function loadPage(p: number) {
     try {
-      setLoading(true);
       setError(null);
       const result = await fetchByUserPaginated(token, p);
       
@@ -58,7 +58,7 @@ export default function NotificationListClient({
       setLoading(false);
     }
   }
-
+  
   const {notifications: newNotifications } = useNotifications();
   useEffect(() => {
     loadPage(page);
@@ -102,12 +102,14 @@ export default function NotificationListClient({
 
           {!loading && data && (
             <>
-              {data.total === 0 ? (
+              {data.notifications.length === 0 ? (
                 <p className="text-muted-foreground text-sm">
                   No notifications yet.
                 </p>
               ) : (
                 <>
+                  <PaginationContent />
+                  <PaginationControl data={data} onPageChange={setPage}/>
                   <ScrollArea className="h-80 pr-2">
                     <div className="space-y-3">
                       {data.notifications.map((notif) => (
@@ -116,40 +118,6 @@ export default function NotificationListClient({
                     </div>
                   </ScrollArea>
 
-                  {/* Pagination */}
-                  {data.total > PAGE_SIZE && (
-                    <Pagination className="mt-2">
-                      <PaginationContent className="flex justify-center gap-2">
-                        <PaginationItem>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            disabled={page === 0}
-                            onClick={() => setPage((p) => Math.max(p - 1, 0))}
-                          >
-                            Previous
-                          </Button>
-                        </PaginationItem>
-
-                        <PaginationItem>
-                          <span className="text-sm text-muted-foreground">
-                            Page {data.page + 1}
-                          </span>
-                        </PaginationItem>
-
-                        <PaginationItem>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            disabled={(data.page + 1) * PAGE_SIZE >= data.total}
-                            onClick={() => setPage((p) => p + 1)}
-                          >
-                            Next
-                          </Button>
-                        </PaginationItem>
-                      </PaginationContent>
-                    </Pagination>
-                  )}
                 </>
               )}
             </>
@@ -168,6 +136,74 @@ export default function NotificationListClient({
   );
 }
 
+interface PaginationControlProps extends PropsWithChildren{
+  onPageChange: (p: number) => void;
+  data: NotificationResponse;
+}
+const PaginationControl: React.FC<PaginationControlProps> = function({data, onPageChange, ...props}) {
+    return(<>
+        {/* Pagination */}
+        {data.total > 1 && (
+          <Pagination className="mt-2">
+          <PaginationContent className="flex items-center justify-center gap-2">
+            {/* Previous */}
+            <PaginationItem>
+              <Button
+                variant="outline"
+                size="icon"
+                disabled={data.page === 0}
+                onClick={() => {
+                  const newPage = Math.max(data.page - 1, 0);
+                  onPageChange(newPage);
+                }}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+            </PaginationItem>
+
+            {/* Page input */}
+            <PaginationItem className="flex items-center gap-1">
+              <Input
+                type="number"
+                min={1}
+                max={data.total}
+                value={data.page + 1}
+                onChange={(e) => {
+                  const value = Number(e.target.value)
+                  if (Number.isNaN(value)) return
+
+                  // clamp + convert to 0-based
+                  const nextPage = Math.min(
+                    Math.max(value - 1, 0),
+                    data.total - 1
+                  )
+
+                  onPageChange(nextPage)
+                }}
+                className="h-8 w-16 text-center"
+              />
+              <span className="text-sm text-muted-foreground">
+                / {data.total}
+              </span>
+            </PaginationItem>
+
+            {/* Next */}
+            <PaginationItem>
+              <Button
+                variant="outline"
+                size="icon"
+                disabled={data.page + 1 >= data.total}
+                onClick={() => onPageChange(Math.min(data.page + 1, data.total - 1))}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
+
+    )}
+    </>);
+}
 
 function NotificationListItem({
   notification,

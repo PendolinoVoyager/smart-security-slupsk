@@ -6,6 +6,10 @@ type StreamsResponse = {
   status: string;
   payload: string | { count: number; available: StreamsResponseDevice[] };
 };
+type StreamsResponseAvailability = {
+  status: string;
+  payload: string | {device: StreamsResponseDevice}
+}
 
 type StreamsResponseDevice = {
   id: number;
@@ -41,7 +45,7 @@ export const getStreamAvailability = async function (
   token: string,
   deviceId: number
 ): Promise<StreamsResponseDevice | Error> {
-  const res = await fetchSafe<StreamsResponse>(
+  const res = await fetchSafe<StreamsResponseAvailability>(
     ENDPOINTS.STREAMING.GET_STREAM_AVAILABILITY + `?device_id=${deviceId}`,
     addCredentials({}, token)
   );
@@ -51,8 +55,8 @@ export const getStreamAvailability = async function (
   if (res.status == "failure") {
     return new Error(res.payload as string);
   }
-  if (typeof res.payload !== "string" && res.payload.count === 1) {
-    return res.payload.available[0];
+  if (typeof res.payload !== "string") {
+    return res.payload.device;
   } else {
     return new HttpError("device not ready", 404);
   }
