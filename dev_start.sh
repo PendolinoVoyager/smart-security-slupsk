@@ -21,11 +21,19 @@ cd ..
 tmux new-session -d -s $SESSION_NAME
 
 # splitting into 4 panes
+# 0 backend left up
+# 1 frontend left down
+# 2 streaming server right up
+# 3 audio server right down up
+# 4 ai service right down down
 tmux split-window -h
-tmux select-pane -t 0
+tmux select-pane -t 0 
 tmux split-window -v  
 tmux select-pane -t 2
 tmux split-window -v  
+tmux select-pane -t 3
+tmux split-window -v
+
 
 tmux select-pane -t 0
 tmux send-keys "cd IoT_backend && mvn spring-boot:run" C-m  
@@ -41,5 +49,10 @@ tmux send-keys "cd streaming-server && docker compose -f compose.dev.yaml up -d 
 tmux select-pane -t 3
 
 tmux send-keys "cd audio-server && npm run dev" C-m 
+
+
+tmux select-pane -t 4
+
+tmux send-keys "cd video-ai-service && .venv/bin/python3 src/main.py" C-m 
 
 tmux attach -t $SESSION_NAME
