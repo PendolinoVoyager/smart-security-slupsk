@@ -16,6 +16,6 @@ pre-build = [
     "~/glibc/glibc-2.32/configure --prefix=$HOME/glibc/glibc-2.32-install",
     "make",
     "make install",
-    "apt-get --assume-yes install libssl-dev:$CROSS_DEB_ARCH libc6-dev:$CROSS_DEB_ARCH"
+    "apt-get --assume-yes install libssl-dev:$CROSS_DEB_ARCH libc6-dev:$CROSS_DEB_ARCH" 
 ]
 

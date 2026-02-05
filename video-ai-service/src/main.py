@@ -4,6 +4,10 @@ from config import parse_args, update_globals
 args = parse_args()
 update_globals(args)
 
+import torch
+
+device = "cuda" if torch.cuda.is_available() else "cpu"
+
 import cv2
 from streamManager import StreamManager
 import time

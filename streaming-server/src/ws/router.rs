@@ -19,8 +19,8 @@ pub async fn route(
     ctx: &'static AppContext,
 ) {
     match req.uri().path() {
-        "/device_checkout" => route!("device_checkout", device_checkout_handler, req, socket, ctx),
-        "/stream" => route!("stream", stream_handler, req, socket, ctx),
+        "/streaming-server/v1/ws/device_checkout" => route!("device_checkout", device_checkout_handler, req, socket, ctx),
+        "/streaming-server/v1/ws/stream" => route!("stream", stream_handler, req, socket, ctx),
         _ => {
             tracing::info!(event = "ws_route_accessed", "404");
         }

@@ -1,0 +1,68 @@
+# syntax=docker/dockerfile:1
+
+############################
+# 1. Builder stage
+############################
+FROM nvidia/cuda:12.4.1-devel-ubuntu22.04 AS builder
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+# Python + build deps
+RUN apt-get update && apt-get install -y \
+    python3.11 \
+    python3.11-dev \
+    python3-pip \
+    build-essential \
+    cmake \
+    libopenblas-dev \
+    liblapack-dev \
+    libgl1 \
+    libglib2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN ln -sf /usr/bin/python3.11 /usr/bin/python
+
+WORKDIR /wheels
+
+# Upgrade pip early
+RUN pip install --upgrade pip wheel setuptools
+
+# Copy requirements and build wheels
+COPY requirements.txt .
+RUN pip wheel --no-cache-dir -r requirements.txt
+
+############################
+# 2. Runtime stage
+############################
+FROM nvidia/cuda:12.4.1-runtime-ubuntu22.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+# Runtime deps only (no compilers)
+RUN apt-get update && apt-get install -y \
+    python3.11 \
+    python3-pip \
+    libopenblas-dev \
+    liblapack-dev \
+    libgl1 \
+    libglib2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN ln -sf /usr/bin/python3.11 /usr/bin/python
+
+WORKDIR /app
+
+# Install prebuilt wheels
+COPY --from=builder /wheels /wheels
+RUN pip install --no-cache-dir /wheels/* \
+    && rm -rf /wheels ~/.cache/pip
+
+# Copy app
+COPY src/ .
+
+CMD ["python", "main.py"]
+

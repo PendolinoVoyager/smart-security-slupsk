@@ -9,7 +9,7 @@ info:
     runs in 'tokens-are-actually-just-ids' mode.
 
 servers:
-  - url: http://localhost:9000
+  - url: http://localhost:9002
     description: Local development server
 
 security:
@@ -86,7 +86,7 @@ components:
             type: integer
 
 paths:
-  /hello:
+  /streaming-server/v1/http/hello:
     get:
       summary: Get system and device information
       responses:
@@ -117,7 +117,7 @@ paths:
                             type: object
                             additionalProperties: true
 
-  /streams:
+  /streaming-server/v1/http/streams:
     get:
       summary: List devices ready for streaming
       responses:
@@ -132,7 +132,7 @@ paths:
                       payload:
                         $ref: "#/components/schemas/StreamListPayload"
 
-  /streams/availability:
+  /streaming-server/v1/http/streams/availability:
     get:
       summary: Check if a device is available for streaming
       parameters:
@@ -153,7 +153,7 @@ paths:
                       payload:
                         $ref: "#/components/schemas/StreamDevice"
 
-  /streams/all:
+  /streaming-server/v1/http/streams/all:
     get:
       summary: Get all device IDs currently streaming (service-only)
       description: Only allowed IPs from config can access this endpoint.
@@ -180,8 +180,8 @@ paths:
                         type: string
                         example: Not a service
 
-  /udp_stream_start:
-    get:
+  /streaming-server/v1/http/udp_stream_start:
+    post:
       summary: Start a UDP stream
       description: Only allowed IPs from config can access this endpoint.
       requestBody:
