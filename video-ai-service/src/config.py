@@ -2,9 +2,11 @@ import argparse
 
 DEFAULT_STREAMING_SERVER_URL = "http://127.0.0.1:9002"
 DEFAULT_BACKEND_URL = "http://127.0.0.1:8080/"
+DEFAULT_SELF_ADDRESS = "0.0.0.0"
 
 BACKEND_URL = None
 STREAMING_SERVER_URL = None
+BIND_TO = None
 DEBUG = False
 
 def parse_args():
@@ -27,6 +29,14 @@ def parse_args():
         default=DEFAULT_BACKEND_URL,
         help=f"Backend API URL (default: {DEFAULT_BACKEND_URL})",
     )
+    
+    parser.add_argument(
+        "--bind-to",
+        dest="bind_to",
+        type=str,
+        default=DEFAULT_SELF_ADDRESS,
+        help=f"Request streams to this address, binding a UDP socket to it (default: {DEFAULT_SELF_ADDRESS})",
+    )
 
     parser.add_argument(
         "--debug",
@@ -37,7 +47,8 @@ def parse_args():
     return parser.parse_args()
 
 def update_globals(args: argparse.Namespace):
-    global BACKEND_URL, STREAMING_SERVER_URL, DEBUG
+    global BACKEND_URL, STREAMING_SERVER_URL, DEBUG, BIND_TO
     BACKEND_URL = args.backend_url
     STREAMING_SERVER_URL = args.streaming_server_url
     DEBUG = args.debug
+    BIND_TO = args.bind_to

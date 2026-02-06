@@ -1,4 +1,3 @@
-use std::net::SocketAddr;
 use std::time::Duration;
 
 use crate::core::context::AppContext;
@@ -13,7 +12,7 @@ use tokio_tungstenite::tungstenite::Message;
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 struct UdpStreamStartRequest {
     device_id: CoreDBId,
-    address: SocketAddr,
+    address: String,
 }
 
 /// Start a UDP stream from the device with device_id to the remote address provided with the request.
@@ -50,7 +49,7 @@ pub async fn udp_stream_start_handler(
 
     let receiver = device.stream_receiver.subscribe();
     drop(device);
-    spawn_stream(ctx, receiver, body.address);
+    spawn_stream(ctx, receiver, body.address.clone());
 
     JSONAppResponse::pack(
         ctx,
@@ -66,7 +65,7 @@ pub async fn udp_stream_start_handler(
 fn spawn_stream(
     ctx: &'static AppContext,
     mut receiver: tokio::sync::broadcast::Receiver<Message>,
-    client_address: SocketAddr,
+    client_address: String,
 ) {
     let future = async move {
         // give time for the client to set up the listener
@@ -74,7 +73,10 @@ fn spawn_stream(
         let mut sock_addr = ctx.config.http.address;
         sock_addr.set_port(0);
         let udp_socket = tokio::net::UdpSocket::bind(sock_addr).await.unwrap();
-        udp_socket.connect(client_address).await.unwrap();
+        if let Err(res) = udp_socket.connect(&client_address).await {
+            tracing::error!("Wrong address provided to start udp stream: {}.\n{:?}", &client_address, res);
+            return;
+        }
         while let Ok(msg) = receiver.recv().await {
             //result doesn't concern us, only timeout
             match udp_socket.send(&msg.into_data()).await {

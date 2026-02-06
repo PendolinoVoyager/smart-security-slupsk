@@ -43,13 +43,13 @@ export const ENDPOINTS = {
     /**
      * Fetch all available streams from streaming server.
      */
-    GET_STREAMS: `${STREAMING_SERVER_HTTP_URL}/streams`,
+    GET_STREAMS: `${STREAMING_SERVER_HTTP_URL}/streaming-server/v1/http/streams`,
     /**
      * Check if the stream is available and get its details if applicable.
      * Params:
      *  - device_id - number
      */
-    GET_STREAM_AVAILABILITY: `${STREAMING_SERVER_HTTP_URL}/streams/availability`,
+    GET_STREAM_AVAILABILITY: `${STREAMING_SERVER_HTTP_URL}/streaming-server/v1/http/streams/availability`,
     /** Preview the stream from the device.
      *  After making a succesfull connection to this WebSocket endpoint,
      *  stream data will be sent in complete packets to this socket.
@@ -58,7 +58,7 @@ export const ENDPOINTS = {
      * - device_id - number
      * - token - string
      */
-    WATCH_STREAM: `${STREAMING_SERVER_WS_URL}/stream`,
+    WATCH_STREAM: `${STREAMING_SERVER_WS_URL}/streaming-server/v1/ws/stream`,
   },
   AUDIO: {
     /**

@@ -32,15 +32,15 @@ pub async fn route(req: AppRequest, ctx: &'static AppContext) -> AppResponse {
         });
     }
     match req.uri().path() {
-        "/hello" => route!("hello", hello_handler, req, ctx),
-        "/benchmark" => route!("benchmark", bench_handler, req, ctx),
-        "/streams" => route!("streams", streams_handler, req, ctx),
-        "/streams/all" => route!("list_all_devices", list_all_devices_handler, req, ctx),
-        "/streams/availability" => {
+        "/streaming-server/v1/http/hello" => route!("hello", hello_handler, req, ctx),
+        "/streaming-server/v1/http/benchmark" => route!("benchmark", bench_handler, req, ctx),
+        "/streaming-server/v1/http/streams" => route!("streams", streams_handler, req, ctx),
+        "/streaming-server/v1/http/streams/all" => route!("list_all_devices", list_all_devices_handler, req, ctx),
+        "/streaming-server/v1/http/streams/availability" => {
             route!("availability", availability_handler, req, ctx)
         }
-        "/openapi.yaml" => route!("openapi", openapi_handler, req, ctx),
-        "/udp_stream_start" => route!("udp_stream_start", udp_stream_start_handler, req, ctx),
+        "/streaming-server/v1/http/openapi.yaml" => route!("openapi", openapi_handler, req, ctx),
+        "/streaming-server/v1/http/udp_stream_start" => route!("udp_stream_start", udp_stream_start_handler, req, ctx),
         _ => {
             tracing::info!(event = "route_accessed", "404");
             NOT_FOUND_RESPONSE.clone()
