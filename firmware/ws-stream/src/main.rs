@@ -16,6 +16,7 @@ use tracing::Level;
 use tracing_subscriber::FmtSubscriber;
 use tungstenite::stream::MaybeTlsStream;
 use tungstenite::{Bytes, Message};
+use rustls::crypto::{CryptoProvider, ring};
 
 /// This is the source from the init stream shell script.
 const STREAM_SOURCE: &str = "127.0.0.1:10001";
@@ -26,6 +27,8 @@ const STREAM_TIMEOUT: Duration = Duration::from_secs(5);
 const TOKEN_FILE: &str = "/etc/sss_firmware/token.txt";
 
 fn main() {
+    CryptoProvider::install_default(ring::default_provider())
+        .expect("install rustls crypto provider");
     let mut config = config::Config::parse();
     if !config.silent {
         let subscriber = FmtSubscriber::builder()
@@ -53,7 +56,7 @@ fn main() {
 /// Make an connection to a websocket server and stream directly to it.
 fn connect_ws(config: Config) -> anyhow::Result<()> {
     let addr = format!(
-        "{}/device_checkout?token={}",
+        "{}/streaming-server/v1/ws/device_checkout?token={}",
         &config.addr,
         &config.token.expect("At this point token should be present")
     );

@@ -22,6 +22,13 @@ This Python service performs real-time object detection using OpenCV and a YOLOv
 
 Then setup with `setup_repo.sh`
 
+To run with GPU, in compose use:
+deploy:
+  resources:
+    reservations:
+      devices:
+        - capabilities: [gpu]
+
 **OR**
 
 Install dependencies with:

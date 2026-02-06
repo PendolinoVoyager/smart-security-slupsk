@@ -1,7 +1,7 @@
 import { fetchDevices } from "@/api/device";
 import SavedFacesPanel from "@/components/facial_recognition/savedFacesPanel";
 import { Separator } from "@/components/ui/separator";
-import { getAuthData } from "@/lib/auth/server";
+import { getAuthData, loginAction } from "@/lib/auth/server";
 import * as Tabs from "@radix-ui/react-tabs";
 import {  ShieldCheckIcon } from "lucide-react";
 import { redirect } from "next/navigation";

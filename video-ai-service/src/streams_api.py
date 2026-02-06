@@ -1,9 +1,8 @@
 import requests
 
-from config import STREAMING_SERVER_URL
-
-STREAMING_SERVER_STREAMS_ENDPOINT: str = "/streams/all"
-STREAMING_SERVER_UDP_ENDPOINT: str = "/udp_stream_start"
+from config import STREAMING_SERVER_URL, BIND_TO
+STREAMING_SERVER_STREAMS_ENDPOINT: str = "/streaming-server/v1/http/streams/all"
+STREAMING_SERVER_UDP_ENDPOINT: str = "/streaming-server/v1/http/udp_stream_start"
 
 def fetch_all_streams():
     response = requests.get(f"{STREAMING_SERVER_URL}{STREAMING_SERVER_STREAMS_ENDPOINT}")
@@ -20,7 +19,7 @@ def make_udp_request(device_id, port):
 
     payload = {
         "device_id": device_id,
-        "address": f"0.0.0.0:{port}"
+        "address": f"{BIND_TO}:{port}"
     }
 
     headers = {"Content-Type": "application/json"}
@@ -28,6 +27,7 @@ def make_udp_request(device_id, port):
     response = requests.post(f"{STREAMING_SERVER_URL}{STREAMING_SERVER_UDP_ENDPOINT}", json=payload, headers=headers)
     body = response.json()
     if response.status_code != 200:
-        raise Exception(f"Failed to start stream: {body["payload"] if "payload" in body else response.text}")    
+        raise Exception(f"Failed to start stream: {body['payload'] if 'payload' in body else response.text}")    
+
 
     

@@ -1,0 +1,82 @@
+# syntax=docker/dockerfile:1
+
+############################
+# 1. Builder stage
+############################
+FROM python:3.12-slim AS builder
+
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV DEBIAN_FRONTEND=noninteractive
+ENV ULTRALYTICS_SKIP_INSTALL_OPENCV=1
+
+# Build deps (for dlib, lap, scipy)
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    cmake \
+    libopenblas-dev \
+    liblapack-dev \
+    libgl1 \
+    libglib2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /wheels
+
+RUN pip install --upgrade pip wheel setuptools
+
+
+COPY constraints.txt .
+
+RUN pip wheel torch==2.9.1+cpu torchvision==0.24.1+cpu \
+        --constraint constraints.txt \	
+	--index-url https://download.pytorch.org/whl/cpu
+
+# Build remaining wheels
+COPY requirements.cpu.txt .
+
+RUN pip wheel \
+  --no-deps \
+  --constraint constraints.txt \
+  -r requirements.cpu.txt
+
+RUN rm requirements.cpu.txt
+RUN rm constraints.txt
+
+############################
+# 2. Runtime stage
+############################
+FROM python:3.12-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV DEBIAN_FRONTEND=noninteractive
+ENV ULTRALYTICS_SKIP_INSTALL_OPENCV=1
+
+# Runtime deps only
+RUN apt-get update && apt-get install -y \
+    libopenblas-dev \
+    liblapack-dev \
+    libgl1 \
+    libglib2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Install wheels
+COPY --from=builder /wheels /wheels
+COPY constraints.txt .
+COPY requirements.cpu.txt .
+
+RUN pip install \
+  --no-cache-dir \
+  --constraint constraints.txt \
+  -r requirements.cpu.txt \
+  --find-links=/wheels \
+  --no-index
+
+
+# Copy app
+COPY src/ .
+
+CMD ["python", "main.py"]
+
