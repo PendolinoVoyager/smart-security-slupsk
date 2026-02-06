@@ -27,7 +27,7 @@ const wss = new WebSocket.Server({ server });
 
 
 wss.on("connection", (ws, req) => {
-    if (req.url.startsWith("/user")) {
+    if (req.url.startsWith("/audio-server/v1/user")) {
         try {
             handleUserConnection(ws, req);
         }
@@ -36,7 +36,7 @@ wss.on("connection", (ws, req) => {
             ws.close(1002, err);
         }
     }
-    else if (req.url.startsWith("/device")) {
+    else if (req.url.startsWith("/audio-server/v1/device")) {
         try {
             handleDeviceConnection(ws, req);
         }
@@ -46,7 +46,7 @@ wss.on("connection", (ws, req) => {
         }
     }
     else {
-        ws.close(1008, "wrong url: /user or /device only");
+        ws.close(1008, "wrong url: /audio-server/v1 + /user or /device only");
     }
 });
 

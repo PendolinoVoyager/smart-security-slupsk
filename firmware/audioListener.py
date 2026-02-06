@@ -79,8 +79,8 @@ class AudioPlayer:
 
 async def main():
     parser = argparse.ArgumentParser(description='Raspberry Pi Audio Client')
-    parser.add_argument('--url', type=str, default='ws://localhost:8888/device',
-                        help='WebSocket server URL (default: ws://localhost:8888/device)')
+    parser.add_argument('--url', type=str, default='ws://localhost:8888/audio-server/v1/device',
+                        help='WebSocket server URL (default: ws://localhost:8888/audio-server/v1/device)')
     parser.add_argument('--token', type=str, default='100',
                         help='Authentication token (default: 100)')
     parser.add_argument('--deviceId', type=str, default='100',

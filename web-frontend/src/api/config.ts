@@ -64,6 +64,6 @@ export const ENDPOINTS = {
     /**
      * Connect to audio server and begin to stream audio chunks
      */
-    CONNECT:  `${AUDIO_SERVER_URL}/user`
+    CONNECT:  `${AUDIO_SERVER_URL}/audio-server/v1/user`
   },
 };

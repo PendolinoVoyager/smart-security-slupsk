@@ -1,10 +1,14 @@
 package com.kacper.iot_backend.minio;
 
+import com.kacper.iot_backend.exception.DeviceOwnerMismatchException;
+import com.kacper.iot_backend.exception.ResourceNotFoundException;
 import com.kacper.iot_backend.utils.DefaultResponse;
 
-import jakarta.servlet.http.HttpServletRequest;
-
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -28,18 +32,21 @@ public class MinioController
     }
 
 
-
-    @GetMapping("/images")
-    public List<String> getAllImages() {
-        return minioService.getAllImages("images");
-    }
-
     @GetMapping("/images/{notificationId}")
-    public List<String> getImagesByNotificationId(HttpServletRequest servletRequest, @PathVariable Integer notificationId) {
-        String ipAddress = servletRequest.getRemoteAddr();
-        if (!minioService.checkIpAllowed(ipAddress)) {
-            throw new RuntimeException("IP address is not allowed");
+    public ResponseEntity<?> getImagesByNotificationId(@AuthenticationPrincipal UserDetails userDetails,
+                                                  @PathVariable Integer notificationId) {
+        try {
+            var notifs = minioService.getImagesByNotificationIdForUser(userDetails, notificationId);
+            return new ResponseEntity<List<String>>(notifs, HttpStatus.OK);
         }
-        return minioService.getImagesByNotificationId(notificationId);
+        catch (ResourceNotFoundException e) {
+            return new ResponseEntity<String>(e.getMessage(), HttpStatus.NOT_FOUND);
+        }
+        catch (DeviceOwnerMismatchException e) {
+            return new ResponseEntity<String>(e.getMessage(), HttpStatus.FORBIDDEN);
+        }
+        catch (Exception e) {
+            return new ResponseEntity<String>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 }
