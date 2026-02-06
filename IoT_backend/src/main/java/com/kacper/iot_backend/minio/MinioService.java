@@ -6,19 +6,22 @@ import com.kacper.iot_backend.utils.DefaultResponse;
 
 import io.minio.*;
 import io.minio.http.Method;
-import io.minio.messages.Item;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.InputStream;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
+import com.kacper.iot_backend.exception.DeviceOwnerMismatchException;
+import com.kacper.iot_backend.exception.ResourceNotFoundException;
 import com.kacper.iot_backend.notification.Notification;
 import com.kacper.iot_backend.notification.NotificationRepository;
 
@@ -36,6 +39,10 @@ public class MinioService {
 
     @Value("${security.allowed-ips}")
     private List<String> allowedIps;
+
+
+    @Value("${minio.proxy-url}")
+    private String proxyUrl;
 
     private final static Logger logger = Logger.getLogger(MinioService.class.getName());
 
@@ -116,39 +123,19 @@ public class MinioService {
         notificationImageRepository.save(notificationImage);
     }
 
-    public List<String> getAllImages(String bucket) {
-        List<String> images = new ArrayList<>();
 
-        try {
-            Iterable<Result<Item>> results = minioClient.listObjects(
-                    ListObjectsArgs.builder()
-                            .bucket(bucket)
-                            .build()
-            );
-
-            for (Result<Item> result : results) {
-                String objectName = result.get().objectName();
-
-                String url = minioClient.getPresignedObjectUrl(
-                        GetPresignedObjectUrlArgs.builder()
-                                .method(Method.GET)
-                                .bucket(bucket)
-                                .object(objectName)
-                                .expiry(30, TimeUnit.MINUTES)
-                                .build()
-                );
-
-                images.add(url);
-            }
-
-        } catch (Exception e) {
-            throw new RuntimeException("Error listing images", e);
+    public List<String> getImagesByNotificationIdForUser(UserDetails userDetails, Integer notificationId) throws Exception {
+        
+        Notification notif = notificationRepository.findById(notificationId)
+                            .orElseThrow(() -> new ResourceNotFoundException("Device does not exist"));
+        if (!notif.getDevice().getUser().getEmail().equals(userDetails.getUsername())) {
+            throw new DeviceOwnerMismatchException("This user does not own this device.");
         }
+        return getImagesByNotificationId(notificationId);
 
-        return images;
     }
 
-    public List<String> getImagesByNotificationId(Integer notificationId) {
+    private List<String> getImagesByNotificationId(Integer notificationId) {
         List<NotificationImage> notificationImages = notificationImageRepository.findByNotificationId(notificationId);
 
         List<String> imageUrls = new ArrayList<>();
@@ -164,7 +151,7 @@ public class MinioService {
         return imageUrls;
     }
     public String generateUrlByBucketAndName(String bucket, String objectName) throws Exception {
-        return minioClient.getPresignedObjectUrl(
+        String baseUrl = minioClient.getPresignedObjectUrl(
                 GetPresignedObjectUrlArgs.builder()
                         .method(Method.GET)
                         .bucket(bucket)
@@ -172,6 +159,26 @@ public class MinioService {
                         .expiry(30, TimeUnit.MINUTES)
                         .build()
         );
+
+        if (proxyUrl == null || proxyUrl.isBlank()) {
+            return baseUrl;
+        }
+
+        URI original = URI.create(baseUrl);
+        URI proxy = URI.create(proxyUrl);
+
+        // Replace scheme + host + port, keep path & query
+        URI rewritten = new URI(
+                proxy.getScheme(),
+                null,
+                proxy.getHost(),
+                proxy.getPort(),
+                original.getPath(),
+                original.getQuery(),
+                null
+        );
+
+        return rewritten.toString();
     }
     public void deleteImageFromMinio(String bucket, String objectName) throws Exception {
         minioClient.removeObject(
