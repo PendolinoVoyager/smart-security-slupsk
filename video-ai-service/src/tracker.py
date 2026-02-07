@@ -10,6 +10,28 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from streamManager import StreamManager
 
+class TrackDebouncer:
+    OBJECT_REPORT_TIMEOUT = 30.0
+
+    def __init__(self):
+        self.objects = {}
+
+    def update_object(self, object_name) -> bool:
+        """Returns true if object should be reported, false if not."""
+        last_report_time = self.objects.get(object_name)
+        now = time.time()
+        
+        if last_report_time is None:
+            self.objects[object_name] = now
+            return True
+        
+        if last_report_time is not None and now - self.OBJECT_REPORT_TIMEOUT >= last_report_time:
+            self.objects[object_name] = now
+            return True
+        else:
+            # don't update last report since we're not doing it
+            return False
+
 class TrackedObject:
     def __init__(self, confidence: int, pos: Tuple[int, int, int, int], id: str, name: str):
         self.confidence = confidence
@@ -55,6 +77,7 @@ class Tracker:
         self.static_objects = []
         self.new_objects = []
         self.current_objects = []
+        self.debouncer = TrackDebouncer()
    
     def update(self, new_objects: List[TrackedObject]):
         """
@@ -147,11 +170,14 @@ class TrackingPipeline(PipelineElement):
         tracker.update(objects)
         notifs = self._get_notifications(tracker, len(frame[0]), len(frame))
         for notif in notifs:
-
             if notif[2] == "person":
                 face_recognizer = self.manager.get_pipe_element_by_name(FACE_RECOGNIZER_NAME)
                 if face_recognizer is not None:
                     face_recognizer.unfreeze(device_id) # enable face recognition for this stream
+                    continue # no need to send a notification, FR will handle it
+            if not tracker.debouncer.update_object(notif[2]):
+                continue
+
 
             try:
                 notif_id = send_notification(notif[0], notif[1], device_id)
