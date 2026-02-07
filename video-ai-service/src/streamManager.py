@@ -100,9 +100,12 @@ class StreamManager:
     
     def pipe_stream(self, device_id):
         ret, frame = self.streams[device_id].read()
+            
         if not ret:
-            return
-
+            if not self.streams[device_id].read().isOpened():
+                self.delete_stream(device_id)
+            else:
+                return
         for element in self.pipeline:
             if element.is_frozen(device_id):
                 continue

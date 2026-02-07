@@ -62,15 +62,19 @@ else
     pkill -9 gst-launch 2>/dev/null
  
     gst-launch-1.0 -v \
-    v4l2src device=/dev/video0 ! \
+  v4l2src device=/dev/video0 ! \
     video/x-raw,format=YUY2,width=1280,height=720,framerate=10/1 ! \
     videoconvert ! \
     video/x-raw,format=I420 ! \
     x264enc tune=zerolatency bitrate=1500 speed-preset=ultrafast key-int-max=20 ! \
     h264parse config-interval=1 ! \
-    video/x-h264,stream-format=byte-stream,alignment=au ! \
-    queue ! \
-    mpegtsmux m2ts-mode=true ! \
-    udpsink host=$MPEGTS_HOST port=$MPEGTS_PORT sync=false async=false
+    queue ! mux. \
+  alsasrc device=default ! \
+    audio/x-raw,rate=48000,channels=2 ! \
+    audioconvert ! audioresample ! \
+    opusenc bitrate=128000 ! \
+    queue ! mux. \
+  mpegtsmux name=mux m2ts-mode=true ! \
+  udpsink host=$MPEGTS_HOST port=$MPEGTS_PORT sync=false async=false
 
 fi

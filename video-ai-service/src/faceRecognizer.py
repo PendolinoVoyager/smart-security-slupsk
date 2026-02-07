@@ -13,7 +13,7 @@ import requests
 FACE_RECOGNIZER_NAME = "FR"
 TIME_PER_RECOGNITION_ATTEMPT = 0.5
 # after TIME_PER_ATTEMPT * ATTEMPTS secs it will freeze the facial recognition
-STOP_AFTER_NUMEBR_OF_NO_FACES = 5 
+STOP_AFTER_NUMEBR_OF_NO_FACES = 15 
 TOLERANCE = 0.5
 TARGET_HEIGHT_FOR_FACE_RECOGNITON = 480
 
@@ -168,13 +168,13 @@ class FaceRecognizerElement(PipelineElement):
         for face_encoding in face_encodings:
             distances = face_recognition.face_distance(data.encodings, face_encoding)
 
-            name = None
+            name = "Unknown person"
             if len(distances) > 0:
                 best_match = np.argmin(distances)
                 if distances[best_match] < TOLERANCE:
                     name = data.names[best_match]
             
-            if name is None or name in data.meta_reported_faces:
+            if name in data.meta_reported_faces:
                 continue
 
             notif_id = send_notification(NotificationType.Visit, f"{name} has arrived!", device_id)
