@@ -9,7 +9,6 @@ struct ConnectDeviceView: View {
 
             VStack(spacing: 14) {
                 statusHeader
-
                 content
             }
             .padding(.horizontal, 20)
@@ -24,31 +23,39 @@ struct ConnectDeviceView: View {
             ToolbarItem(placement: .topBarTrailing) {
                 HStack(spacing: 10) {
                     Button {
+                        // restart, nie równoległy scan
+                        viewModel.stopBrowsing()
                         viewModel.startBrowsing()
                     } label: {
                         Image(systemName: "arrow.clockwise")
                     }
                     .accessibilityLabel("Refresh")
+                    .disabled(viewModel.isScanning)
 
                     Button {
-                        // jeśli nie masz isBrowsing, to zostaw tylko stopBrowsing() zawsze
                         viewModel.stopBrowsing()
                     } label: {
                         Image(systemName: "stop.circle")
                     }
                     .accessibilityLabel("Stop scanning")
+                    .disabled(!viewModel.isScanning)
                 }
                 .font(.system(size: 16, weight: .semibold))
                 .foregroundStyle(.white.opacity(0.95))
                 .padding(10)
                 .background(.ultraThinMaterial, in: Capsule())
-                .overlay(
-                    Capsule().strokeBorder(.white.opacity(0.12), lineWidth: 1)
-                )
+                .overlay(Capsule().strokeBorder(.white.opacity(0.12), lineWidth: 1))
+                .opacity((viewModel.isScanning || !viewModel.devices.isEmpty) ? 1.0 : 0.95)
             }
         }
-        .onAppear { viewModel.startBrowsing() }
-        .onDisappear { viewModel.stopBrowsing() }
+        .onAppear {
+            if !viewModel.isScanning {
+                viewModel.startBrowsing()
+            }
+        }
+        .onDisappear {
+            viewModel.stopBrowsing()
+        }
     }
 }
 
@@ -63,17 +70,15 @@ private extension ConnectDeviceView {
                     .frame(width: 44, height: 44)
                     .overlay(Circle().strokeBorder(.white.opacity(0.12), lineWidth: 1))
 
-                ProgressView()
-                    .tint(.white.opacity(0.9))
-                    .scaleEffect(0.9)
+                headerIcon
             }
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(viewModel.devices.isEmpty ? "Scanning for nearby devices" : "Devices found")
+                Text(headerTitle)
                     .font(.system(.headline, design: .rounded).weight(.semibold))
                     .foregroundStyle(.white)
 
-                Text(viewModel.devices.isEmpty ? "Make sure your device is powered on and discoverable." : "Tap a device to continue pairing.")
+                Text(headerSubtitle)
                     .font(.system(.subheadline, design: .rounded))
                     .foregroundStyle(.white.opacity(0.75))
                     .lineLimit(2)
@@ -91,6 +96,51 @@ private extension ConnectDeviceView {
                 }
         }
         .shadow(color: .black.opacity(0.22), radius: 18, x: 0, y: 10)
+        .animation(.easeInOut(duration: 0.2), value: viewModel.isScanning)
+        .animation(.easeInOut(duration: 0.2), value: viewModel.devices.count)
+        .animation(.easeInOut(duration: 0.2), value: viewModel.errorMessage)
+    }
+
+    var headerIcon: some View {
+        Group {
+            if viewModel.isScanning {
+                ProgressView()
+                    .tint(.white.opacity(0.9))
+                    .scaleEffect(0.9)
+            } else if viewModel.errorMessage != nil {
+                Image(systemName: "xmark.octagon.fill")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(.red.opacity(0.92))
+            } else if viewModel.devices.isEmpty {
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.85))
+            } else {
+                Image(systemName: "checkmark.seal.fill")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(.green.opacity(0.92))
+            }
+        }
+    }
+
+    var headerTitle: String {
+        if viewModel.isScanning { return "Scanning for nearby devices" }
+        if viewModel.errorMessage != nil { return "Scanning failed" }
+        if viewModel.devices.isEmpty { return "No devices found" }
+        return "Devices found"
+    }
+
+    var headerSubtitle: String {
+        if viewModel.isScanning {
+            return "Keep your device powered on and discoverable."
+        }
+        if let error = viewModel.errorMessage {
+            return error
+        }
+        if viewModel.devices.isEmpty {
+            return "Try again or check Bluetooth/Wi-Fi and Local Network permission."
+        }
+        return "Tap a device to continue pairing."
     }
 
     var content: some View {
@@ -102,30 +152,33 @@ private extension ConnectDeviceView {
             }
         }
         .animation(.easeInOut(duration: 0.2), value: viewModel.devices.count)
+        .animation(.easeInOut(duration: 0.2), value: viewModel.isScanning)
+        .animation(.easeInOut(duration: 0.2), value: viewModel.errorMessage)
     }
 
     var emptyState: some View {
         VStack(spacing: 14) {
             Spacer()
 
-            Image(systemName: "dot.radiowaves.left.and.right")
+            Image(systemName: emptyIconName)
                 .font(.system(size: 34, weight: .semibold))
-                .foregroundStyle(.white.opacity(0.85))
+                .foregroundStyle(emptyIconColor)
 
-            Text("Looking for devices…")
+            Text(emptyTitle)
                 .font(.system(.title3, design: .rounded).weight(.semibold))
                 .foregroundStyle(.white)
 
-            Text("If nothing shows up, try turning Bluetooth/Wi-Fi off and on, or move closer to the device.")
+            Text(emptySubtitle)
                 .font(.system(.callout, design: .rounded))
                 .foregroundStyle(.white.opacity(0.70))
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 6)
 
             Button {
+                viewModel.stopBrowsing()
                 viewModel.startBrowsing()
             } label: {
-                Text("Try again")
+                Text(viewModel.isScanning ? "Restart scan" : "Try again")
                     .font(.system(.headline, design: .rounded).weight(.semibold))
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
@@ -136,6 +189,31 @@ private extension ConnectDeviceView {
             Spacer()
         }
         .padding(.horizontal, 8)
+    }
+
+    var emptyIconName: String {
+        if viewModel.errorMessage != nil { return "exclamationmark.triangle.fill" }
+        return viewModel.isScanning ? "dot.radiowaves.left.and.right" : "wifi.slash"
+    }
+
+    var emptyIconColor: Color {
+        if viewModel.errorMessage != nil { return .yellow.opacity(0.9) }
+        return .white.opacity(0.85)
+    }
+
+    var emptyTitle: String {
+        if viewModel.errorMessage != nil { return "Can’t scan" }
+        return viewModel.isScanning ? "Looking for devices…" : "Nothing yet"
+    }
+
+    var emptySubtitle: String {
+        if let error = viewModel.errorMessage {
+            return error
+        }
+        if viewModel.isScanning {
+            return "This can take a few seconds. Stay close to the device."
+        }
+        return "If nothing shows up, check Local Network permission or try again."
     }
 
     var deviceList: some View {
@@ -158,7 +236,7 @@ private extension ConnectDeviceView {
 
 // MARK: - Row
 private struct DeviceRowCard: View {
-    let device: Device // <- zakładam, że masz typ Device identyczny jak wcześniej
+    let device: Device
 
     var body: some View {
         HStack(spacing: 12) {
@@ -177,7 +255,7 @@ private struct DeviceRowCard: View {
             }
 
             VStack(alignment: .leading, spacing: 3) {
-                Text(device.name ?? "Unknown device")
+                Text(device.name.isEmpty ? "Unknown device" : device.name)
                     .font(.system(.headline, design: .rounded).weight(.semibold))
                     .foregroundStyle(.white)
                     .lineLimit(1)

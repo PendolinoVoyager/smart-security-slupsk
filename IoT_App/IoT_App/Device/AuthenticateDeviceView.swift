@@ -1,4 +1,5 @@
 import SwiftUI
+import Foundation
 
 struct AuthenticateDeviceView: View {
     let device: Device
@@ -15,26 +16,41 @@ struct AuthenticateDeviceView: View {
     @State private var statusMessage: String = "Starting authentication..."
     @State private var errorMessage: String?
 
+    @State private var backendVerified: Bool = false
+    @State private var tokenSent: Bool = false
+
     @FocusState private var isPasswordFocused: Bool
+
+    // ✅ Success popup
+    @State private var showSuccessAlert: Bool = false
+
+    // ✅ keyboard handling
+    @State private var keyboardInset: CGFloat = 0
 
     var body: some View {
         ZStack {
             PremiumBackground()
 
-            VStack(spacing: 14) {
-                header
+            // ✅ Scroll + safe layout when keyboard appears
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 14) {
+                    header
+                    statusCard
 
-                statusCard
+                    if showPasswordField {
+                        passwordCard
+                    }
 
-                if showPasswordField {
-                    passwordCard
+                    // tiny spacer to keep bottom safe
+                    Spacer(minLength: 8)
                 }
-
-                Spacer()
+                .padding(.horizontal, 20)
+                .padding(.top, 12)
+                .padding(.bottom, 16)
+                // ✅ push content above keyboard
+                .padding(.bottom, keyboardInset)
+                .animation(.easeOut(duration: 0.22), value: keyboardInset)
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 12)
-            .padding(.bottom, 16)
         }
         .navigationTitle("Authenticate")
         .navigationBarTitleDisplayMode(.large)
@@ -42,9 +58,7 @@ struct AuthenticateDeviceView: View {
         .toolbarBackground(.hidden, for: .navigationBar)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    dismiss()
-                } label: {
+                Button { dismiss() } label: {
                     Image(systemName: "xmark")
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(.white.opacity(0.95))
@@ -57,9 +71,16 @@ struct AuthenticateDeviceView: View {
         }
         .onAppear {
             startAuthentication(device: device)
+            startKeyboardObserver()
         }
-        .onTapGesture {
-            isPasswordFocused = false
+        .onDisappear {
+            stopKeyboardObserver()
+        }
+        .onTapGesture { isPasswordFocused = false }
+        .alert("Device paired", isPresented: $showSuccessAlert) {
+            Button("OK") { dismiss() }
+        } message: {
+            Text("Authentication finished successfully. You can now use the device.")
         }
     }
 }
@@ -119,14 +140,12 @@ private extension AuthenticateDeviceView {
                 Spacer()
             }
 
-            Divider()
-                .overlay(.white.opacity(0.12))
+            Divider().overlay(.white.opacity(0.12))
 
-            // proste “kroki” — wygląd premium bez kombinowania
             VStack(spacing: 8) {
                 StepRow(title: "Reach device", isDone: uuid != nil, isActive: isLoading)
-                StepRow(title: "Verify backend", isDone: !isLoading && !isSubmitting && errorMessage == nil && uuid != nil && showPasswordField == false, isActive: false)
-                StepRow(title: "Send token", isDone: false, isActive: isSubmitting)
+                StepRow(title: "Verify backend", isDone: backendVerified, isActive: isSubmitting && uuid != nil && !backendVerified)
+                StepRow(title: "Send token", isDone: tokenSent, isActive: isSubmitting && backendVerified && !tokenSent)
             }
             .padding(.top, 2)
         }
@@ -166,9 +185,7 @@ private extension AuthenticateDeviceView {
                 .foregroundStyle(.white)
                 .tint(.white)
 
-            Button {
-                authenticateWithPassword(device: device)
-            } label: {
+            Button { authenticateWithPassword(device: device) } label: {
                 HStack(spacing: 10) {
                     if isSubmitting {
                         ProgressView().tint(.white).scaleEffect(0.9)
@@ -176,6 +193,7 @@ private extension AuthenticateDeviceView {
                         Image(systemName: "lock.open.fill")
                             .font(.system(size: 16, weight: .semibold))
                     }
+
                     Text(isSubmitting ? "Authenticating..." : "Authenticate")
                         .font(.system(.headline, design: .rounded).weight(.semibold))
                 }
@@ -199,17 +217,23 @@ private extension AuthenticateDeviceView {
     }
 }
 
-// MARK: - Logic (Twoje requesty, tylko lepsze sterowanie stanem)
+// MARK: - Logic + Debug
 private extension AuthenticateDeviceView {
 
     func startAuthentication(device: Device) {
-        // reset stanu
         errorMessage = nil
         statusMessage = "Starting authentication..."
         isLoading = true
         isSubmitting = false
         showPasswordField = false
         uuid = nil
+        backendVerified = false
+        tokenSent = false
+
+        let urlString = "http://\(device.name).local:5000/api/v1/uuid"
+        print("=== AUTH FLOW START ===")
+        print("Device: name=\(device.name), type=\(device.type), domain=\(device.domain)")
+        print("UUID URL: \(urlString)")
 
         Task {
             do {
@@ -218,51 +242,80 @@ private extension AuthenticateDeviceView {
                 showPasswordField = true
                 isLoading = false
                 isPasswordFocused = true
+
+                print("✅ UUID OK -> uuid=\(uuid ?? "nil")")
+                print("=== AUTH FLOW WAITING FOR PASSWORD ===")
             } catch {
-                errorMessage = error.localizedDescription
+                logError(stage: "FETCH_UUID", error: error)
+                errorMessage = prettyError(stage: "Device", error: error)
                 isLoading = false
             }
         }
     }
 
-    func fetchUUID(device: Device) async throws {
-        guard let url = URL(string: "http://\(device.name).local:5000/api/v1/uuid") else {
-            throw NSError(domain: "Invalid Raspberry Pi URL", code: 0, userInfo: nil)
-        }
-
-        let (data, _) = try await URLSession.shared.data(from: url)
-
-        guard let decodedResponse = try? JSONDecoder().decode(UUIDResponse.self, from: data) else {
-            throw NSError(domain: "Failed to decode UUID from JSON", code: 0, userInfo: nil)
-        }
-
-        uuid = decodedResponse.uuid
-    }
-
     func authenticateWithPassword(device: Device) {
         guard !isSubmitting else { return }
+        guard uuid != nil else {
+            errorMessage = "Device UUID missing. Restart authentication."
+            return
+        }
+
         errorMessage = nil
         isPasswordFocused = false
 
         isSubmitting = true
+        backendVerified = false
+        tokenSent = false
         statusMessage = "Authenticating with backend..."
+
+        print("=== AUTH SUBMIT START ===")
+        print("User password: \(password.isEmpty ? "<empty>" : "<provided>")")
 
         Task {
             do {
                 let (token, refreshToken) = try await authenticateWithBackend()
+                backendVerified = true
                 statusMessage = "Sending token to device..."
 
+                print("✅ [BACKEND] token len=\(token.count), refresh len=\(refreshToken.count)")
+
                 try await sendTokenToRaspberryPi(token: token, refreshToken: refreshToken, device: device)
+                tokenSent = true
 
                 statusMessage = "Paired successfully."
                 isSubmitting = false
 
-                // Profesjonalnie: zamykamy ekran (wracasz do poprzedniego, czyli Home)
-                dismiss()
+                print("✅ [SEND_TOKEN] done")
+                print("=== AUTH FLOW SUCCESS ===")
+
+                showSuccessAlert = true
             } catch {
-                errorMessage = error.localizedDescription
+                logError(stage: "AUTH_SUBMIT", error: error)
+                errorMessage = prettyError(stage: "Authentication", error: error)
                 isSubmitting = false
             }
+        }
+    }
+
+    func fetchUUID(device: Device) async throws {
+        let urlString = "http://\(device.name).local:5000/api/v1/uuid"
+        guard let url = URL(string: urlString) else {
+            throw NSError(domain: "Invalid Raspberry Pi URL", code: 0, userInfo: [
+                NSLocalizedDescriptionKey: "Invalid URL: \(urlString)"
+            ])
+        }
+
+        print("→ [FETCH_UUID] GET \(urlString)")
+
+        let (data, response) = try await URLSession.shared.data(from: url)
+        logHTTP(stage: "FETCH_UUID", response: response, data: data)
+
+        do {
+            let decoded = try JSONDecoder().decode(UUIDResponse.self, from: data)
+            uuid = decoded.uuid
+        } catch {
+            print("✗ [FETCH_UUID] decode failed, raw body=\(String(data: data, encoding: .utf8) ?? "<binary>")")
+            throw error
         }
     }
 
@@ -275,8 +328,11 @@ private extension AuthenticateDeviceView {
             throw NSError(domain: "User email not found in UserDefaults", code: 0, userInfo: nil)
         }
 
-        guard let backendURL = URL(string: "https://smart-intercom.duckdns.org/api/v1/auth/device") else {
-            throw NSError(domain: "Invalid backend URL", code: 0, userInfo: nil)
+        let urlString = "https://smart-intercom.duckdns.org/api/v1/auth/device"
+        guard let backendURL = URL(string: urlString) else {
+            throw NSError(domain: "Invalid backend URL", code: 0, userInfo: [
+                NSLocalizedDescriptionKey: "Invalid URL: \(urlString)"
+            ])
         }
 
         let payload: [String: Any] = [
@@ -284,7 +340,6 @@ private extension AuthenticateDeviceView {
             "email": email,
             "password": password
         ]
-
         let requestData = try JSONSerialization.data(withJSONObject: payload)
 
         var request = URLRequest(url: backendURL)
@@ -292,29 +347,41 @@ private extension AuthenticateDeviceView {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = requestData
 
+        print("→ [BACKEND] POST \(urlString)")
+        print("  payload: deviceUuid=\(uuid), email=\(email), password=<redacted>")
+
         let (data, response) = try await URLSession.shared.data(for: request)
+        logHTTP(stage: "BACKEND", response: response, data: data)
 
-        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-            throw NSError(domain: "Authentication failed with backend", code: 0, userInfo: nil)
+        guard let http = response as? HTTPURLResponse else {
+            throw NSError(domain: "Backend invalid response", code: 0, userInfo: nil)
         }
 
-        guard let decodedResponse = try? JSONDecoder().decode(AuthDeviceResponse.self, from: data) else {
-            throw NSError(domain: "Failed to decode token from backend response", code: 0, userInfo: nil)
+        guard http.statusCode == 200 else {
+            throw NSError(domain: "Authentication failed with backend", code: http.statusCode, userInfo: nil)
         }
 
-        return (decodedResponse.token, decodedResponse.refreshToken)
+        do {
+            let decoded = try JSONDecoder().decode(AuthDeviceResponse.self, from: data)
+            return (decoded.token, decoded.refreshToken)
+        } catch {
+            print("✗ [BACKEND] decode failed, raw body=\(String(data: data, encoding: .utf8) ?? "<binary>")")
+            throw error
+        }
     }
 
     func sendTokenToRaspberryPi(token: String, refreshToken: String, device: Device) async throws {
-        guard let url = URL(string: "http://\(device.name).local:5000/api/v1/token") else {
-            throw NSError(domain: "Invalid Raspberry Pi URL", code: 0, userInfo: nil)
+        let urlString = "http://\(device.name).local:5000/api/v1/token"
+        guard let url = URL(string: urlString) else {
+            throw NSError(domain: "Invalid Raspberry Pi URL", code: 0, userInfo: [
+                NSLocalizedDescriptionKey: "Invalid URL: \(urlString)"
+            ])
         }
 
         let payload: [String: String] = [
             "token": token,
             "refreshToken": refreshToken
         ]
-
         let requestData = try JSONSerialization.data(withJSONObject: payload)
 
         var request = URLRequest(url: url)
@@ -322,16 +389,109 @@ private extension AuthenticateDeviceView {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = requestData
 
-        let (_, response) = try await URLSession.shared.data(for: request)
+        print("→ [SEND_TOKEN] POST \(urlString)")
+        print("  payload: token=<len \(token.count)>, refresh=<len \(refreshToken.count)>")
 
-        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-            throw NSError(domain: "Failed to send token to Raspberry Pi", code: 0, userInfo: nil)
+        let (data, response) = try await URLSession.shared.data(for: request)
+        logHTTP(stage: "SEND_TOKEN", response: response, data: data)
+
+        guard let http = response as? HTTPURLResponse else {
+            throw NSError(domain: "Device invalid response", code: 0, userInfo: nil)
+        }
+
+        guard http.statusCode == 200 else {
+            throw NSError(domain: "Failed to send token to Raspberry Pi", code: http.statusCode, userInfo: nil)
         }
     }
 
-    struct UUIDResponse: Decodable { let uuid: String }
-    struct AuthDeviceResponse: Decodable { let token: String; let refreshToken: String }
+    // MARK: - Debug helpers
+
+    func logHTTP(stage: String, response: URLResponse, data: Data?) {
+        if let http = response as? HTTPURLResponse {
+            print("← [\(stage)] HTTP \(http.statusCode)")
+            if let data, !data.isEmpty {
+                let body = String(data: data, encoding: .utf8) ?? "<binary>"
+                let trimmed = body.count > 300 ? String(body.prefix(300)) + "..." : body
+                print("  body: \(trimmed)")
+            } else {
+                print("  body: <empty>")
+            }
+        } else {
+            print("← [\(stage)] non-HTTP response: \(response)")
+        }
+    }
+
+    func logError(stage: String, error: Error) {
+        print("✗ [\(stage)] ERROR: \(error)")
+        if let urlError = error as? URLError {
+            print("  URLError.code: \(urlError.code) (\(urlError.code.rawValue))")
+        }
+        let ns = error as NSError
+        print("  NSError.domain: \(ns.domain), code: \(ns.code)")
+    }
+
+    func prettyError(stage: String, error: Error) -> String {
+        if let urlError = error as? URLError {
+            switch urlError.code {
+            case .cannotFindHost, .dnsLookupFailed:
+                return "\(stage) error: Host not found. Bonjour/.local may not resolve (VPN?)."
+            case .cannotConnectToHost:
+                return "\(stage) error: Can't connect to host. Device/service may be offline or blocked."
+            case .timedOut:
+                return "\(stage) error: Connection timed out."
+            case .notConnectedToInternet:
+                return "\(stage) error: No network connection."
+            default:
+                return "\(stage) error: \(urlError.localizedDescription)"
+            }
+        }
+        return "\(stage) error: \(error.localizedDescription)"
+    }
+
+    // MARK: - Keyboard observer (keeps header + button from overlapping)
+    func startKeyboardObserver() {
+        NotificationCenter.default.addObserver(
+            forName: UIResponder.keyboardWillChangeFrameNotification,
+            object: nil,
+            queue: .main
+        ) { note in
+            guard
+                let userInfo = note.userInfo,
+                let endFrame = userInfo[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect,
+                let duration = userInfo[UIResponder.keyboardAnimationDurationUserInfoKey] as? Double
+            else { return }
+
+            // Convert keyboard frame to inset.
+            let screenHeight = UIScreen.main.bounds.height
+            let heightFromBottom = max(0, screenHeight - endFrame.origin.y)
+
+            // A bit of extra breathing room so fields/buttons don’t touch the keyboard.
+            withAnimation(.easeOut(duration: duration)) {
+                keyboardInset = max(0, heightFromBottom - 10)
+            }
+        }
+
+        NotificationCenter.default.addObserver(
+            forName: UIResponder.keyboardWillHideNotification,
+            object: nil,
+            queue: .main
+        ) { note in
+            let duration = (note.userInfo?[UIResponder.keyboardAnimationDurationUserInfoKey] as? Double) ?? 0.2
+            withAnimation(.easeOut(duration: duration)) {
+                keyboardInset = 0
+            }
+        }
+    }
+
+    func stopKeyboardObserver() {
+        NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillChangeFrameNotification, object: nil)
+        NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillHideNotification, object: nil)
+    }
 }
+
+// MARK: - DTOs (IN THIS FILE)
+private struct UUIDResponse: Decodable { let uuid: String }
+private struct AuthDeviceResponse: Decodable { let token: String; let refreshToken: String }
 
 // MARK: - Small UI helpers
 private struct StepRow: View {
@@ -354,6 +514,7 @@ private struct StepRow: View {
     }
 }
 
+// MARK: - Premium UI (IN THIS FILE)
 private struct PremiumBackground: View {
     var body: some View {
         ZStack {
@@ -419,8 +580,9 @@ private struct PremiumPrimaryButtonStyle: ButtonStyle {
     }
 }
 
+// MARK: - Preview
 #Preview {
     NavigationStack {
-        AuthenticateDeviceView(device: Device(name: "IoT_Device", type: "TEST", domain: "TEST"))
+        AuthenticateDeviceView(device: Device(id: "1", name: "IoT_Device", type: "TEST", domain: "TEST"))
     }
 }

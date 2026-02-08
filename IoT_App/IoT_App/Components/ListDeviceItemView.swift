@@ -29,7 +29,7 @@ struct ListDeviceItemView: View {
 }
 
 #Preview {
-    ListDeviceItemView(device: Device(name: "Device1", type: "Device", domain: "local"))
+    ListDeviceItemView(device: Device(id: "1", name: "Device1", type: "Device", domain: "local"))
 }
 
 
