@@ -6,6 +6,7 @@ import VideoController from "./videoController";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ExclamationTriangleIcon } from "@radix-ui/react-icons";
 import {ENDPOINTS} from "@/api/config";
+import Image from "next/image";
 interface VideoPreviewPanelProps {
   deviceId: number;
 }
@@ -36,6 +37,9 @@ const VideoPreviewPanel: FC<VideoPreviewPanelProps> = async function ({
             {errorMessage}
             <br />
             The device may not be connected or configured correctly.
+            <div className="ml-auto mr-auto">
+              <Image src="/devices/camera-off.png" alt="Stream error" width={400} height={300} className="mt-4 w-50" loading="lazy" />
+            </div>
           </AlertDescription>
         </Alert>
       );
