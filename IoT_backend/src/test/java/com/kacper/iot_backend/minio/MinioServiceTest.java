@@ -1,7 +1,8 @@
 package com.kacper.iot_backend.minio;
 
-import com.kacper.iot_backend.ai_service_notification.AiServiceNotification;
-import com.kacper.iot_backend.ai_service_notification.AiServiceNotificationRepository;
+
+import com.kacper.iot_backend.notification.Notification;
+import com.kacper.iot_backend.notification.NotificationRepository;
 import com.kacper.iot_backend.notification_images.NotificationImage;
 import com.kacper.iot_backend.notification_images.NotificationImageRepository;
 import com.kacper.iot_backend.utils.DefaultResponse;
@@ -33,7 +34,7 @@ class MinioServiceTest {
     private MinioClient minioClient;
 
     @Mock
-    private AiServiceNotificationRepository aiServiceNotificationRepository;
+    private NotificationRepository aiServiceNotificationRepository;
 
     @Mock
     private NotificationImageRepository notificationImageRepository;
@@ -41,16 +42,15 @@ class MinioServiceTest {
     @InjectMocks
     private MinioService minioService;
 
-    private AiServiceNotification notification;
+    private Notification notification;
     private MockMultipartFile mockFile;
 
     @BeforeEach
     void setUp() {
-        notification = AiServiceNotification.builder()
+        notification = Notification.builder()
                 .id(1)
-                .notificationType("MOTION_DETECTED")
+                .type("MOTION_DETECTED")
                 .message("Motion detected")
-                .hasSeen(false)
                 .timestamp(OffsetDateTime.now(ZoneOffset.UTC))
                 .images(new ArrayList<>())
                 .build();
@@ -74,7 +74,7 @@ class MinioServiceTest {
         when(minioClient.bucketExists(any(BucketExistsArgs.class))).thenReturn(true);
 
         // When
-        DefaultResponse response = minioService.uploadImageToMinio(request, 1);
+        DefaultResponse response = minioService.uploadNotificationImageToMinio(request, 1);
 
         // Then
         assertNotNull(response);
@@ -93,7 +93,7 @@ class MinioServiceTest {
         when(minioClient.bucketExists(any(BucketExistsArgs.class))).thenReturn(false);
 
         // When
-        DefaultResponse response = minioService.uploadImageToMinio(request, 1);
+        DefaultResponse response = minioService.uploadNotificationImageToMinio(request, 1);
 
         // Then
         verify(minioClient).makeBucket(any(MakeBucketArgs.class));
@@ -112,7 +112,7 @@ class MinioServiceTest {
         UploadImageRequest request = new UploadImageRequest(emptyFile);
 
         // When
-        DefaultResponse response = minioService.uploadImageToMinio(request, 1);
+        DefaultResponse response = minioService.uploadNotificationImageToMinio(request, 1);
 
         // Then
         assertEquals("Empty file", response.message());
@@ -124,7 +124,7 @@ class MinioServiceTest {
         UploadImageRequest request = new UploadImageRequest(null);
 
         // When
-        DefaultResponse response = minioService.uploadImageToMinio(request, 1);
+        DefaultResponse response = minioService.uploadNotificationImageToMinio(request, 1);
 
         // Then
         assertEquals("Empty file", response.message());
@@ -138,7 +138,7 @@ class MinioServiceTest {
 
         // When & Then
         assertThrows(RuntimeException.class,
-            () -> minioService.uploadImageToMinio(request, 999));
+            () -> minioService.uploadNotificationImageToMinio(request, 999));
     }
 
     @Test
@@ -150,7 +150,7 @@ class MinioServiceTest {
         when(minioClient.bucketExists(any(BucketExistsArgs.class))).thenReturn(true);
 
         // When
-        minioService.uploadImageToMinio(request, 1);
+        minioService.uploadNotificationImageToMinio(request, 1);
 
         // Then
         ArgumentCaptor<NotificationImage> captor = ArgumentCaptor.forClass(NotificationImage.class);
@@ -159,7 +159,7 @@ class MinioServiceTest {
         NotificationImage savedImage = captor.getValue();
         assertTrue(savedImage.getImageUrl().startsWith("images/"));
         assertTrue(savedImage.getImageUrl().contains("test-image.jpg"));
-        assertEquals(notification, savedImage.getAiServiceNotification());
+        assertEquals(notification, savedImage.getNotification());
     }
 
     @Test
@@ -171,7 +171,7 @@ class MinioServiceTest {
         when(minioClient.bucketExists(any(BucketExistsArgs.class))).thenThrow(new RuntimeException("Minio error"));
 
         // When
-        DefaultResponse response = minioService.uploadImageToMinio(request, 1);
+        DefaultResponse response = minioService.uploadNotificationImageToMinio(request, 1);
 
         // Then
         assertTrue(response.message().startsWith("Error? xD:"));
@@ -186,7 +186,7 @@ class MinioServiceTest {
         when(minioClient.bucketExists(any(BucketExistsArgs.class))).thenReturn(true);
 
         // When
-        minioService.uploadImageToMinio(request, 1);
+        minioService.uploadNotificationImageToMinio(request, 1);
 
         // Then
         ArgumentCaptor<PutObjectArgs> captor = ArgumentCaptor.forClass(PutObjectArgs.class);
@@ -213,7 +213,7 @@ class MinioServiceTest {
         when(minioClient.bucketExists(any(BucketExistsArgs.class))).thenReturn(true);
 
         // When
-        minioService.uploadImageToMinio(request, 1);
+        minioService.uploadNotificationImageToMinio(request, 1);
 
         // Then
         ArgumentCaptor<PutObjectArgs> captor = ArgumentCaptor.forClass(PutObjectArgs.class);
@@ -286,16 +286,16 @@ class MinioServiceTest {
         NotificationImage image1 = NotificationImage.builder()
                 .id(1)
                 .imageUrl("images/uuid1_image1.jpg")
-                .aiServiceNotification(notification)
+                .notification(notification)
                 .build();
 
         NotificationImage image2 = NotificationImage.builder()
                 .id(2)
                 .imageUrl("images/uuid2_image2.jpg")
-                .aiServiceNotification(notification)
+                .notification(notification)
                 .build();
 
-        when(notificationImageRepository.findByAiServiceNotificationId(1))
+        when(notificationImageRepository.findByNotificationId(1))
                 .thenReturn(List.of(image1, image2));
         when(minioClient.getPresignedObjectUrl(any(GetPresignedObjectUrlArgs.class)))
                 .thenReturn("http://minio/presigned/image1.jpg")
@@ -306,14 +306,14 @@ class MinioServiceTest {
 
         // Then
         assertEquals(2, images.size());
-        verify(notificationImageRepository).findByAiServiceNotificationId(1);
+        verify(notificationImageRepository).findByNotificationId(1);
         verify(minioClient, times(2)).getPresignedObjectUrl(any(GetPresignedObjectUrlArgs.class));
     }
 
     @Test
     void shouldReturnEmptyListWhenNoImagesForNotification() {
         // Given
-        when(notificationImageRepository.findByAiServiceNotificationId(999))
+        when(notificationImageRepository.findByNotificationId(999))
                 .thenReturn(List.of());
 
         // When
@@ -329,10 +329,10 @@ class MinioServiceTest {
         NotificationImage image = NotificationImage.builder()
                 .id(1)
                 .imageUrl("images/uuid_test-image.jpg")
-                .aiServiceNotification(notification)
+                .notification(notification)
                 .build();
 
-        when(notificationImageRepository.findByAiServiceNotificationId(1))
+        when(notificationImageRepository.findByNotificationId(1))
                 .thenReturn(List.of(image));
         when(minioClient.getPresignedObjectUrl(any(GetPresignedObjectUrlArgs.class)))
                 .thenReturn("http://presigned-url");
@@ -353,10 +353,10 @@ class MinioServiceTest {
         NotificationImage image = NotificationImage.builder()
                 .id(1)
                 .imageUrl("images/test.jpg")
-                .aiServiceNotification(notification)
+                .notification(notification)
                 .build();
 
-        when(notificationImageRepository.findByAiServiceNotificationId(1))
+        when(notificationImageRepository.findByNotificationId(1))
                 .thenReturn(List.of(image));
         when(minioClient.getPresignedObjectUrl(any(GetPresignedObjectUrlArgs.class)))
                 .thenThrow(new RuntimeException("Presigned URL error"));
@@ -380,7 +380,7 @@ class MinioServiceTest {
         when(minioClient.bucketExists(any(BucketExistsArgs.class))).thenReturn(true);
 
         // When
-        DefaultResponse response = minioService.uploadImageToMinio(request, 1);
+        DefaultResponse response = minioService.uploadNotificationImageToMinio(request, 1);
 
         // Then
         assertTrue(response.message().contains("photo.jpeg"));
@@ -398,7 +398,7 @@ class MinioServiceTest {
         when(minioClient.bucketExists(any(BucketExistsArgs.class))).thenReturn(true);
 
         // When
-        DefaultResponse response = minioService.uploadImageToMinio(request, 1);
+        DefaultResponse response = minioService.uploadNotificationImageToMinio(request, 1);
 
         // Then
         assertTrue(response.message().contains("image.png"));
@@ -416,7 +416,7 @@ class MinioServiceTest {
         when(minioClient.bucketExists(any(BucketExistsArgs.class))).thenReturn(true);
 
         // When
-        DefaultResponse response = minioService.uploadImageToMinio(request, 1);
+        DefaultResponse response = minioService.uploadNotificationImageToMinio(request, 1);
 
         // Then
         assertTrue(response.message().contains("animation.gif"));
@@ -436,7 +436,7 @@ class MinioServiceTest {
         when(minioClient.bucketExists(any(BucketExistsArgs.class))).thenReturn(true);
 
         // When
-        DefaultResponse response = minioService.uploadImageToMinio(request, 1);
+        DefaultResponse response = minioService.uploadNotificationImageToMinio(request, 1);
 
         // Then
         assertTrue(response.message().contains("filename"));
@@ -454,7 +454,7 @@ class MinioServiceTest {
         when(minioClient.bucketExists(any(BucketExistsArgs.class))).thenReturn(true);
 
         // When
-        DefaultResponse response = minioService.uploadImageToMinio(request, 1);
+        DefaultResponse response = minioService.uploadNotificationImageToMinio(request, 1);
 
         // Then
         assertNotNull(response);
@@ -474,7 +474,7 @@ class MinioServiceTest {
         when(minioClient.bucketExists(any(BucketExistsArgs.class))).thenReturn(true);
 
         // When
-        DefaultResponse response = minioService.uploadImageToMinio(request, 1);
+        DefaultResponse response = minioService.uploadNotificationImageToMinio(request, 1);
 
         // Then
         assertTrue(response.message().contains("large-image.jpg"));
@@ -491,7 +491,7 @@ class MinioServiceTest {
         when(minioClient.bucketExists(any(BucketExistsArgs.class))).thenReturn(true);
 
         // When
-        minioService.uploadImageToMinio(request, 1);
+        minioService.uploadNotificationImageToMinio(request, 1);
 
         // Then
         ArgumentCaptor<BucketExistsArgs> bucketCaptor = ArgumentCaptor.forClass(BucketExistsArgs.class);
@@ -508,7 +508,7 @@ class MinioServiceTest {
         when(minioClient.bucketExists(any(BucketExistsArgs.class))).thenReturn(true);
 
         // When
-        minioService.uploadImageToMinio(request, 1);
+        minioService.uploadNotificationImageToMinio(request, 1);
 
         // Then
         verify(minioClient, never()).makeBucket(any(MakeBucketArgs.class));
@@ -523,7 +523,7 @@ class MinioServiceTest {
         when(minioClient.bucketExists(any(BucketExistsArgs.class))).thenReturn(true);
 
         // When
-        minioService.uploadImageToMinio(request, 1);
+        minioService.uploadNotificationImageToMinio(request, 1);
 
         // Then
         verify(notificationImageRepository, times(1)).save(any(NotificationImage.class));

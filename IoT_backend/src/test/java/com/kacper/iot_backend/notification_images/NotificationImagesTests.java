@@ -1,6 +1,7 @@
 package com.kacper.iot_backend.notification_images;
 
-import com.kacper.iot_backend.ai_service_notification.AiServiceNotification;
+import com.kacper.iot_backend.notification.Notification;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -16,18 +17,17 @@ import static org.junit.jupiter.api.Assertions.*;
 class NotificationImagesTests {
 
     private NotificationImage notificationImage;
-    private AiServiceNotification aiServiceNotification;
+    private Notification notification;
     private OffsetDateTime testTimestamp;
 
     @BeforeEach
     void setUp() {
         testTimestamp = OffsetDateTime.of(2026, 1, 25, 12, 0, 0, 0, ZoneOffset.UTC);
 
-        aiServiceNotification = AiServiceNotification.builder()
+        notification = Notification.builder()
                 .id(1)
-                .notificationType("MOTION_DETECTED")
+                .type("MOTION_DETECTED")
                 .message("Motion detected in front yard")
-                .hasSeen(false)
                 .timestamp(testTimestamp)
                 .images(new ArrayList<>())
                 .build();
@@ -35,7 +35,7 @@ class NotificationImagesTests {
         notificationImage = NotificationImage.builder()
                 .id(1)
                 .imageUrl("http://example.com/image.jpg")
-                .aiServiceNotification(aiServiceNotification)
+                .notification(notification)
                 .build();
     }
 
@@ -47,14 +47,14 @@ class NotificationImagesTests {
         NotificationImage builtImage = NotificationImage.builder()
                 .id(1)
                 .imageUrl("http://example.com/test.jpg")
-                .aiServiceNotification(aiServiceNotification)
+                .notification(notification)
                 .build();
 
         // Then
         assertNotNull(builtImage);
         assertEquals(1, builtImage.getId());
         assertEquals("http://example.com/test.jpg", builtImage.getImageUrl());
-        assertEquals(aiServiceNotification, builtImage.getAiServiceNotification());
+        assertEquals(notification, builtImage.getNotification());
     }
 
     @Test
@@ -66,7 +66,7 @@ class NotificationImagesTests {
         assertNotNull(emptyImage);
         assertNull(emptyImage.getId());
         assertNull(emptyImage.getImageUrl());
-        assertNull(emptyImage.getAiServiceNotification());
+        assertNull(emptyImage.getNotification());
     }
 
     @Test
@@ -75,14 +75,14 @@ class NotificationImagesTests {
         NotificationImage fullImage = new NotificationImage(
                 1,
                 "http://example.com/full.jpg",
-                aiServiceNotification
+                notification
         );
 
         // Then
         assertNotNull(fullImage);
         assertEquals(1, fullImage.getId());
         assertEquals("http://example.com/full.jpg", fullImage.getImageUrl());
-        assertEquals(aiServiceNotification, fullImage.getAiServiceNotification());
+        assertEquals(notification, fullImage.getNotification());
     }
 
     // ===================== GETTER TESTS =====================
@@ -98,8 +98,8 @@ class NotificationImagesTests {
     }
 
     @Test
-    void shouldGetAiServiceNotification() {
-        assertEquals(aiServiceNotification, notificationImage.getAiServiceNotification());
+    void shouldgetNotification() {
+        assertEquals(notification, notificationImage.getNotification());
     }
 
     // ===================== SETTER TESTS =====================
@@ -123,23 +123,22 @@ class NotificationImagesTests {
     }
 
     @Test
-    void shouldSetAiServiceNotification() {
+    void shouldsetNotification() {
         // Given
-        AiServiceNotification newNotification = AiServiceNotification.builder()
+        Notification newNotification = notification.builder()
                 .id(2)
-                .notificationType("INTRUDER_ALERT")
+                .type("INTRUDER_ALERT")
                 .message("Intruder detected")
-                .hasSeen(false)
                 .timestamp(testTimestamp)
                 .images(new ArrayList<>())
                 .build();
 
         // When
-        notificationImage.setAiServiceNotification(newNotification);
+        notificationImage.setNotification(newNotification);
 
         // Then
-        assertEquals(newNotification, notificationImage.getAiServiceNotification());
-        assertEquals(2, notificationImage.getAiServiceNotification().getId());
+        assertEquals(newNotification, notificationImage.getNotification());
+        assertEquals(2, notificationImage.getNotification().getId());
     }
 
     // ===================== IMAGE URL FORMAT TESTS =====================
@@ -374,12 +373,12 @@ class NotificationImagesTests {
     }
 
     @Test
-    void shouldHandleNullAiServiceNotification() {
+    void shouldHandleNullnotification() {
         // When
-        notificationImage.setAiServiceNotification(null);
+        notificationImage.setNotification(null);
 
         // Then
-        assertNull(notificationImage.getAiServiceNotification());
+        assertNull(notificationImage.getNotification());
     }
 
     // ===================== EDGE CASE TESTS =====================
@@ -437,11 +436,9 @@ class NotificationImagesTests {
     @Test
     void shouldMaintainBidirectionalRelationship() {
         // Given
-        AiServiceNotification notification = AiServiceNotification.builder()
+        Notification notification = Notification.builder()
                 .id(5)
-                .notificationType("ALERT")
                 .message("Test alert")
-                .hasSeen(false)
                 .timestamp(testTimestamp)
                 .images(new ArrayList<>())
                 .build();
@@ -449,46 +446,46 @@ class NotificationImagesTests {
         NotificationImage image = NotificationImage.builder()
                 .id(10)
                 .imageUrl("http://example.com/bidirectional.jpg")
-                .aiServiceNotification(notification)
+                .notification(notification)
                 .build();
 
         notification.getImages().add(image);
 
         // Then
-        assertEquals(notification, image.getAiServiceNotification());
+        assertEquals(notification, image.getNotification());
         assertTrue(notification.getImages().contains(image));
     }
 
     @Test
     void shouldChangeNotificationAssociation() {
         // Given
-        AiServiceNotification originalNotification = aiServiceNotification;
-        AiServiceNotification newNotification = AiServiceNotification.builder()
+        Notification originalNotification = notification;
+        Notification newNotification = Notification.builder()
                 .id(99)
-                .notificationType("NEW_ALERT")
+                .type("NEW_ALERT")
                 .message("New alert message")
-                .hasSeen(true)
+                .has_seen(true)
                 .timestamp(testTimestamp)
                 .images(new ArrayList<>())
                 .build();
 
         // When
-        assertEquals(originalNotification, notificationImage.getAiServiceNotification());
-        notificationImage.setAiServiceNotification(newNotification);
+        assertEquals(originalNotification, notificationImage.getNotification());
+        notificationImage.setNotification(newNotification);
 
         // Then
-        assertEquals(newNotification, notificationImage.getAiServiceNotification());
-        assertEquals(99, notificationImage.getAiServiceNotification().getId());
+        assertEquals(newNotification, notificationImage.getNotification());
+        assertEquals(99, notificationImage.getNotification().getId());
     }
 
     @Test
     void shouldAccessNotificationProperties() {
         // Then
-        assertNotNull(notificationImage.getAiServiceNotification());
-        assertEquals(1, notificationImage.getAiServiceNotification().getId());
-        assertEquals("MOTION_DETECTED", notificationImage.getAiServiceNotification().getNotificationType());
-        assertEquals("Motion detected in front yard", notificationImage.getAiServiceNotification().getMessage());
-        assertFalse(notificationImage.getAiServiceNotification().isHasSeen());
+        assertNotNull(notificationImage.getNotification());
+        assertEquals(1, notificationImage.getNotification().getId());
+        assertEquals("MOTION_DETECTED", notificationImage.getNotification().getType());
+        assertEquals("Motion detected in front yard", notificationImage.getNotification().getMessage());
+        assertFalse(notificationImage.getNotification().getHas_seen());
     }
 
     // ===================== BUILDER PARTIAL TESTS =====================
@@ -505,7 +502,7 @@ class NotificationImagesTests {
         assertNotNull(minimalImage);
         assertEquals(1, minimalImage.getId());
         assertEquals("http://example.com/minimal.jpg", minimalImage.getImageUrl());
-        assertNull(minimalImage.getAiServiceNotification());
+        assertNull(minimalImage.getNotification());
     }
 
     @Test
@@ -604,30 +601,30 @@ class NotificationImagesTests {
         NotificationImage image1 = NotificationImage.builder()
                 .id(1)
                 .imageUrl("http://example.com/image1.jpg")
-                .aiServiceNotification(aiServiceNotification)
+                .notification(notification)
                 .build();
 
         NotificationImage image2 = NotificationImage.builder()
                 .id(2)
                 .imageUrl("http://example.com/image2.jpg")
-                .aiServiceNotification(aiServiceNotification)
+                .notification(notification)
                 .build();
 
         NotificationImage image3 = NotificationImage.builder()
                 .id(3)
                 .imageUrl("http://example.com/image3.jpg")
-                .aiServiceNotification(aiServiceNotification)
+                .notification(notification)
                 .build();
 
-        aiServiceNotification.getImages().add(image1);
-        aiServiceNotification.getImages().add(image2);
-        aiServiceNotification.getImages().add(image3);
+        notification.getImages().add(image1);
+        notification.getImages().add(image2);
+        notification.getImages().add(image3);
 
         // Then
-        assertEquals(3, aiServiceNotification.getImages().size());
-        assertEquals(aiServiceNotification, image1.getAiServiceNotification());
-        assertEquals(aiServiceNotification, image2.getAiServiceNotification());
-        assertEquals(aiServiceNotification, image3.getAiServiceNotification());
+        assertEquals(3, notification.getImages().size());
+        assertEquals(notification, image1.getNotification());
+        assertEquals(notification, image2.getNotification());
+        assertEquals(notification, image3.getNotification());
     }
 
     @Test
@@ -636,13 +633,13 @@ class NotificationImagesTests {
         NotificationImage image1 = NotificationImage.builder()
                 .id(1)
                 .imageUrl("http://example.com/unique1.jpg")
-                .aiServiceNotification(aiServiceNotification)
+                .notification(notification)
                 .build();
 
         NotificationImage image2 = NotificationImage.builder()
                 .id(2)
                 .imageUrl("http://example.com/unique2.jpg")
-                .aiServiceNotification(aiServiceNotification)
+                .notification(notification)
                 .build();
 
         // Then

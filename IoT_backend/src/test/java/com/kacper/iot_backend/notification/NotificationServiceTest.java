@@ -1,6 +1,5 @@
 package com.kacper.iot_backend.notification;
 
-import com.kacper.iot_backend.ai_service_notification.AiServiceNotificationRepository;
 import com.kacper.iot_backend.device.Device;
 import com.kacper.iot_backend.device.DeviceRepository;
 import com.kacper.iot_backend.exception.ResourceNotFoundException;
@@ -44,9 +43,6 @@ class NotificationServiceTest {
 
     @Mock
     private SimpMessagingTemplate messagingTemplate;
-
-    @Mock
-    private AiServiceNotificationRepository aiServiceNotificationRepository;
 
     @InjectMocks
     private NotificationService notificationService;

@@ -6,6 +6,7 @@ import com.kacper.iot_backend.utils.DefaultResponse;
 
 import io.minio.*;
 import io.minio.http.Method;
+import io.minio.messages.Item;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -135,7 +136,7 @@ public class MinioService {
 
     }
 
-    private List<String> getImagesByNotificationId(Integer notificationId) {
+    public List<String> getImagesByNotificationId(Integer notificationId) {
         List<NotificationImage> notificationImages = notificationImageRepository.findByNotificationId(notificationId);
 
         List<String> imageUrls = new ArrayList<>();
@@ -187,5 +188,43 @@ public class MinioService {
                         .object(objectName)
                         .build()
         );
+    }
+
+    public List<String> getAllImages(String bucket) {
+        try {
+            List<String> imageUrls = new ArrayList<>();
+            Iterable<Result<Item>> results = minioClient.listObjects(
+                    ListObjectsArgs.builder().bucket(bucket).build()
+            );
+
+            for (Result<Item> result : results) {
+                Item item = result.get();
+                String objectName = item.objectName();
+                String url = generateUrlByBucketAndName(bucket, objectName);
+                imageUrls.add(url);
+            }
+            return imageUrls;
+        } catch (Exception e) {
+            throw new RuntimeException("Error listing images from MinIO", e);
+        }
+    }
+     public List<String> getAllImages() {
+        String bucket = "images";
+        try {
+            List<String> imageUrls = new ArrayList<>();
+            Iterable<Result<Item>> results = minioClient.listObjects(
+                    ListObjectsArgs.builder().bucket(bucket).build()
+            );
+
+            for (Result<Item> result : results) {
+                Item item = result.get();
+                String objectName = item.objectName();
+                String url = generateUrlByBucketAndName(bucket, objectName);
+                imageUrls.add(url);
+            }
+            return imageUrls;
+        } catch (Exception e) {
+            throw new RuntimeException("Error listing images from MinIO", e);
+        }
     }
 }

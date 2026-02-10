@@ -1,6 +1,21 @@
 package com.kacper.iot_backend.minio;
 
-import com.kacper.iot_backend.utils.DefaultResponse;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -12,15 +27,7 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import com.kacper.iot_backend.utils.DefaultResponse;
 
 @ExtendWith(MockitoExtension.class)
 class MinioControllerTest {
@@ -30,9 +37,11 @@ class MinioControllerTest {
 
     @InjectMocks
     private MinioController minioController;
+    
+    private final String bucket = "images";
 
     private MockMvc mockMvc;
-
+   
     @BeforeEach
     void setUp() {
         mockMvc = MockMvcBuilders.standaloneSetup(minioController).build();
@@ -54,7 +63,7 @@ class MinioControllerTest {
                 .message("File has been saved: uuid_test-image.jpg")
                 .build();
 
-        when(minioService.uploadImageToMinio(any(UploadImageRequest.class), eq(1))).thenReturn(response);
+        when(minioService.uploadNotificationImageToMinio(any(UploadImageRequest.class), eq(1))).thenReturn(response);
 
         // When & Then
         mockMvc.perform(multipart("/api/v1/minio/upload")
@@ -63,7 +72,7 @@ class MinioControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message").value("File has been saved: uuid_test-image.jpg"));
 
-        verify(minioService).uploadImageToMinio(any(UploadImageRequest.class), eq(1));
+        verify(minioService).uploadNotificationImageToMinio(any(UploadImageRequest.class), eq(1));
     }
 
     @Test
@@ -74,7 +83,7 @@ class MinioControllerTest {
         );
 
         DefaultResponse response = DefaultResponse.builder().message("Success").build();
-        when(minioService.uploadImageToMinio(any(), eq(42))).thenReturn(response);
+        when(minioService.uploadNotificationImageToMinio(any(), eq(42))).thenReturn(response);
 
         // When
         mockMvc.perform(multipart("/api/v1/minio/upload")
@@ -83,7 +92,7 @@ class MinioControllerTest {
                 .andExpect(status().isOk());
 
         // Then
-        verify(minioService).uploadImageToMinio(any(), eq(42));
+        verify(minioService).uploadNotificationImageToMinio(any(), eq(42));
     }
 
     @Test
@@ -97,7 +106,7 @@ class MinioControllerTest {
                 .message("Empty file")
                 .build();
 
-        when(minioService.uploadImageToMinio(any(), eq(1))).thenReturn(response);
+        when(minioService.uploadNotificationImageToMinio(any(), eq(1))).thenReturn(response);
 
         // When & Then
         mockMvc.perform(multipart("/api/v1/minio/upload")
@@ -115,7 +124,7 @@ class MinioControllerTest {
         );
 
         DefaultResponse response = DefaultResponse.builder().message("Success").build();
-        when(minioService.uploadImageToMinio(any(), any())).thenReturn(response);
+        when(minioService.uploadNotificationImageToMinio(any(), any())).thenReturn(response);
 
         // When & Then
         mockMvc.perform(multipart("/api/v1/minio/upload")
@@ -283,7 +292,7 @@ class MinioControllerTest {
         );
 
         DefaultResponse response = DefaultResponse.builder().message("Success").build();
-        when(minioService.uploadImageToMinio(any(), any())).thenReturn(response);
+        when(minioService.uploadNotificationImageToMinio(any(), any())).thenReturn(response);
 
         // When & Then
         mockMvc.perform(multipart("/api/v1/minio/upload")
@@ -325,7 +334,7 @@ class MinioControllerTest {
         );
 
         DefaultResponse response = DefaultResponse.builder().message("Success").build();
-        when(minioService.uploadImageToMinio(any(), any())).thenReturn(response);
+        when(minioService.uploadNotificationImageToMinio(any(), any())).thenReturn(response);
 
         // When
         mockMvc.perform(multipart("/api/v1/minio/upload")
@@ -334,7 +343,7 @@ class MinioControllerTest {
                 .andExpect(status().isOk());
 
         // Then
-        verify(minioService, times(1)).uploadImageToMinio(any(), any());
+        verify(minioService, times(1)).uploadNotificationImageToMinio(any(), any());
     }
 
     @Test
@@ -360,7 +369,7 @@ class MinioControllerTest {
         );
 
         DefaultResponse response = DefaultResponse.builder().message("Success").build();
-        when(minioService.uploadImageToMinio(any(), any())).thenReturn(response);
+        when(minioService.uploadNotificationImageToMinio(any(), any())).thenReturn(response);
 
         // When & Then
         mockMvc.perform(multipart("/api/v1/minio/upload")
@@ -377,7 +386,7 @@ class MinioControllerTest {
         );
 
         DefaultResponse response = DefaultResponse.builder().message("Success").build();
-        when(minioService.uploadImageToMinio(any(), any())).thenReturn(response);
+        when(minioService.uploadNotificationImageToMinio(any(), any())).thenReturn(response);
 
         // When & Then
         mockMvc.perform(multipart("/api/v1/minio/upload")
@@ -394,7 +403,7 @@ class MinioControllerTest {
         );
 
         DefaultResponse response = DefaultResponse.builder().message("Success").build();
-        when(minioService.uploadImageToMinio(any(), any())).thenReturn(response);
+        when(minioService.uploadNotificationImageToMinio(any(), any())).thenReturn(response);
 
         // When & Then
         mockMvc.perform(multipart("/api/v1/minio/upload")
@@ -411,7 +420,7 @@ class MinioControllerTest {
         );
 
         DefaultResponse response = DefaultResponse.builder().message("Success").build();
-        when(minioService.uploadImageToMinio(any(), any())).thenReturn(response);
+        when(minioService.uploadNotificationImageToMinio(any(), any())).thenReturn(response);
 
         // When & Then
         mockMvc.perform(multipart("/api/v1/minio/upload")
