@@ -17,7 +17,7 @@ import { getAuthData } from "@/lib/auth/server";
 // Panel with device info and image
 function DeviceInfoPanel({ device }: { device: DeviceEntitySimple }) {
   return (
-    <Card>
+    <Card className="h-full">
       <CardHeader>
         <CardTitle>Device Info</CardTitle>
         <WeatherStats deviceId={device.id} />
@@ -52,6 +52,7 @@ function DeviceInfoPanel({ device }: { device: DeviceEntitySimple }) {
         </div>
         <div className="mt-4">
           <Image
+            loading="lazy"
             src={`/devices/prototype.jpg`}
             alt={`${device.deviceName} placeholder`}
             width={300}
@@ -76,27 +77,35 @@ export default async function DeviceDashboard({ device }: DeviceDashboardProps) 
     <div className="flex flex-col gap-4 p-4">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Device Info */}
-        <div className="lg:col-span-1">
+        <div className="lg:col-span-1 mt-auto h-full">
           <DeviceInfoPanel device={device} />
         </div>
 
         {/* Live Feed */}
-        <div className="lg:col-span-2">
-          <Card>
+        <div className="lg:col-span-2 h-full overflow-hidden">
+          <Card className="h-full flex flex-col overflow-hidden">
             <CardHeader>
               <CardTitle>Live Feed - {device.deviceName}</CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="flex flex-col md:flex-row justify-center items-center md:items-start gap-4">
+
+            <CardContent className="flex-1 flex">
+              <div className="
+                flex
+                flex-col
+                md:flex-row
+                justify-center
+                items-center
+                gap-4
+                w-full
+              ">
                 <VideoPreviewPanel deviceId={device.id} />
                 <AudioRecorder deviceId={device.id} token={token} />
               </div>
             </CardContent>
 
-
-
           </Card>
         </div>
+
       </div>
 
       {/* Notifications */}

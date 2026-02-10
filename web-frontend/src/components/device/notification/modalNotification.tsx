@@ -45,13 +45,14 @@ export default function ModalNotification({
         </DialogHeader>
         
         {imageUrls && imageUrls.length > 0 && (
-          <div className="mt-4 grid grid-cols-2 gap-3">
+          
+          <div className="mt-4 grid grid-cols-1 gap-3 centered">
             {imageUrls.map((url, index) => (
               <img
                 key={index}
                 src={url}
                 alt={`notification-image-${index}`}
-                className="rounded-md object-cover w-full h-32"
+                className="rounded-md object-cover w-full"
               />
             ))}
           </div>

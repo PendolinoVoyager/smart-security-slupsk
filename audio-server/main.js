@@ -4,6 +4,7 @@ const http = require('http');
 const HOST = process.env.HOST || '0.0.0.0';
 const PORT = Number(process.env.PORT || 8088);
 const BACKEND_URL = process.env.BACKEND_URL || 'http://127.0.0.1:8080';
+const DEVICE_TOKENS_ARE_IDS = process.env.DEVICE_TOKENS_ARE_IDS || false;
 
 const users = new Map();
 const devices = new Map();
@@ -15,7 +16,7 @@ function checkDeviceBusy(deviceId) {
     return !!devices.get(deviceId)?.busy;
 
 }
-module.exports = {checkDeviceBusy, checkDeviceConnected, users, devices}
+module.exports = {checkDeviceBusy, checkDeviceConnected, users, devices, BACKEND_URL, DEVICE_TOKENS_ARE_IDS}
 
 const { handleUserConnection } = require("./handleUser");
 const { handleDeviceConnection } = require("./handleDevice");
@@ -32,8 +33,8 @@ wss.on("connection", (ws, req) => {
             handleUserConnection(ws, req);
         }
         catch (err) {
-            console.error(err);
-            ws.close(1002, err);
+            console.error(err.message);
+            ws.close(1002, err.message);
         }
     }
     else if (req.url.startsWith("/audio-server/v1/device")) {
@@ -41,8 +42,8 @@ wss.on("connection", (ws, req) => {
             handleDeviceConnection(ws, req);
         }
         catch (err) {
-            console.error(err);
-            ws.close(1002, err);
+            console.error(err.message);
+            ws.close(1002, err.message);
         }
     }
     else {
@@ -59,4 +60,6 @@ wss.on("error", () => {
 
 server.listen(PORT, HOST, () => {
   console.log(`Audio server running on host ${HOST} and port ${PORT}`);
+}).on("error", (err) => {
+    console.error("Server error:", err);
 });

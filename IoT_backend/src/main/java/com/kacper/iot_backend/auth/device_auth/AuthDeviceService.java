@@ -89,4 +89,11 @@ public class AuthDeviceService
                 .refreshedAccessToken(deviceToken)
                 .build();
     }
+    
+    public Integer checkDeviceTokenValidAndReturnId(String authorizationHeader) {
+        String deviceUUID = jwtService.extractDeviceUUID(authorizationHeader.substring(7));
+        Device device = deviceService.getByUuid(deviceUUID);
+        return device.getId();
+
+    }
 }

@@ -35,7 +35,8 @@ public class SecurityConfig {
                     .requestMatchers(
                         "/api/v1/faces/ai-service/**",
                         "/api/v1/minio/upload",
-                        "/api/v1/notification/ai-service"
+                        "/api/v1/notification/ai-service",
+                        "/api/v1/auth/audio-server"
                     ).permitAll()
 
                     // Public endpoints
@@ -43,6 +44,7 @@ public class SecurityConfig {
                         "/api/v1/auth/register",
                         "/api/v1/auth/login",
                         "/api/v1/auth/device",
+                        "/api/v1/auth/device/audio-server",
                         "/api/v1/activation-token/verify",
                         "/api/v1/reset-password-token/send",
                         "/api/v1/reset-password-token/reset",

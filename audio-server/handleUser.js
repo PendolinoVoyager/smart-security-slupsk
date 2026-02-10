@@ -1,4 +1,4 @@
-const {checkDeviceBusy, checkDeviceConnected, devices, users} = require("./main")
+const {checkDeviceBusy, checkDeviceConnected, devices, users, BACKEND_URL} = require("./main")
 
 /**
  * Only construct this if you're sure the device with corresponding id is owned by the user.
@@ -10,11 +10,37 @@ class UserConnection {
     }
 }
 
-function authenticateUser(token) {
-    return true;
-}
-function checkDeviceOwnership(userId, deviceId) {
-    return true;
+/**
+ * returns email if valid, otherwise throws error
+ */
+/**
+ * returns email if valid, otherwise throws error
+ */
+function authenticateUser(token, deviceId) {
+    return fetch(BACKEND_URL + "/api/v1/auth/audio-server", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            token,
+            deviceId
+        })
+    })
+    .then(res => {
+        if (!res.ok) {
+            throw new Error("Failed to authenticate user: " + res.status);
+        }
+        return res.json(); // IMPORTANT
+    })
+    .then(data => {
+
+        if (!data.valid || !data.email) {
+            throw new Error("Invalid response");
+        }
+
+        return data.email;
+    });
 }
 
 /**
@@ -22,50 +48,62 @@ function checkDeviceOwnership(userId, deviceId) {
  * - token
  * - deviceId
  */
-module.exports.handleUserConnection = function(ws, req) {
-    const params = new URL("ws://localhost" + req.url).searchParams;
-    const token = params.get("token");
-    const deviceId = Number.parseInt(params.get("deviceId"));
+module.exports.handleUserConnection = function (ws, req) {
+    try {
+        const params = new URL("ws://localhost" + req.url).searchParams;
+        const token = params.get("token");
+        const deviceId = Number.parseInt(params.get("deviceId"), 10);
 
-    if (!token) {
-        throw new Error("please provide token in query params");
+        if (!token) {
+            throw new Error("please provide token in query params");
+        }
+        if (!Number.isInteger(deviceId)) {
+            console.debug("Wrong device id:", deviceId);
+            throw new Error("Wrong deviceId");
+        }
+
+        console.debug("User trying to connect to device " + deviceId);
+
+        authenticateUser(token, deviceId)
+            .then(email => {
+                console.debug("User authenticated with email:", email);
+
+                if (!checkDeviceConnected(deviceId)) {
+                    throw new Error("Cannot send audio - device not connected to audio server.");
+                }
+
+                if (checkDeviceBusy(deviceId)) {
+                    throw new Error("Cannot send audio - device is already receiving audio.");
+                }
+
+                const connection = new UserConnection(deviceId, email);
+                users.set(email, connection);
+
+                const deviceConnection = devices.get(deviceId);
+                deviceConnection.busy = true;
+
+                ws.on("message", (msg) => {
+                    deviceConnection.ws.send(msg, (err) => {
+                        if (err) {
+                            ws.close(1008, "device disconnected: " + err);
+                        }
+                    });
+                });
+
+                ws.on("close", () => {
+                    deviceConnection.busy = false;
+                    console.log(`User ${email} disconnected.`)
+                    users.delete(email);
+                });
+            })
+            .catch(err => {
+                console.error("Authentication / connection failed:", err);
+                ws.close(1008, err.message);
+            });
+
+    } catch (err) {
+        // synchronous errors (bad params, etc.)
+        console.error("Connection setup error:", err);
+        ws.close(1008, err.message);
     }
-    if (!deviceId || !Number.isInteger(deviceId)) {
-        console.debug("Wrong device id: " + deviceId)
-        throw new Error("Wrong deviceId");
-    }
-    if (!authenticateUser(token)) {
-        throw new Error("Failed to authenticate user.");
-    }
-
-    const userId = 10;
-
-
-    if (!checkDeviceOwnership(userId, deviceId)) {
-        throw new Error ("User does not own this device.");
-    }
-
-    if (!checkDeviceConnected(deviceId)) {
-        throw new Error("Cannot send audio - device not connected to audio server.");
-    }
-
-    if (checkDeviceBusy(deviceId)) {
-        throw new Error("Cannot send audio - device is already receiving audio.")
-    }
-
-    const connection = new UserConnection(deviceId, userId);
-    users.set(userId, connection);
-    const deviceConnection = devices.get(deviceId);
-    deviceConnection.busy = true;
-
-    ws.on("message", (msg) => {
-        deviceConnection.ws.send(msg, (err) => {
-            err && ws.close(1008, "device disconnected: " + err);
-        });
-
-    });
-    ws.on("close", () => {
-        deviceConnection.busy = false;
-        users.delete(userId);
-    });
-}
+};

@@ -1,7 +1,9 @@
 package com.kacper.iot_backend.auth.device_auth;
 
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+
 
 import java.util.logging.Logger;
 
@@ -29,6 +31,14 @@ public class AuthDeviceController
     ) {
         return authDeviceService.refreshDeviceToken(authorizationHeader, authDeviceRefreshRequest);
     }
+
+    @PostMapping("/device/audio-server")
+        public ResponseEntity<?>checkDeviceTokenValid(
+                @RequestHeader("Authorization") String authorizationHeader
+        ) {
+            return ResponseEntity.ok(authDeviceService.checkDeviceTokenValidAndReturnId(authorizationHeader));
+        }
+
 
 
 }

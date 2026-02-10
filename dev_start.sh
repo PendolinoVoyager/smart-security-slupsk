@@ -48,8 +48,7 @@ tmux send-keys "cd streaming-server && docker compose -f compose.dev.yaml up -d 
 
 tmux select-pane -t 3
 
-tmux send-keys "cd audio-server && PORT=8888 npm run dev" C-m 
-
+tmux send-keys "cd audio-server && DEVICE_TOKENS_ARE_IDS=true PORT=8888 npm run dev" C-m 
 
 tmux select-pane -t 4
 

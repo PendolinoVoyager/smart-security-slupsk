@@ -1,6 +1,7 @@
 package com.kacper.iot_backend.auth;
 
 import jakarta.mail.MessagingException;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,11 +35,12 @@ public class AuthController
         return authService.login(authLoginRequest);
     }
 
-    /// Shit endpoint - dont use pls
-    @GetMapping("is-token-valid")
-    public ResponseEntity<IsTokenValidResponse> isTokenValid(@Valid @RequestBody IsTokenValidRequest isTokenValidRequest) {
-        boolean isValid = authService.isTokenValid(isTokenValidRequest);
-        IsTokenValidResponse response = new IsTokenValidResponse(isValid);
-        return ResponseEntity.ok(response);
+    @PostMapping("/audio-server")
+    public ResponseEntity<AudioServerAuthUserResponse> isAudioServerUserValid(
+        HttpServletRequest servletRequest,
+        @Valid @RequestBody AudioServerAuthUserRequest request) {
+        String ipAddr = servletRequest.getRemoteAddr();
+        return ResponseEntity.ok(authService.checkUserValidForServiceAndCheckOwnership(ipAddr, request));
+        
     }
 }

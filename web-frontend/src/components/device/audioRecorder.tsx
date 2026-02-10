@@ -19,7 +19,7 @@ export default function AudioRecorder({deviceId, token}: {deviceId: number, toke
       wsRef.current = ws;
 
       ws.onopen = async () => {
-      
+        let sentFirstChunk = false;
         // Get microphone access
         const stream = await navigator.mediaDevices.getUserMedia({ 
           audio: {
@@ -39,26 +39,35 @@ export default function AudioRecorder({deviceId, token}: {deviceId: number, toke
 
         // Send audio chunks as they're available
         mediaRecorder.ondataavailable = (event) => {
+          if (!sentFirstChunk && ws.readyState === WebSocket.OPEN) {
+            setStatus('Transmitting...');
+            setIsRecording(true);
+            sentFirstChunk = true;
+          }
           if (event.data.size > 0 && ws.readyState === WebSocket.OPEN) {
             ws.send(event.data);
           }
         };
-
+        
         // Start recording with chunks every 100ms
         mediaRecorder.start(100);
-        setIsRecording(true);
-        setStatus('Transmitting...');
+
       };
 
-      ws.onerror = () => {
+      ws.onerror = (e) => {
+        console.error(e);
         stopRecording();
         setStatus('Connection error');
       };
 
-      ws.onclose = () => {
-        if (isRecording) {
-          stopRecording();
-          setStatus('Connection lost');
+      ws.onclose = (c) => {
+        console.debug('WebSocket closed:', c);
+        stopRecording();
+        if (c.code !== 1000 && c.code !== 1005 ) { // 1000 means normal closure
+          setStatus('Connection lost: ' + (c.reason || 'unknown reason'));
+        }
+        else {
+          setStatus('Ready');
         }
       };
 
@@ -69,8 +78,8 @@ export default function AudioRecorder({deviceId, token}: {deviceId: number, toke
   };
 
   const stopRecording = () => {
-      if (mediaRecorderRef.current) {
-        mediaRecorderRef.current.stop();
+    if (mediaRecorderRef.current) {
+      mediaRecorderRef.current.stop();
       
       // Stop all tracks
       mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
@@ -81,12 +90,13 @@ export default function AudioRecorder({deviceId, token}: {deviceId: number, toke
     }
 
     setIsRecording(false);
-    setStatus('Stopped');
+  
   };
 
   const toggleRecording = () => {
     if (isRecording) {
       stopRecording();
+      setStatus('Ready');
     } else {
       startRecording();
     }
