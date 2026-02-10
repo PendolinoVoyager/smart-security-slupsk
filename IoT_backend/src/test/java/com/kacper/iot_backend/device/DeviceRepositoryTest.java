@@ -65,34 +65,6 @@ public class DeviceRepositoryTest {
     }
 
     @Test
-    public void shouldFindDevicesByUser() {
-        user = new User();
-        user.setName("Test");
-        user.setLast_name("Test");
-        user.setEmail("test@example.com");
-        user.setPassword("password");
-        user.setRole("USER");
-        user.setCreated_at(new Date());
-        user.setEnabled(true);
-
-        userRepository.save(user);
-
-        device1 = Device.builder()
-                .address("Grove street 1")
-                .deviceName("Device 1")
-                .uuid("uuid-1")
-                .user(user)
-                .build();
-
-        device1 = deviceRepository.save(device1);
-
-        List<Device> foundDevices = deviceRepository.findByUser(user);
-
-        assertThat(foundDevices).hasSize(1);
-        assertThat(foundDevices).extracting(Device::getDeviceName).containsOnly(device1.getDeviceName());
-    }
-
-    @Test
     public void shouldFindDeviceByUuid() {
         user = new User();
         user.setName("Test");

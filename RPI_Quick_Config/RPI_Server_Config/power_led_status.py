@@ -82,6 +82,10 @@ def start_http_server():
 
 
 def connect_to_config_network():
+    """
+    On startup (when NOT configured), bring up IoT-Config if it's not already active.
+    Do NOT disconnect other Wi-Fi networks here — user may switch later.
+    """
     try:
         result = subprocess.run(
             ["nmcli", "-t", "-f", "NAME,DEVICE", "connection", "show", "--active"],
@@ -97,9 +101,6 @@ def connect_to_config_network():
                 conn_name, device = parts
                 if conn_name == "IoT-Config":
                     print("Network 'IoT-Config' already active – skipping.")
-                    return
-                elif conn_name != "IoT-Config" and device.startswith("wl"):
-                    print(f"Connected to another Wi-Fi network ({conn_name}) – not starting IoT-Config.")
                     return
 
         print("Attempting to connect to 'IoT-Config'...")
@@ -181,6 +182,7 @@ def monitor_config_with_watchdog():
     observer.schedule(handler, path=os.path.dirname(CONFIG_FILE_PATH) or ".", recursive=False)
     observer.start()
 
+    # Apply state once on startup (this is where IoT-Config is brought up when NOT configured)
     apply_config_state()
 
     try:
