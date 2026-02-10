@@ -2,23 +2,30 @@ package com.kacper.iot_backend.auth;
 
 import com.kacper.iot_backend.activation_token.ActivationToken;
 import com.kacper.iot_backend.activation_token.ActivationTokenService;
-import com.kacper.iot_backend.exception.BadRequestYoloException;
+import com.kacper.iot_backend.device.Device;
+import com.kacper.iot_backend.device.DeviceRepository;
+import com.kacper.iot_backend.exception.DeviceOwnerMismatchException;
 import com.kacper.iot_backend.exception.InvalidTokenException;
+import com.kacper.iot_backend.exception.ResourceNotFoundException;
 import com.kacper.iot_backend.exception.WrongLoginCredentialsException;
 import com.kacper.iot_backend.jwt.JWTService;
 import com.kacper.iot_backend.mail.MailService;
 import com.kacper.iot_backend.user.CustomUserDetailsService;
 import com.kacper.iot_backend.user.User;
 import com.kacper.iot_backend.user.UserService;
+
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.MalformedJwtException;
 import jakarta.mail.MessagingException;
 
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
-import java.util.Objects;
 
 
 @Service
@@ -30,13 +37,17 @@ public class AuthService
     private final UserService userService;
     private final ActivationTokenService activationTokenService;
     private final CustomUserDetailsService customUserDetailsService;
+    private final DeviceRepository deviceRepository;
 
+    @Value("${security.allowed-ips}")
+    private List<String> allowedIps;
 
     public AuthService(
             JWTService jwtService,
             AuthenticationManager authenticationManager,
             MailService mailService,
-            UserService userService, ActivationTokenService activationTokenService, CustomUserDetailsService customUserDetailsService
+            UserService userService, ActivationTokenService activationTokenService, CustomUserDetailsService customUserDetailsService,
+            DeviceRepository deviceRepository
     ) {
         this.jwtService = jwtService;
         this.authenticationManager = authenticationManager;
@@ -44,8 +55,12 @@ public class AuthService
         this.userService = userService;
         this.activationTokenService = activationTokenService;
         this.customUserDetailsService = customUserDetailsService;
+        this.deviceRepository = deviceRepository;
     }
 
+    public Boolean isAllowedServiceIp(String ip) {
+        return allowedIps.contains(ip);
+    }
     public AuthRegistrationResponse register(
             AuthRegistrationRequest authRegistrationRequest
     ) throws MessagingException {
@@ -101,31 +116,29 @@ public class AuthService
         }
     }
 
-    public boolean isTokenValid(IsTokenValidRequest isTokenValidRequest) {
-        var tokenType = isTokenValidRequest.tokenType();
-
-        var userDetails = customUserDetailsService.loadUserByUsername(
-                jwtService.extractUsername(isTokenValidRequest.token())
-        );
-
-        if (tokenType.equals("Device")) {
-            var isDeviceToken = jwtService.isDeviceToken(isTokenValidRequest.token());
-            if (!isDeviceToken) {
-                throw new BadRequestYoloException("TokenType was set to Device but provided token is not a device token");
-            }
-
-            var user = userService.getUserOrThrow(userDetails.getUsername());
-            var devices = user.getDevices();
-            var deviceUuidFromToken = jwtService.extractDeviceUUID(isTokenValidRequest.token());
-
-            var doesDeviceBelongsToUser = devices.stream()
-                    .anyMatch(x -> Objects.equals(x.getUuid(), deviceUuidFromToken));
-
-            if (!doesDeviceBelongsToUser) {
-                throw new BadRequestYoloException("Device token does not belong to any of the user's devices");
-            }
+    public AudioServerAuthUserResponse checkUserValidForServiceAndCheckOwnership(String ipAddr, AudioServerAuthUserRequest request) {
+        if (!isAllowedServiceIp(ipAddr)) {
+            throw new ResourceNotFoundException("Service not found");
         }
-
-        return jwtService.isTokenValid(isTokenValidRequest.token(), userDetails);
+        Claims claims = null;
+        try {
+            claims = jwtService.extractAllClaims(request.token());
+        }
+        catch (MalformedJwtException e) {
+            throw new InvalidTokenException("Invalid token");
+        }
+        if (claims == null) {
+            throw new InvalidTokenException("Invalid token");
+        }
+        User user = userService.getUserOrThrow(claims.getSubject());
+        Device device = deviceRepository.findById(request.deviceId()).orElseThrow(() -> new ResourceNotFoundException("Device not found"));
+        if (!device.getUser().equals(user)) {
+            throw new DeviceOwnerMismatchException("User does not own this device.");
+        }
+        return AudioServerAuthUserResponse.builder()
+                .valid(true)
+                .email(claims.getSubject())
+                .build();
     }
+
 }

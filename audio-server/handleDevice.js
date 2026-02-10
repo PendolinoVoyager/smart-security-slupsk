@@ -1,4 +1,4 @@
-const {checkDeviceConnected, devices} = require("./main")
+const {checkDeviceConnected, devices, DEVICE_TOKENS_ARE_IDS, BACKEND_URL} = require("./main")
 
 class DeviceConnection {
     constructor(deviceId, ws) {
@@ -9,8 +9,18 @@ class DeviceConnection {
     
 }
 
-function authenticateDevice(token) {
-    return true;
+async function authenticateDevice(token) {
+    const res = await fetch(BACKEND_URL + "/api/v1/auth/device/audio-server", {
+        method: "POST",
+        headers: {
+            "Authorization": "Bearer: " + token
+        }
+    });
+    if (!res.ok) {
+        throw new Error("Cannot authorize: " + res.status);
+    }
+    const id = await res.text();
+    return Number.parseInt(id, 10);
 }
 /**
  * Params required for device to send in first connection:
@@ -21,21 +31,28 @@ module.exports.handleDeviceConnection = function(ws, req) {
 
     const params = new URL("ws://localhost" + req.url).searchParams;
     const token = params.get("token");
-    const deviceId = Number.parseInt(params.get("deviceId"));
 
     if (!token) {
         throw new Error("please provide token in query params");
     }
-    if (!deviceId || !Number.isInteger(deviceId)) {
-        console.debug("Wrong device id: " + deviceId)
-        throw new Error("Wrong deviceId");
+    if (DEVICE_TOKENS_ARE_IDS) {
+        const deviceId = Number.parseInt(token, 10);
+        _handleConnectionAfterAuth(deviceId, ws);
+    }
+    else {
+        authenticateDevice(token).then(deviceId => {
+            _handleConnectionAfterAuth(deviceId, ws);
+        }).catch(err => {
+            console.error(err.message);
+            ws.close(1002, "Unauthorized: " + err.message);
+        });
     }
 
-    if (!authenticateDevice(token)) {
-        throw new Error("Failed to authenticate device");
-    }
+}
 
-    if (checkDeviceConnected(deviceId)) {
+function _handleConnectionAfterAuth(deviceId, ws) {
+    console.log("Device " + deviceId + " connected.");
+     if (checkDeviceConnected(deviceId)) {
         throw new Error("Device already connected");
     }
 

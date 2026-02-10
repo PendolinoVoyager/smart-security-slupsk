@@ -32,7 +32,7 @@ export default async function RootLayout({
           <header className="border-b p-4">
             <MainNav isLoggedIn={isLoggedIn} />
           </header>
-          <main className="container mx-auto p-6 background">{children}</main>
+          <main className="container mx-auto p-0 background md:px-6">{children}</main>
           <OnScreenNotification />
           <Toaster />
         </NotificationProvider>
