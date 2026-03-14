@@ -243,7 +243,7 @@ def authenticate_device(devices: List[Device], selected_device: Optional[int], b
     email = input("Enter account email: ").strip()
     password = input("Enter account password: ").strip()
 
-    auth_url = f"http://{backend_ip}:8080/api/v1/auth/device"
+    auth_url = f"http://18.184.29.75:8080/api/v1/auth/device"
     data = {"deviceUuid": device_uuid, "email": email, "password": password}
 
     try:
